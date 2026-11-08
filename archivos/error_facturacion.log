@@ -1,0 +1,8 @@
+2026-10-22 08:47:12 [INFO] FacturacionService - Iniciando emision de factura #F-88421 para cliente C-309
+2026-10-22 08:47:15 [WARN] DBConnectionPool - Conexion lenta hacia db-facturacion.internal:5432 (3200 ms)
+2026-10-22 08:47:45 [ERROR] DBConnectionPool - Timeout esperando conexion libre tras 30000 ms
+2026-10-22 08:47:45 [ERROR] FacturacionController - HTTP 500 Internal Server Error en POST /api/facturas/emitir
+java.sql.SQLTransientConnectionException: db-facturacion - Connection is not available, request timed out after 30000ms.
+    at com.techsupport.facturacion.db.Pool.getConnection(Pool.java:142)
+    at com.techsupport.facturacion.service.FacturacionService.emitir(FacturacionService.java:88)
+2026-10-22 08:48:02 [CRITICAL] HealthCheck - Servicio de facturacion degradado: 0 conexiones disponibles en el pool.

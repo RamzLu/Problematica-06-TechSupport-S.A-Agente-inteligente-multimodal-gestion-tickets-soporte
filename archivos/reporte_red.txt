@@ -1,0 +1,9 @@
+Usuario: Martin Perez (u002)
+Sector: Administracion - Piso 3
+Equipo: PC-ADM-14
+
+Desde hoy a las 10:00 se corta internet cada 5 minutos en todas las PCs del piso 3.
+Ejecute ping al router interno (192.168.3.1) y devuelve:
+   Paquetes enviados = 20, recibidos = 9, perdidos = 11 (55% perdidos).
+El switch del rack del piso 3 tiene el LED del puerto 1 parpadeando en color ambar.
+No podemos acceder al sistema contable ni a las carpetas compartidas.
