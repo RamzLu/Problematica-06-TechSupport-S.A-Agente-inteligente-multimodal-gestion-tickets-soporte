@@ -311,7 +311,7 @@
       background: #f1f5f9;
       border: 1px solid var(--border);
       color: #334155;
-      padding: 4px 9px;
+      padding: 4px 10px;
       border-radius: 999px;
       font-size: 0.76rem;
       cursor: pointer;
@@ -328,7 +328,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
-      height: 380px;
+      height: 390px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -338,9 +338,16 @@
       padding: 10px 12px;
       border-radius: 8px;
       font-size: 0.9rem;
-      line-height: 1.45;
+      line-height: 1.48;
       white-space: pre-wrap;
       word-break: break-word;
+    }
+    .msg code {
+      background: rgba(15, 23, 42, 0.07);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.83rem;
+      font-family: monospace;
     }
     .msg-user {
       background: var(--user-bg);
@@ -378,7 +385,7 @@
       border: 1px solid #d8b4fe;
       border-radius: 4px;
       padding: 2px 6px;
-      font-size: 0.73rem;
+      font-size: 0.72rem;
       font-family: monospace;
     }
 
@@ -394,6 +401,18 @@
       gap: 8px;
       font-size: 0.82rem;
     }
+    .active-attachment-pill {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
 
     /* TABLE */
     .filter-bar {
@@ -404,7 +423,7 @@
     }
     .table-wrap {
       overflow-x: auto;
-      max-height: 310px;
+      max-height: 320px;
       overflow-y: auto;
       border: 1px solid var(--border-light);
       border-radius: 8px;
@@ -546,7 +565,7 @@
         <span>TechSupport S.A.</span>
         <span id="vistaActualBadge" class="badge rol-usuario hidden"></span>
       </h1>
-      <span class="brand-sub">Agente Inteligente Multimodal (qwen3.5:4b Vision + Tools + ChromaDB)</span>
+      <span class="brand-sub" id="headerSubtitulo">Mesa de Ayuda y Gestion Inteligente de Incidencias</span>
     </div>
     <div id="headerSessionArea" class="header-right hidden">
       <div class="user-session-pill" id="badgeUsuarioActivo"></div>
@@ -580,10 +599,9 @@
     </section>
 
     <section class="login-card">
-      <h2>Cuentas de Demostracion (Criterio 12)</h2>
+      <h2>Acceso Rapido para Pruebas</h2>
       <p>
-        Seleccione una credencial preconfigurada del dataset para probar las dos vistas diferenciadas
-        (las contrasenas se verifican mediante hash criptografico <code>PBKDF2-SHA256</code>):
+        Seleccione un perfil preconfigurado del dataset para ingresar con un clic y comparar lo que ve cada rol:
       </p>
 
       <div class="demo-group-title">Equipo de Soporte Tecnico (Vista Consola TI)</div>
@@ -603,28 +621,28 @@
         <div id="bannerSubtitulo" style="font-size:0.82rem; margin-top:2px;"></div>
       </div>
       <div class="toolbar">
-        <button type="button" class="btn-secondary btn-sm" id="btnNuevaSesion">Reiniciar conversacion IA</button>
-        <button type="button" class="btn-secondary btn-sm" id="btnRefrescarTodo">Actualizar datos</button>
+        <button type="button" class="btn-secondary btn-sm" id="btnNuevaSesion">Nueva conversacion</button>
+        <button type="button" class="btn-secondary btn-sm" id="btnRefrescarTodo">Actualizar</button>
       </div>
     </div>
 
     <!-- SECCION EXCLUSIVA SOPORTE: DASHBOARD DE RESUMEN (F12) -->
     <section id="soporteResumenSection" class="card hidden">
       <h2>
-        <span>Resumen Ejecutivo de Incidencias de la Organizacion (F12)</span>
+        <span>Resumen Ejecutivo de Incidencias de la Organizacion</span>
         <span id="kpiTotalTickets" class="badge rol-soporte"></span>
       </h2>
       <div class="kpi-grid">
         <div class="kpi-box">
-          <h3>Por Prioridad (F06)</h3>
+          <h3>Por Prioridad</h3>
           <div id="kpiPorPrioridad" class="kpi-chips"></div>
         </div>
         <div class="kpi-box">
-          <h3>Por Estado (F08)</h3>
+          <h3>Por Estado</h3>
           <div id="kpiPorEstado" class="kpi-chips"></div>
         </div>
         <div class="kpi-box">
-          <h3>Por Categoria (F05)</h3>
+          <h3>Por Categoria</h3>
           <div id="kpiPorCategoria" class="kpi-chips"></div>
         </div>
         <div class="kpi-box">
@@ -637,22 +655,29 @@
     <div class="grid-main">
       <!-- COLUMNA IZQUIERDA: CHAT MULTIMODAL ADAPTADO AL ROL -->
       <section class="card">
-        <h2 id="tituloChatCard">Asistente Inteligente Multimodal</h2>
+        <h2 id="tituloChatCard">Asistente de Soporte Tecnico</h2>
 
         <div class="quick-prompts" id="quickPromptsContainer"></div>
 
         <div id="chatLog"></div>
 
         <form id="chatForm" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-          <textarea id="mensajeInput" rows="3" placeholder="Escribe tu consulta o reporta un inconveniente en lenguaje natural..."></textarea>
+          <textarea id="mensajeInput" rows="3" placeholder="Escribe tu consulta o describe el problema que necesitas resolver..."></textarea>
 
           <div class="attachment-bar">
             <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
-              <label for="archivoInput" style="font-weight:600; color:var(--muted);">Subir archivo (.png, .jpg, .webp, .txt, .log):</label>
+              <label for="archivoInput" style="font-weight:600; color:var(--muted);">Adjuntar captura o log (.png, .jpg, .webp, .txt, .log):</label>
               <input type="file" id="archivoInput" accept=".png,.jpg,.jpeg,.webp,.txt,.log" />
             </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <label for="archivoServidorSelect" style="color:var(--muted);">O usar archivo de prueba:</label>
+
+            <!-- Indicador de archivo precargado o selector de soporte -->
+            <div id="chipArchivoPrecargado" class="active-attachment-pill hidden">
+              <span id="nombreArchivoPrecargado"></span>
+              <button type="button" id="btnQuitarPrecargado" class="btn-sm" style="background:transparent; color:#1e40af; padding:0 4px;">✕</button>
+            </div>
+
+            <div id="contenedorArchivoServidorSoporte" class="hidden" style="display:flex; align-items:center; gap:6px;">
+              <label for="archivoServidorSelect" style="color:var(--muted);">Repositorio de logs/capturas:</label>
               <select id="archivoServidorSelect">
                 <option value="">-- Ninguno --</option>
               </select>
@@ -661,7 +686,7 @@
 
           <div class="toolbar">
             <span id="estadoEnvio" style="font-size:0.84rem; color:var(--primary); font-weight:600;"></span>
-            <button type="submit" class="btn-primary" id="btnEnviar">Enviar al Agente</button>
+            <button type="submit" class="btn-primary" id="btnEnviar">Enviar mensaje</button>
           </div>
         </form>
       </section>
@@ -678,34 +703,26 @@
           <select id="filtroEstado">
             <option value="">Todos los estados</option>
           </select>
+          <select id="filtroResponsable" class="hidden">
+            <option value="">Todos (con y sin tecnico)</option>
+          </select>
           <select id="filtroPrioridad">
             <option value="">Todas las prioridades</option>
           </select>
           <select id="filtroCategoria">
             <option value="">Todas las categorias</option>
           </select>
-          <input type="text" id="filtroAreaInput" placeholder="Filtrar por area o texto..." style="flex:1; min-width:140px;" />
+          <input type="text" id="filtroAreaInput" placeholder="Buscar por titulo o #ID..." style="flex:1; min-width:140px;" />
         </div>
 
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Titulo</th>
-                <th>Area / Solicitante</th>
-                <th>Categoria</th>
-                <th>Prioridad</th>
-                <th>Estado</th>
-                <th>Responsable</th>
-                <th>Accion</th>
-              </tr>
-            </thead>
+            <thead id="theadTickets"></thead>
             <tbody id="tbodyTickets"></tbody>
           </table>
         </div>
 
-        <!-- PANEL DETALLE + ACCIONES POR ROL + HISTORIAL (F06, F08, F10, F11) -->
+        <!-- PANEL DETALLE + ACCIONES POR ROL + HISTORIAL -->
         <div id="panelDetalleTicket" class="ticket-detail-panel hidden">
           <div class="toolbar" style="margin-bottom:8px;">
             <h2 style="margin:0;" id="detalleTituloCabecera">Detalle del Ticket</h2>
@@ -716,10 +733,10 @@
 
           <div class="detail-grid" id="detalleCamposGrid"></div>
 
-          <!-- CONTROLES EXCLUSIVOS DE SOPORTE TI (F06, F08, Asignación) -->
+          <!-- CONTROLES EXCLUSIVOS DE SOPORTE TI -->
           <div id="controlesSoporteTicket" class="support-actions-panel hidden">
             <div class="action-group">
-              <label for="selectNuevoEstado">Cambiar Estado (F08)</label>
+              <label for="selectNuevoEstado">Cambiar Estado</label>
               <div style="display:flex; gap:4px;">
                 <select id="selectNuevoEstado"></select>
                 <button type="button" class="btn-soporte btn-sm" id="btnAplicarEstado">Actualizar</button>
@@ -727,7 +744,7 @@
             </div>
 
             <div class="action-group">
-              <label for="selectNuevaPrioridad">Revisar Prioridad (F06)</label>
+              <label for="selectNuevaPrioridad">Revisar Prioridad</label>
               <div style="display:flex; gap:4px;">
                 <select id="selectNuevaPrioridad"></select>
                 <button type="button" class="btn-soporte btn-sm" id="btnAplicarPrioridad">Cambiar</button>
@@ -739,19 +756,20 @@
               <div style="display:flex; gap:4px;">
                 <select id="selectNuevoResponsable"></select>
                 <button type="button" class="btn-soporte btn-sm" id="btnAplicarResponsable">Asignar</button>
+                <button type="button" class="btn-secondary btn-sm" id="btnAsignarmeAMi">Tomar yo</button>
               </div>
             </div>
           </div>
 
-          <!-- AGREGAR COMENTARIO (Tanto Usuario en sus tickets como Soporte en todos - F10) -->
+          <!-- AGREGAR COMENTARIO -->
           <form id="formAgregarComentario" style="display:flex; gap:8px; margin-bottom:12px;">
-            <input type="text" id="inputNuevoComentario" placeholder="Incorporar comentario o aclaracion al ticket (F10)..." style="flex:1;" required />
-            <button type="submit" class="btn-secondary btn-sm">Agregar comentario</button>
+            <input type="text" id="inputNuevoComentario" placeholder="Agregar un comentario o informacion adicional a este ticket..." style="flex:1;" required />
+            <button type="submit" class="btn-secondary btn-sm">Enviar comentario</button>
           </form>
 
-          <!-- LINEA DE TIEMPO DE TRAZABILIDAD (F11) -->
+          <!-- LINEA DE TIEMPO DE TRAZABILIDAD -->
           <strong style="font-size:0.8rem; color:var(--muted); text-transform:uppercase;">
-            Historial y Trazabilidad de Eventos (F11)
+            Historial de Actividad del Ticket
           </strong>
           <ul id="listaHistorialEventos" class="timeline"></ul>
         </div>
@@ -760,7 +778,6 @@
   </div>
 
   <script>
-    // Credenciales de demostración (en el servidor solo existen sus hashes PBKDF2-SHA256)
     const CREDENCIALES_DEMO = {
       s001: "Luana2026!",
       s002: "Viviana2026!",
@@ -785,7 +802,6 @@
     let ticketsCargados = [];
     let ticketSeleccionadoId = null;
 
-    // Referencias DOM
     const mainHeader = document.getElementById("mainHeader");
     const vistaActualBadge = document.getElementById("vistaActualBadge");
     const headerSessionArea = document.getElementById("headerSessionArea");
@@ -800,6 +816,8 @@
     const mensajeInput = document.getElementById("mensajeInput");
     const archivoInput = document.getElementById("archivoInput");
     const archivoServidorSelect = document.getElementById("archivoServidorSelect");
+    const chipArchivoPrecargado = document.getElementById("chipArchivoPrecargado");
+    const nombreArchivoPrecargado = document.getElementById("nombreArchivoPrecargado");
     const btnEnviar = document.getElementById("btnEnviar");
     const estadoEnvio = document.getElementById("estadoEnvio");
     const tbodyTickets = document.getElementById("tbodyTickets");
@@ -815,6 +833,51 @@
       span.textContent = texto;
       return span;
     }
+
+    // Formateador seguro de negritas (**texto**) y código (`texto`) usando nodos DOM (sin innerHTML)
+    function renderizarTextoFormateadoSeguro(contenedor, texto) {
+      contenedor.textContent = "";
+      const patron = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+      let ultimoIndice = 0;
+      let match;
+      const cadena = String(texto || "");
+
+      while ((match = patron.exec(cadena)) !== null) {
+        if (match.index > ultimoIndice) {
+          contenedor.appendChild(
+            document.createTextNode(cadena.slice(ultimoIndice, match.index))
+          );
+        }
+        const token = match[0];
+        if (token.startsWith("**") && token.endsWith("**")) {
+          const strong = document.createElement("strong");
+          strong.textContent = token.slice(2, -2);
+          contenedor.appendChild(strong);
+        } else if (token.startsWith("`") && token.endsWith("`")) {
+          const code = document.createElement("code");
+          code.textContent = token.slice(1, -1);
+          contenedor.appendChild(code);
+        }
+        ultimoIndice = patron.lastIndex;
+      }
+      if (ultimoIndice < cadena.length) {
+        contenedor.appendChild(document.createTextNode(cadena.slice(ultimoIndice)));
+      }
+    }
+
+    function actualizarChipArchivoPrecargado(nombre) {
+      archivoServidorSelect.value = nombre || "";
+      if (nombre) {
+        nombreArchivoPrecargado.textContent = `Adjunto listo: ${nombre}`;
+        chipArchivoPrecargado.classList.remove("hidden");
+      } else {
+        chipArchivoPrecargado.classList.add("hidden");
+      }
+    }
+
+    document.getElementById("btnQuitarPrecargado").addEventListener("click", () => {
+      actualizarChipArchivoPrecargado("");
+    });
 
     function mostrarAlertaTicket(mensaje, esError = false) {
       const box = document.getElementById("alertaOperacionTicket");
@@ -834,10 +897,12 @@
       div.appendChild(header);
 
       const body = document.createElement("div");
-      body.textContent = texto;
+      renderizarTextoFormateadoSeguro(body, texto);
       div.appendChild(body);
 
-      if (tools && tools.length > 0) {
+      // Las trazas de herramientas internas (tool-pill) solo se muestran al personal de Soporte TI
+      const esSoporte = usuarioActivo && usuarioActivo.rol === "soporte";
+      if (esSoporte && tools && tools.length > 0) {
         const tl = document.createElement("div");
         tl.className = "tool-list";
         for (const t of tools) {
@@ -901,7 +966,6 @@
       const r = await fetch("/catalogos");
       catalogos = await r.json();
 
-      // Poblar filtros
       const fEst = document.getElementById("filtroEstado");
       fEst.innerHTML = '<option value="">Todos los estados</option>';
       for (const e of catalogos.estados || []) {
@@ -929,7 +993,26 @@
         fCat.appendChild(opt);
       }
 
-      // Poblar archivos de prueba en el chat
+      const fResp = document.getElementById("filtroResponsable");
+      fResp.innerHTML = "";
+      const opcionesBaseResp = [
+        ["", "Todos (con y sin tecnico)"],
+        ["__sin_asignar__", "Sin tecnico asignado aun"],
+        ["__mios__", "Asignados a mi"]
+      ];
+      for (const [val, txt] of opcionesBaseResp) {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = txt;
+        fResp.appendChild(opt);
+      }
+      for (const s of catalogos.equipo_soporte || []) {
+        const opt = document.createElement("option");
+        opt.value = s.id;
+        opt.textContent = `Tecnico: ${s.nombre}`;
+        fResp.appendChild(opt);
+      }
+
       archivoServidorSelect.innerHTML = '<option value="">-- Ninguno --</option>';
       for (const arch of catalogos.archivos_disponibles || []) {
         const opt = document.createElement("option");
@@ -943,7 +1026,6 @@
       if (!usuarioActivo) return;
       const esSoporte = usuarioActivo.rol === "soporte";
 
-      // Header y colores
       mainHeader.classList.toggle("mode-soporte", esSoporte);
       vistaActualBadge.textContent = esSoporte ? "VISTA CONSOLA SOPORTE TI" : "VISTA PORTAL USUARIO";
       vistaActualBadge.className = `badge rol-${usuarioActivo.rol}`;
@@ -952,44 +1034,65 @@
 
       badgeUsuarioActivo.innerHTML = "";
       const txtUser = document.createElement("span");
-      txtUser.textContent = `${usuarioActivo.nombre} (${usuarioActivo.id}) · ${usuarioActivo.area}`;
+      txtUser.textContent = `${usuarioActivo.nombre} · ${usuarioActivo.area}`;
       badgeUsuarioActivo.appendChild(txtUser);
-      badgeUsuarioActivo.appendChild(crearBadge(usuarioActivo.rol.toUpperCase(), `rol-${usuarioActivo.rol}`));
+      badgeUsuarioActivo.appendChild(crearBadge(esSoporte ? "SOPORTE TI" : "USUARIO", `rol-${usuarioActivo.rol}`));
 
-      // Banner contextual
       const roleBanner = document.getElementById("roleBanner");
       roleBanner.className = `view-banner ${esSoporte ? "banner-soporte" : "banner-usuario"}`;
       document.getElementById("bannerTitulo").textContent = esSoporte
         ? `Consola Operativa de Soporte TI — ${usuarioActivo.organizacion}`
-        : `Portal de Autogestion de Soporte — Area: ${usuarioActivo.area} (${usuarioActivo.organizacion})`;
+        : `Portal de Autogestion de Soporte — Area: ${usuarioActivo.area}`;
       document.getElementById("bannerSubtitulo").textContent = esSoporte
-        ? "Como especialista de soporte puedes supervisar todas las areas de la organizacion, revisar prioridades propuestas, gestionar transiciones de estado y asignar responsables."
-        : "Reporta tus inconvenientes en lenguaje natural o con capturas/logs y realiza el seguimiento en vivo de tus solicitudes.";
+        ? "Supervisa todas las areas de la organizacion, revisa prioridades propuestas, gestiona transiciones de estado y asigna especialistas."
+        : "Describe tu inconveniente en el chat o adjunta una captura de pantalla para registrar un ticket y consultar el avance de tus solicitudes.";
 
-      // Mostrar/ocultar Resumen F12 y títulos
+      // Mostrar/ocultar Resumen F12, filtros exclusivos de soporte y cabeceras de tabla según el rol
       soporteResumenSection.classList.toggle("hidden", !esSoporte);
+      document.getElementById("contenedorArchivoServidorSoporte").classList.toggle("hidden", !esSoporte);
+      document.getElementById("filtroResponsable").classList.toggle("hidden", !esSoporte);
+      document.getElementById("filtroPrioridad").classList.toggle("hidden", !esSoporte);
+      document.getElementById("filtroCategoria").classList.toggle("hidden", !esSoporte);
+      document.getElementById("filtroAreaInput").placeholder = esSoporte
+        ? "Filtrar por area, solicitante o titulo..."
+        : "Buscar en mis tickets...";
+
+      const thead = document.getElementById("theadTickets");
+      thead.innerHTML = "";
+      const trHead = document.createElement("tr");
+      const columnas = esSoporte
+        ? ["ID", "Titulo", "Area / Solicitante", "Categoria", "Prioridad", "Estado", "Tecnico Asignado", "Accion"]
+        : ["Ticket", "Problema Reportado", "Estado", "Tecnico de Soporte Asignado", "Seguimiento"];
+      for (const col of columnas) {
+        const th = document.createElement("th");
+        th.textContent = col;
+        trHead.appendChild(th);
+      }
+      thead.appendChild(trHead);
+
       document.getElementById("tituloChatCard").textContent = esSoporte
         ? "Copiloto IA para Especialistas de Soporte"
-        : "Reportar Incidencia o Consultar al Agente (F01–F04)";
+        : "Asistente de Soporte Tecnico";
       document.getElementById("tituloTablaTickets").textContent = esSoporte
-        ? "Bandeja Global de Tickets de la Organizacion (F07–F11)"
-        : "Mis Solicitudes de Soporte Registradas (F07, F09)";
+        ? "Bandeja Global de Tickets de la Organizacion"
+        : "Mis Solicitudes de Soporte";
 
-      // Quick prompts adaptados a cada vista
+      actualizarChipArchivoPrecargado("");
+
       const qp = document.getElementById("quickPromptsContainer");
       qp.innerHTML = "";
       const sugerencias = esSoporte
         ? [
-            { label: "Resumen de incidencias (F12)", msg: "Genera un resumen completo de las incidencias de la organizacion." },
-            { label: "Ver criticas pendientes (F09)", msg: "¿Que incidencias criticas o altas siguen abiertas o pendientes?" },
-            { label: "Analizar error_facturacion.log (F02)", msg: "Analiza el archivo error_facturacion.log y dime la causa raiz.", file: "error_facturacion.log" },
-            { label: "Tomar ticket #1051 (F08)", msg: "Asigna el ticket 1051 a mi usuario y pasalo a estado En revision." }
+            { label: "Resumen de incidencias", msg: "Genera un resumen completo de las incidencias de la organizacion." },
+            { label: "Ver criticas pendientes", msg: "¿Que incidencias criticas o altas siguen abiertas o pendientes?" },
+            { label: "Diagnosticar error_facturacion.log", msg: "Analiza el archivo error_facturacion.log y dime la causa raiz.", file: "error_facturacion.log" },
+            { label: "Tomar ticket #1051", msg: "Asigna el ticket 1051 a mi usuario y pasalo a estado En revision." }
           ]
         : [
-            { label: "Mis tickets abiertos (F09)", msg: "Mostrame los tickets que tengo abiertos y en que estado estan." },
-            { label: "Subir captura VPN (Duplicado C10)", msg: "No puedo entrar a la VPN desde hoy, adjunto la captura del error.", file: "captura_error_vpn.png" },
-            { label: "Reportar corte de red c/TXT (F02)", msg: "Se corta internet en nuestro piso, adjunto el reporte de red con las pruebas.", file: "reporte_red.txt" },
-            { label: "Solicitud ambigua (F04)", msg: "Hola, no me anda nada en la computadora, necesito ayuda urgente." }
+            { label: "Ver estado de mis tickets", msg: "Mostrame los tickets que tengo abiertos y en que estado estan." },
+            { label: "Reportar error de VPN con captura", msg: "No puedo entrar a la VPN desde hoy, adjunto la captura del error.", file: "captura_error_vpn.png" },
+            { label: "Reportar corte de red con informe", msg: "Se corta internet en nuestro piso, adjunto el reporte de red con las pruebas.", file: "reporte_red.txt" },
+            { label: "Consultar por un problema", msg: "Hola, tengo un inconveniente con un sistema de mi sector y necesito soporte." }
           ];
 
       for (const s of sugerencias) {
@@ -999,9 +1102,7 @@
         chip.textContent = s.label;
         chip.addEventListener("click", () => {
           mensajeInput.value = s.msg;
-          if (s.file) {
-            archivoServidorSelect.value = s.file;
-          }
+          actualizarChipArchivoPrecargado(s.file || "");
           mensajeInput.focus();
         });
         qp.appendChild(chip);
@@ -1033,6 +1134,7 @@
 
     async function cargarTickets() {
       if (!usuarioActivo) return;
+      const esSoporte = usuarioActivo.rol === "soporte";
       const params = new URLSearchParams();
       const est = document.getElementById("filtroEstado").value;
       const prio = document.getElementById("filtroPrioridad").value;
@@ -1047,14 +1149,18 @@
       if (!r.ok) return;
       const data = await r.json();
       const textoFiltro = document.getElementById("filtroAreaInput").value.trim().toLowerCase();
+      const respFiltro = esSoporte ? document.getElementById("filtroResponsable").value : "";
 
       ticketsCargados = (data.tickets || []).filter((t) => {
+        if (respFiltro === "__sin_asignar__" && t.responsable) return false;
+        if (respFiltro === "__mios__" && t.responsable !== usuarioActivo.id) return false;
+        if (respFiltro && !respFiltro.startsWith("__") && t.responsable !== respFiltro) return false;
         if (!textoFiltro) return true;
         const buscable = `${t.id} ${t.titulo} ${t.area || ""} ${t.solicitante_nombre || ""} ${t.solicitante}`.toLowerCase();
         return buscable.includes(textoFiltro);
       });
 
-      document.getElementById("contadorTablaTickets").textContent = `${ticketsCargados.length} registro(s)`;
+      document.getElementById("contadorTablaTickets").textContent = `${ticketsCargados.length} solicitud(es)`;
       tbodyTickets.innerHTML = "";
 
       for (const t of ticketsCargados) {
@@ -1067,49 +1173,78 @@
         tdId.appendChild(strongId);
 
         const tdTitulo = document.createElement("td");
-        tdTitulo.textContent = t.titulo;
-
-        const tdArea = document.createElement("td");
-        const divArea = document.createElement("div");
-        divArea.style.fontWeight = "600";
-        divArea.textContent = t.area || "General";
-        const divSol = document.createElement("div");
-        divSol.style.fontSize = "0.75rem";
-        divSol.style.color = "var(--muted)";
-        divSol.textContent = `${t.solicitante_nombre || t.solicitante} (${t.solicitante})`;
-        tdArea.appendChild(divArea);
-        tdArea.appendChild(divSol);
-
-        const tdCat = document.createElement("td");
-        tdCat.textContent = t.categoria;
-
-        const tdPrio = document.createElement("td");
-        tdPrio.appendChild(crearBadge(t.prioridad, `prio-${t.prioridad}`));
+        const divTit = document.createElement("div");
+        divTit.style.fontWeight = "600";
+        divTit.textContent = t.titulo;
+        tdTitulo.appendChild(divTit);
+        if (!esSoporte && t.creado) {
+          const divFecha = document.createElement("div");
+          divFecha.style.fontSize = "0.74rem";
+          divFecha.style.color = "var(--muted)";
+          divFecha.textContent = `Creado: ${t.creado}`;
+          tdTitulo.appendChild(divFecha);
+        }
 
         const tdEst = document.createElement("td");
         tdEst.appendChild(crearBadge(t.estado, `est-${t.estado.replace(/\s+/g, "-")}`));
 
         const tdResp = document.createElement("td");
-        tdResp.textContent = t.responsable_nombre
-          ? `${t.responsable_nombre} (${t.responsable})`
-          : "Sin asignar";
+        if (t.responsable_nombre) {
+          const strongResp = document.createElement("strong");
+          strongResp.style.color = "#0f766e";
+          strongResp.textContent = esSoporte
+            ? `${t.responsable_nombre} (${t.responsable})`
+            : t.responsable_nombre;
+          tdResp.appendChild(strongResp);
+        } else {
+          const spanSin = document.createElement("span");
+          spanSin.style.color = "var(--muted)";
+          spanSin.style.fontStyle = "italic";
+          spanSin.textContent = "Sin tecnico asignado aun";
+          tdResp.appendChild(spanSin);
+        }
 
         const tdAccion = document.createElement("td");
         const btnVer = document.createElement("button");
         btnVer.type = "button";
         btnVer.className = "btn-secondary btn-sm";
-        btnVer.textContent = "Gestionar / Ver";
+        btnVer.textContent = esSoporte ? "Gestionar" : "Ver detalle";
         btnVer.addEventListener("click", () => verDetalle(t.id));
         tdAccion.appendChild(btnVer);
 
-        tr.appendChild(tdId);
-        tr.appendChild(tdTitulo);
-        tr.appendChild(tdArea);
-        tr.appendChild(tdCat);
-        tr.appendChild(tdPrio);
-        tr.appendChild(tdEst);
-        tr.appendChild(tdResp);
-        tr.appendChild(tdAccion);
+        if (esSoporte) {
+          const tdArea = document.createElement("td");
+          const divArea = document.createElement("div");
+          divArea.style.fontWeight = "600";
+          divArea.textContent = t.area || "General";
+          const divSol = document.createElement("div");
+          divSol.style.fontSize = "0.75rem";
+          divSol.style.color = "var(--muted)";
+          divSol.textContent = `${t.solicitante_nombre || t.solicitante} (${t.solicitante})`;
+          tdArea.appendChild(divArea);
+          tdArea.appendChild(divSol);
+
+          const tdCat = document.createElement("td");
+          tdCat.textContent = t.categoria;
+
+          const tdPrio = document.createElement("td");
+          tdPrio.appendChild(crearBadge(t.prioridad, `prio-${t.prioridad}`));
+
+          tr.appendChild(tdId);
+          tr.appendChild(tdTitulo);
+          tr.appendChild(tdArea);
+          tr.appendChild(tdCat);
+          tr.appendChild(tdPrio);
+          tr.appendChild(tdEst);
+          tr.appendChild(tdResp);
+          tr.appendChild(tdAccion);
+        } else {
+          tr.appendChild(tdId);
+          tr.appendChild(tdTitulo);
+          tr.appendChild(tdEst);
+          tr.appendChild(tdResp);
+          tr.appendChild(tdAccion);
+        }
         tbodyTickets.appendChild(tr);
       }
 
@@ -1121,6 +1256,7 @@
 
     async function verDetalle(ticketId, silencioso = false) {
       ticketSeleccionadoId = ticketId;
+      const esSoporte = usuarioActivo && usuarioActivo.rol === "soporte";
       const r = await fetch(`/tickets/${ticketId}`, { headers: headersAutenticados() });
       const data = await r.json();
       if (!r.ok || !data.ticket) {
@@ -1140,12 +1276,18 @@
 
       const grid = document.getElementById("detalleCamposGrid");
       grid.innerHTML = "";
+      const textoTecnico = t.responsable_nombre
+        ? (esSoporte ? `${t.responsable_nombre} (${t.responsable})` : t.responsable_nombre)
+        : "Sin tecnico asignado aun";
+      // F07 exige mostrar como minimo: ID, Fecha/hora, Solicitante, Titulo, Descripcion, Categoria, Prioridad, Adjuntos, Estado y Responsable
       const campos = [
-        ["Fecha Creacion", t.creado],
-        ["Solicitante", `${t.solicitante_nombre || t.solicitante} (${t.solicitante})`],
-        ["Area / Sector", t.area || "General"],
-        ["Categoria", t.categoria],
-        ["Responsable TI", t.responsable_nombre ? `${t.responsable_nombre} (${t.responsable})` : "Sin asignar"],
+        ["Identificador", `#${t.id}`],
+        ["Fecha y Hora Creacion", t.creado],
+        ["Usuario Solicitante", esSoporte ? `${t.solicitante_nombre || t.solicitante} (${t.solicitante}) — ${t.area || "General"}` : `${t.solicitante_nombre || t.solicitante} (${t.area || "General"})`],
+        ["Estado Actual", t.estado],
+        ["Tecnico Asignado (Soporte)", textoTecnico],
+        ["Categoria (F05)", t.categoria],
+        ["Prioridad Propuesta (F06)", esSoporte ? `${t.prioridad} (Revisable por soporte)` : `${t.prioridad} (Sujeta a revision de soporte)`],
         ["Archivos Adjuntos", (t.adjuntos && t.adjuntos.length) ? t.adjuntos.join(", ") : "Ninguno"],
         ["Descripcion del Problema", t.descripcion]
       ];
@@ -1164,12 +1306,10 @@
         grid.appendChild(item);
       }
 
-      // Controles exclusivos para Soporte
       const panelSoporte = document.getElementById("controlesSoporteTicket");
-      if (usuarioActivo && usuarioActivo.rol === "soporte") {
+      if (esSoporte) {
         panelSoporte.classList.remove("hidden");
 
-        // Transiciones permitidas desde el estado actual
         const selEst = document.getElementById("selectNuevoEstado");
         selEst.innerHTML = "";
         const siguientes = (catalogos.transiciones_permitidas || {})[t.estado] || [];
@@ -1189,7 +1329,6 @@
           }
         }
 
-        // Prioridades
         const selPrio = document.getElementById("selectNuevaPrioridad");
         selPrio.innerHTML = "";
         for (const p of catalogos.prioridades || []) {
@@ -1200,9 +1339,16 @@
           selPrio.appendChild(opt);
         }
 
-        // Especialistas de soporte (Luana, Viviana, Stella)
         const selResp = document.getElementById("selectNuevoResponsable");
         selResp.innerHTML = "";
+        if (!t.responsable) {
+          const optNone = document.createElement("option");
+          optNone.value = "";
+          optNone.textContent = "-- Sin tecnico asignado aun --";
+          optNone.selected = true;
+          optNone.disabled = true;
+          selResp.appendChild(optNone);
+        }
         for (const s of catalogos.equipo_soporte || []) {
           const opt = document.createElement("option");
           opt.value = s.id;
@@ -1214,7 +1360,6 @@
         panelSoporte.classList.add("hidden");
       }
 
-      // Renderizar línea de tiempo del historial (F11)
       const ul = document.getElementById("listaHistorialEventos");
       ul.innerHTML = "";
       for (const ev of t.historial || []) {
@@ -1224,7 +1369,7 @@
         const meta = document.createElement("div");
         meta.className = "timeline-meta";
         const spanTipo = document.createElement("strong");
-        spanTipo.textContent = `${ev.tipo} · por ${ev.usuario_nombre || ev.usuario}`;
+        spanTipo.textContent = `${ev.tipo} · ${ev.usuario_nombre || ev.usuario}`;
         const spanFecha = document.createElement("span");
         spanFecha.textContent = ev.fecha;
         meta.appendChild(spanTipo);
@@ -1239,7 +1384,6 @@
       }
     }
 
-    // EVENTOS DE LOGIN / LOGOUT
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       loginErrorBox.classList.add("hidden");
@@ -1274,8 +1418,10 @@
 
       agregarMensaje(
         "sys",
-        "Sistema de Seguridad TechSupport S.A.",
-        `Sesion iniciada como ${usuarioActivo.nombre} (${usuarioActivo.id}) — Rol: ${usuarioActivo.rol.toUpperCase()} — Area: ${usuarioActivo.area}`
+        "Bienvenido/a",
+        usuarioActivo.rol === "soporte"
+          ? `Has ingresado a la Consola de Soporte TI como ${usuarioActivo.nombre} (${usuarioActivo.area}).`
+          : `Hola ${usuarioActivo.nombre}. Puedes describir tu problema en el chat o adjuntar una captura de pantalla para que el asistente gestione tu ticket.`
       );
     });
 
@@ -1291,7 +1437,6 @@
       document.getElementById("loginPassword").value = "";
     });
 
-    // EVENTOS DE GESTION DIRECTA EN DETALLE DE TICKET (F06, F08, F10)
     document.getElementById("btnAplicarEstado").addEventListener("click", async () => {
       if (!ticketSeleccionadoId) return;
       const nuevo = document.getElementById("selectNuevoEstado").value;
@@ -1334,6 +1479,10 @@
     document.getElementById("btnAplicarResponsable").addEventListener("click", async () => {
       if (!ticketSeleccionadoId) return;
       const resp = document.getElementById("selectNuevoResponsable").value;
+      if (!resp) {
+        mostrarAlertaTicket("Selecciona un especialista de soporte para asignar.", true);
+        return;
+      }
       const fd = new FormData();
       fd.append("responsable_id", resp);
       const r = await fetch(`/tickets/${ticketSeleccionadoId}/asignar`, {
@@ -1346,7 +1495,25 @@
         mostrarAlertaTicket(data.detail || "No se pudo asignar el responsable", true);
         return;
       }
-      mostrarAlertaTicket(`Responsable asignado correctamente (${resp}).`);
+      mostrarAlertaTicket(`Especialista asignado correctamente.`);
+      await cargarTickets();
+    });
+
+    document.getElementById("btnAsignarmeAMi").addEventListener("click", async () => {
+      if (!ticketSeleccionadoId || !usuarioActivo) return;
+      const fd = new FormData();
+      fd.append("responsable_id", usuarioActivo.id);
+      const r = await fetch(`/tickets/${ticketSeleccionadoId}/asignar`, {
+        method: "POST",
+        headers: headersAutenticados(),
+        body: fd
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        mostrarAlertaTicket(data.detail || "No se pudo asignar el ticket", true);
+        return;
+      }
+      mostrarAlertaTicket(`Te has asignado el ticket #${ticketSeleccionadoId}.`);
       await cargarTickets();
     });
 
@@ -1373,8 +1540,8 @@
       await cargarTickets();
     });
 
-    // FILTROS Y BOTONES DE BARRA
     document.getElementById("filtroEstado").addEventListener("change", cargarTickets);
+    document.getElementById("filtroResponsable").addEventListener("change", cargarTickets);
     document.getElementById("filtroPrioridad").addEventListener("change", cargarTickets);
     document.getElementById("filtroCategoria").addEventListener("change", cargarTickets);
     document.getElementById("filtroAreaInput").addEventListener("input", cargarTickets);
@@ -1383,10 +1550,9 @@
     document.getElementById("btnNuevaSesion").addEventListener("click", async () => {
       await fetch("/reset-sesion", { method: "POST", headers: headersAutenticados() });
       chatLog.innerHTML = "";
-      agregarMensaje("sys", "Sistema", `Conversacion reiniciada para ${usuarioActivo.nombre} (${usuarioActivo.id})`);
+      agregarMensaje("sys", "Sistema", "Conversacion reiniciada.");
     });
 
-    // ENVIO DE CHAT MULTIMODAL
     chatForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!usuarioActivo) return;
@@ -1396,12 +1562,12 @@
       if (!msg && !file && !srvFile) return;
 
       const etiquetaAdj = file
-        ? `\n[Archivo subido: ${file.name}]`
-        : (srvFile ? `\n[Archivo de prueba: ${srvFile}]` : "");
+        ? `\n[Archivo adjunto: ${file.name}]`
+        : (srvFile ? `\n[Archivo adjunto: ${srvFile}]` : "");
 
       agregarMensaje(
         "user",
-        `${usuarioActivo.nombre} (${usuarioActivo.id} · ${usuarioActivo.area})`,
+        `${usuarioActivo.nombre} (${usuarioActivo.area})`,
         (msg || "(Analizar archivo adjunto)") + etiquetaAdj
       );
 
@@ -1414,7 +1580,7 @@
       }
 
       btnEnviar.disabled = true;
-      estadoEnvio.textContent = "Procesando con qwen3.5:4b...";
+      estadoEnvio.textContent = "El asistente esta analizando tu solicitud...";
       try {
         const r = await fetch("/chat", {
           method: "POST",
@@ -1425,13 +1591,13 @@
         const textoResp = data.respuesta || data.detail || "(sin respuesta de texto)";
         agregarMensaje(
           data.ok === false ? "sys" : "agent",
-          data.ok === false ? "Aviso de Seguridad / Validacion" : "Agente TechSupport",
+          data.ok === false ? "Aviso de Validacion" : "Asistente TechSupport",
           textoResp,
           data.tools_usadas || []
         );
         mensajeInput.value = "";
         archivoInput.value = "";
-        archivoServidorSelect.value = "";
+        actualizarChipArchivoPrecargado("");
         await cargarTickets();
       } catch (err) {
         agregarMensaje("sys", "Error de conexion", String(err));
@@ -1441,7 +1607,6 @@
       }
     });
 
-    // Restaurar sesión si había token activo
     async function restaurarSesionSiExiste() {
       await inicializarPantallaLogin();
       if (!tokenSesion) return;
