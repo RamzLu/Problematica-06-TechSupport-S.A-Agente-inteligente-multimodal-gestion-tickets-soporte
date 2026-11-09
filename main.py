@@ -80,7 +80,7 @@ async def _obtener_sesion(usuario_id: str) -> str:
 
 
 def _extraer_token(authorization: Optional[str]) -> Optional[str]:
-    if not authorization:
+    if not isinstance(authorization, str) or not authorization:
         return None
     partes = authorization.strip().split(" ", 1)
     if len(partes) == 2 and partes[0].lower() == "bearer":
@@ -92,6 +92,8 @@ def _resolver_usuario_request(
     authorization: Optional[str] = Header(None),
     usuario_id_param: Optional[str] = None,
 ) -> str:
+    if not isinstance(usuario_id_param, str):
+        usuario_id_param = None
     token = _extraer_token(authorization)
     if token:
         uid_token = _tokens_activos.get(token)

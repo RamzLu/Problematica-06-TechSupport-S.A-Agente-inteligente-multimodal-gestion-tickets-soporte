@@ -34,6 +34,14 @@ from agent.tools.tools import (
 )
 
 
+def _ejecutar_coro_en_memoria(coro):
+    try:
+        while True:
+            coro.send(None)
+    except StopIteration as stop:
+        return stop.value
+
+
 class TestTechSupportFuncionalYSeguridad(unittest.TestCase):
     def setUp(self):
         cargar_dataset()
@@ -224,13 +232,18 @@ class TestTechSupportFuncionalYSeguridad(unittest.TestCase):
 
         tok_u001, _ = self._login("u001", "Laura2026!")
 
+        class _ArchivoMemoria:
+            def __init__(self, filename: str, data: bytes, content_type: str):
+                self.filename = filename
+                self._data = data
+                self.content_type = content_type
+
+            async def read(self, size: int = -1) -> bytes:
+                return self._data[:size] if size > 0 else self._data
+
         # Subida de archivo con extensión peligrosa (.exe) en /chat
-        up_exe = UploadFile(
-            filename="script.exe",
-            file=io.BytesIO(b"MZfake"),
-            headers=Headers({"content-type": "application/octet-stream"}),
-        )
-        res_exe = asyncio.run(
+        up_exe = _ArchivoMemoria("script.exe", b"MZfake", "application/octet-stream")
+        res_exe = _ejecutar_coro_en_memoria(
             main.chat_con_agente(
                 mensaje="Subo ejecutable",
                 archivo=up_exe,
@@ -241,12 +254,10 @@ class TestTechSupportFuncionalYSeguridad(unittest.TestCase):
         self.assertIn("no soportado", res_exe["respuesta"])
 
         # Imagen .png falsificada (sin magic bytes PNG reales)
-        up_fake_png = UploadFile(
-            filename="falso.png",
-            file=io.BytesIO(b"<script>alert(1)</script>"),
-            headers=Headers({"content-type": "image/png"}),
+        up_fake_png = _ArchivoMemoria(
+            "falso.png", b"<script>alert(1)</script>", "image/png"
         )
-        res_fake_png = asyncio.run(
+        res_fake_png = _ejecutar_coro_en_memoria(
             main.chat_con_agente(
                 mensaje="Subo png falso",
                 archivo=up_fake_png,
