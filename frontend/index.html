@@ -2,122 +2,333 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>TechSupport S.A. — Agente Inteligente Multimodal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechSupport S.A. — Sistema Inteligente Multimodal de Tickets</title>
   <style>
     :root {
       --bg: #f1f5f9;
       --card: #ffffff;
       --border: #cbd5e1;
+      --border-light: #e2e8f0;
       --text: #0f172a;
       --muted: #475569;
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
+      --support-accent: #0f766e;
+      --support-hover: #115e59;
       --secondary: #e2e8f0;
       --agent-bg: #f0fdf4;
       --agent-border: #86efac;
-      --user-bg: #dbeafe;
+      --user-bg: #eff6ff;
       --user-border: #93c5fd;
       --tool-bg: #f3e8ff;
       --tool-text: #6b21a8;
+      --danger: #dc2626;
+      --success: #16a34a;
     }
 
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
+      min-height: 100vh;
     }
 
+    .hidden { display: none !important; }
+
+    /* HEADER */
     header {
-      background: #1e293b;
+      background: #0f172a;
       color: #ffffff;
-      padding: 14px 24px;
+      padding: 12px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 12px;
+      border-bottom: 3px solid var(--primary);
     }
-    header h1 { margin: 0; font-size: 1.25rem; }
-    header span { font-size: 0.85rem; color: #94a3b8; }
+    header.mode-soporte {
+      border-bottom-color: #14b8a6;
+    }
+    .brand-title {
+      margin: 0;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-sub {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      display: block;
+      margin-top: 2px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .user-session-pill {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-    .container {
-      max-width: 1400px;
-      margin: 16px auto;
+    /* LOGIN VIEW */
+    .login-wrapper {
+      max-width: 960px;
+      margin: 36px auto;
       padding: 0 16px;
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .login-wrapper { grid-template-columns: 1fr; }
+    }
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+    .login-card h2 {
+      margin: 0 0 6px 0;
+      font-size: 1.25rem;
+      color: #0f172a;
+    }
+    .login-card p {
+      margin: 0 0 18px 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 14px;
+    }
+    .form-field label {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    .demo-group-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      font-weight: 700;
+      margin: 12px 0 8px 0;
+    }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 7px;
+    }
+    .demo-user-btn {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-align: left;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-weight: 500;
+    }
+    .demo-user-btn:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+    .demo-user-btn.soporte-btn:hover {
+      background: #f0fdfa;
+      border-color: #5eead4;
+    }
+    .demo-meta {
+      font-size: 0.76rem;
+      color: var(--muted);
+      display: block;
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+      max-width: 1440px;
+      margin: 16px auto;
+      padding: 0 16px 32px 16px;
       display: flex;
       flex-direction: column;
       gap: 16px;
+    }
+
+    .view-banner {
+      padding: 12px 18px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.9rem;
+    }
+    .banner-usuario {
+      background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
+      border: 1px solid #bfdbfe;
+      color: #1e3a8a;
+    }
+    .banner-soporte {
+      background: linear-gradient(90deg, #f0fdfa 0%, #ccfbf1 100%);
+      border: 1px solid #99f6e4;
+      color: #134e4a;
     }
 
     .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 14px 18px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      padding: 16px 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .card h2 {
-      margin: 0 0 10px 0;
-      font-size: 1.05rem;
+      margin: 0 0 12px 0;
+      font-size: 1.02rem;
       color: #1e293b;
       display: flex;
       align-items: center;
-      gap: 8px;
-    }
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
       justify-content: space-between;
-    }
-    .toolbar-group {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
       gap: 8px;
     }
 
-    select, input[type="text"], textarea {
-      padding: 7px 10px;
+    /* KPI / RESUMEN (F12) */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .kpi-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .kpi-box h3 {
+      margin: 0 0 8px 0;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    .kpi-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .kpi-chip {
+      font-size: 0.78rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      font-weight: 600;
+    }
+
+    /* LAYOUT GRIDS */
+    .grid-main {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .grid-main { grid-template-columns: 1fr; }
+    }
+
+    /* INPUTS & BUTTONS */
+    select, input[type="text"], input[type="password"], textarea {
+      padding: 8px 10px;
       border: 1px solid var(--border);
       border-radius: 6px;
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       font-family: inherit;
+      background: #fff;
+      color: var(--text);
+    }
+    select:focus, input:focus, textarea:focus {
+      outline: 2px solid #93c5fd;
+      border-color: var(--primary);
     }
 
     button {
       padding: 7px 13px;
       border-radius: 6px;
       border: 1px solid transparent;
-      font-size: 0.9rem;
+      font-size: 0.86rem;
       font-weight: 600;
       cursor: pointer;
+      transition: background 0.15s;
     }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-primary:disabled { background: #94a3b8; cursor: wait; }
+    .btn-soporte { background: var(--support-accent); color: #fff; }
+    .btn-soporte:hover { background: var(--support-hover); }
     .btn-secondary { background: var(--secondary); color: #1e293b; border-color: var(--border); }
     .btn-secondary:hover { background: #cbd5e1; }
+    .btn-danger { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-sm { padding: 4px 9px; font-size: 0.78rem; }
 
-    .grid-main {
-      display: grid;
-      grid-template-columns: 1fr 1.15fr;
-      gap: 16px;
-    }
-    @media (max-width: 980px) {
-      .grid-main { grid-template-columns: 1fr; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
     }
 
+    /* QUICK PROMPTS */
+    .quick-prompts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .prompt-chip {
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      color: #334155;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .prompt-chip:hover {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+    }
+
+    /* CHAT */
     #chatLog {
       background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
-      height: 390px;
+      height: 380px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -126,9 +337,10 @@
     .msg {
       padding: 10px 12px;
       border-radius: 8px;
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       line-height: 1.45;
       white-space: pre-wrap;
+      word-break: break-word;
     }
     .msg-user {
       background: var(--user-bg);
@@ -145,12 +357,12 @@
     .msg-sys {
       background: #fef9c3;
       border: 1px solid #fde047;
-      font-size: 0.84rem;
+      font-size: 0.82rem;
       text-align: center;
     }
     .msg-header {
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.76rem;
       margin-bottom: 4px;
       color: var(--muted);
     }
@@ -166,36 +378,69 @@
       border: 1px solid #d8b4fe;
       border-radius: 4px;
       padding: 2px 6px;
-      font-size: 0.76rem;
+      font-size: 0.73rem;
       font-family: monospace;
     }
 
+    .attachment-bar {
+      background: #f8fafc;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+
+    /* TABLE */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 310px;
+      overflow-y: auto;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.88rem;
+      font-size: 0.84rem;
     }
     th, td {
-      border-bottom: 1px solid var(--border);
-      padding: 8px 6px;
+      border-bottom: 1px solid var(--border-light);
+      padding: 8px 8px;
       text-align: left;
     }
     th {
       background: #f8fafc;
       color: var(--muted);
       font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
     tr:hover td { background: #f8fafc; }
+    tr.selected-row td { background: #eff6ff; }
 
+    /* BADGES */
     .badge {
       display: inline-block;
       padding: 2px 8px;
       border-radius: 999px;
-      font-size: 0.76rem;
+      font-size: 0.73rem;
       font-weight: 700;
+      white-space: nowrap;
     }
     .rol-usuario { background: #dbeafe; color: #1e40af; }
-    .rol-soporte { background: #dcfce7; color: #166534; }
+    .rol-soporte { background: #ccfbf1; color: #115e59; }
 
     .prio-Critica { background: #fee2e2; color: #991b1b; }
     .prio-Alta { background: #ffedd5; color: #9a3412; }
@@ -209,107 +454,375 @@
     .est-Resuelto { background: #dcfce7; color: #166534; }
     .est-Cerrado { background: #e2e8f0; color: #475569; }
 
-    #detalleTicket {
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 12px;
+    /* DETALLE E HISTORIAL VISUAL (F11) */
+    .ticket-detail-panel {
+      margin-top: 14px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--border-light);
       border-radius: 8px;
-      font-size: 0.82rem;
-      max-height: 220px;
-      overflow-y: auto;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      font-size: 0.83rem;
+    }
+    .detail-item strong {
+      display: block;
+      font-size: 0.73rem;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .support-actions-panel {
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .action-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #134e4a;
+    }
+    .timeline {
+      list-style: none;
       margin: 8px 0 0 0;
+      padding: 0 0 0 12px;
+      border-left: 2px solid var(--border);
+      max-height: 210px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .timeline-item {
+      background: #f8fafc;
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+    }
+    .timeline-meta {
+      font-size: 0.74rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .alert-box {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.83rem;
+      margin-bottom: 10px;
+    }
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+    .alert-ok {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
     }
   </style>
 </head>
 <body>
-  <header>
+  <header id="mainHeader">
     <div>
-      <h1>TechSupport S.A. — Agente Inteligente Multimodal de Tickets</h1>
-      <span>Modelo local: qwen3.5:4b (Vision + Tools) + ChromaDB (nomic-embed-text)</span>
+      <h1 class="brand-title">
+        <span>TechSupport S.A.</span>
+        <span id="vistaActualBadge" class="badge rol-usuario hidden"></span>
+      </h1>
+      <span class="brand-sub">Agente Inteligente Multimodal (qwen3.5:4b Vision + Tools + ChromaDB)</span>
     </div>
-    <span id="badgeUsuarioActivo"></span>
+    <div id="headerSessionArea" class="header-right hidden">
+      <div class="user-session-pill" id="badgeUsuarioActivo"></div>
+      <button type="button" class="btn-danger btn-sm" id="btnCerrarSesion">Cerrar sesion</button>
+    </div>
   </header>
 
-  <div class="container">
-    <section class="card">
-      <div class="toolbar">
-        <div class="toolbar-group">
-          <strong>Hablando como:</strong>
-          <select id="usuarioSelect"></select>
-          <button type="button" class="btn-secondary" id="btnNuevaSesion">Limpiar chat</button>
-          <button type="button" class="btn-secondary" id="btnRefrescarTickets">Actualizar tickets</button>
-        </div>
+  <!-- PANTALLA DE LOGIN CORPORATIVO -->
+  <main id="loginView" class="login-wrapper">
+    <section class="login-card">
+      <h2>Ingreso Corporativo</h2>
+      <p>
+        Inicie sesion con las credenciales asignadas por su organizacion.
+        El sistema habilitara automaticamente el <strong>Portal de Usuario Solicitante</strong> o la
+        <strong>Consola Operativa de Soporte TI</strong> segun su rol.
+      </p>
 
-        <form id="formNuevoUsuario" class="toolbar-group">
-          <strong>+ Crear mi usuario:</strong>
-          <input type="text" id="nuevoNombre" placeholder="Tu nombre (ej: Luana)" required />
-          <select id="nuevoRol">
-            <option value="usuario">Rol: Usuario solicitante</option>
-            <option value="soporte">Rol: Personal de soporte</option>
-          </select>
-          <button type="submit" class="btn-primary">Crear y usar</button>
-        </form>
+      <div id="loginErrorBox" class="alert-box alert-error hidden"></div>
+
+      <form id="loginForm">
+        <div class="form-field">
+          <label for="loginIdentificador">ID de Usuario o Correo Corporativo</label>
+          <input type="text" id="loginIdentificador" placeholder="Ej: s001, u001 o correo@empresa.com" required autocomplete="username" />
+        </div>
+        <div class="form-field">
+          <label for="loginPassword">Credencial / Contrasena</label>
+          <input type="password" id="loginPassword" placeholder="Ingrese su contrasena" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%; padding:10px;">Iniciar Sesion</button>
+      </form>
+    </section>
+
+    <section class="login-card">
+      <h2>Cuentas de Demostracion (Criterio 12)</h2>
+      <p>
+        Seleccione una credencial preconfigurada del dataset para probar las dos vistas diferenciadas
+        (las contrasenas se verifican mediante hash criptografico <code>PBKDF2-SHA256</code>):
+      </p>
+
+      <div class="demo-group-title">Equipo de Soporte Tecnico (Vista Consola TI)</div>
+      <div class="demo-grid" id="demoSoporteList"></div>
+
+      <div class="demo-group-title">Usuarios por Area de la Empresa (Vista Portal Solicitante)</div>
+      <div class="demo-grid" id="demoUsuariosList"></div>
+    </section>
+  </main>
+
+  <!-- APLICACION PRINCIPAL (DOS VISTAS DIFERENCIADAS SEGUN ROL) -->
+  <div id="appView" class="container hidden">
+    <!-- Banner contextual según vista -->
+    <div id="roleBanner" class="view-banner">
+      <div>
+        <strong id="bannerTitulo"></strong>
+        <div id="bannerSubtitulo" style="font-size:0.82rem; margin-top:2px;"></div>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn-secondary btn-sm" id="btnNuevaSesion">Reiniciar conversacion IA</button>
+        <button type="button" class="btn-secondary btn-sm" id="btnRefrescarTodo">Actualizar datos</button>
+      </div>
+    </div>
+
+    <!-- SECCION EXCLUSIVA SOPORTE: DASHBOARD DE RESUMEN (F12) -->
+    <section id="soporteResumenSection" class="card hidden">
+      <h2>
+        <span>Resumen Ejecutivo de Incidencias de la Organizacion (F12)</span>
+        <span id="kpiTotalTickets" class="badge rol-soporte"></span>
+      </h2>
+      <div class="kpi-grid">
+        <div class="kpi-box">
+          <h3>Por Prioridad (F06)</h3>
+          <div id="kpiPorPrioridad" class="kpi-chips"></div>
+        </div>
+        <div class="kpi-box">
+          <h3>Por Estado (F08)</h3>
+          <div id="kpiPorEstado" class="kpi-chips"></div>
+        </div>
+        <div class="kpi-box">
+          <h3>Por Categoria (F05)</h3>
+          <div id="kpiPorCategoria" class="kpi-chips"></div>
+        </div>
+        <div class="kpi-box">
+          <h3>Por Area de la Empresa</h3>
+          <div id="kpiPorArea" class="kpi-chips"></div>
+        </div>
       </div>
     </section>
 
     <div class="grid-main">
+      <!-- COLUMNA IZQUIERDA: CHAT MULTIMODAL ADAPTADO AL ROL -->
       <section class="card">
-        <h2>Conversacion con el Agente (F01, F02, F03, F04)</h2>
+        <h2 id="tituloChatCard">Asistente Inteligente Multimodal</h2>
+
+        <div class="quick-prompts" id="quickPromptsContainer"></div>
+
         <div id="chatLog"></div>
 
         <form id="chatForm" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-          <textarea id="mensajeInput" rows="3" placeholder="Escribe tu consulta o reporta un problema en lenguaje natural..."></textarea>
+          <textarea id="mensajeInput" rows="3" placeholder="Escribe tu consulta o reporta un inconveniente en lenguaje natural..."></textarea>
+
+          <div class="attachment-bar">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+              <label for="archivoInput" style="font-weight:600; color:var(--muted);">Subir archivo (.png, .jpg, .webp, .txt, .log):</label>
+              <input type="file" id="archivoInput" accept=".png,.jpg,.jpeg,.webp,.txt,.log" />
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <label for="archivoServidorSelect" style="color:var(--muted);">O usar archivo de prueba:</label>
+              <select id="archivoServidorSelect">
+                <option value="">-- Ninguno --</option>
+              </select>
+            </div>
+          </div>
+
           <div class="toolbar">
-            <div>
-              <label for="archivoInput" style="font-size:0.85rem; color:var(--muted);">Adjunto (.png, .jpg, .txt, .log): </label>
-              <input type="file" id="archivoInput" accept=".png,.jpg,.jpeg,.txt,.log" />
-            </div>
-            <div>
-              <span id="estadoEnvio" style="font-size:0.85rem; color:var(--primary); font-weight:600;"></span>
-              <button type="submit" class="btn-primary" id="btnEnviar">Enviar mensaje</button>
-            </div>
+            <span id="estadoEnvio" style="font-size:0.84rem; color:var(--primary); font-weight:600;"></span>
+            <button type="submit" class="btn-primary" id="btnEnviar">Enviar al Agente</button>
           </div>
         </form>
       </section>
 
+      <!-- COLUMNA DERECHA: TABLA DE TICKETS + GESTION Y TRAZABILIDAD -->
       <section class="card">
-        <h2>Tickets Visibles para el Usuario Activo (F07–F11)</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Titulo</th>
-              <th>Categoria</th>
-              <th>Prioridad</th>
-              <th>Estado</th>
-              <th>Solicitante</th>
-              <th>Resp.</th>
-              <th>Accion</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyTickets"></tbody>
-        </table>
+        <h2>
+          <span id="tituloTablaTickets">Tickets</span>
+          <span id="contadorTablaTickets" style="font-size:0.8rem; color:var(--muted); font-weight:500;"></span>
+        </h2>
 
-        <h2 style="margin-top:14px;">Detalle e Historial de Trazabilidad (F11)</h2>
-        <pre id="detalleTicket">Haz clic en "Ver" sobre cualquier ticket de la tabla para inspeccionar sus datos completos y su historial de eventos.</pre>
+        <!-- Filtros de bandeja -->
+        <div class="filter-bar">
+          <select id="filtroEstado">
+            <option value="">Todos los estados</option>
+          </select>
+          <select id="filtroPrioridad">
+            <option value="">Todas las prioridades</option>
+          </select>
+          <select id="filtroCategoria">
+            <option value="">Todas las categorias</option>
+          </select>
+          <input type="text" id="filtroAreaInput" placeholder="Filtrar por area o texto..." style="flex:1; min-width:140px;" />
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Titulo</th>
+                <th>Area / Solicitante</th>
+                <th>Categoria</th>
+                <th>Prioridad</th>
+                <th>Estado</th>
+                <th>Responsable</th>
+                <th>Accion</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyTickets"></tbody>
+          </table>
+        </div>
+
+        <!-- PANEL DETALLE + ACCIONES POR ROL + HISTORIAL (F06, F08, F10, F11) -->
+        <div id="panelDetalleTicket" class="ticket-detail-panel hidden">
+          <div class="toolbar" style="margin-bottom:8px;">
+            <h2 style="margin:0;" id="detalleTituloCabecera">Detalle del Ticket</h2>
+            <span id="detalleBadgesCabecera"></span>
+          </div>
+
+          <div id="alertaOperacionTicket" class="alert-box hidden"></div>
+
+          <div class="detail-grid" id="detalleCamposGrid"></div>
+
+          <!-- CONTROLES EXCLUSIVOS DE SOPORTE TI (F06, F08, Asignación) -->
+          <div id="controlesSoporteTicket" class="support-actions-panel hidden">
+            <div class="action-group">
+              <label for="selectNuevoEstado">Cambiar Estado (F08)</label>
+              <div style="display:flex; gap:4px;">
+                <select id="selectNuevoEstado"></select>
+                <button type="button" class="btn-soporte btn-sm" id="btnAplicarEstado">Actualizar</button>
+              </div>
+            </div>
+
+            <div class="action-group">
+              <label for="selectNuevaPrioridad">Revisar Prioridad (F06)</label>
+              <div style="display:flex; gap:4px;">
+                <select id="selectNuevaPrioridad"></select>
+                <button type="button" class="btn-soporte btn-sm" id="btnAplicarPrioridad">Cambiar</button>
+              </div>
+            </div>
+
+            <div class="action-group">
+              <label for="selectNuevoResponsable">Asignar Especialista TI</label>
+              <div style="display:flex; gap:4px;">
+                <select id="selectNuevoResponsable"></select>
+                <button type="button" class="btn-soporte btn-sm" id="btnAplicarResponsable">Asignar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- AGREGAR COMENTARIO (Tanto Usuario en sus tickets como Soporte en todos - F10) -->
+          <form id="formAgregarComentario" style="display:flex; gap:8px; margin-bottom:12px;">
+            <input type="text" id="inputNuevoComentario" placeholder="Incorporar comentario o aclaracion al ticket (F10)..." style="flex:1;" required />
+            <button type="submit" class="btn-secondary btn-sm">Agregar comentario</button>
+          </form>
+
+          <!-- LINEA DE TIEMPO DE TRAZABILIDAD (F11) -->
+          <strong style="font-size:0.8rem; color:var(--muted); text-transform:uppercase;">
+            Historial y Trazabilidad de Eventos (F11)
+          </strong>
+          <ul id="listaHistorialEventos" class="timeline"></ul>
+        </div>
       </section>
     </div>
   </div>
 
   <script>
-    const usuarioSelect = document.getElementById("usuarioSelect");
+    // Credenciales de demostración (en el servidor solo existen sus hashes PBKDF2-SHA256)
+    const CREDENCIALES_DEMO = {
+      s001: "Luana2026!",
+      s002: "Viviana2026!",
+      s003: "Stella2026!",
+      u001: "Laura2026!",
+      u002: "Martin2026!",
+      u003: "Sofia2026!",
+      u004: "Lucas2026!",
+      u005: "Camila2026!"
+    };
+
+    let tokenSesion = sessionStorage.getItem("ts_token") || "";
+    let usuarioActivo = null;
+    let catalogos = {
+      categorias: [],
+      prioridades: [],
+      estados: [],
+      transiciones_permitidas: {},
+      equipo_soporte: [],
+      archivos_disponibles: []
+    };
+    let ticketsCargados = [];
+    let ticketSeleccionadoId = null;
+
+    // Referencias DOM
+    const mainHeader = document.getElementById("mainHeader");
+    const vistaActualBadge = document.getElementById("vistaActualBadge");
+    const headerSessionArea = document.getElementById("headerSessionArea");
     const badgeUsuarioActivo = document.getElementById("badgeUsuarioActivo");
+    const loginView = document.getElementById("loginView");
+    const appView = document.getElementById("appView");
+    const loginForm = document.getElementById("loginForm");
+    const loginErrorBox = document.getElementById("loginErrorBox");
+    const soporteResumenSection = document.getElementById("soporteResumenSection");
     const chatLog = document.getElementById("chatLog");
     const chatForm = document.getElementById("chatForm");
     const mensajeInput = document.getElementById("mensajeInput");
     const archivoInput = document.getElementById("archivoInput");
+    const archivoServidorSelect = document.getElementById("archivoServidorSelect");
     const btnEnviar = document.getElementById("btnEnviar");
     const estadoEnvio = document.getElementById("estadoEnvio");
     const tbodyTickets = document.getElementById("tbodyTickets");
-    const detalleTicket = document.getElementById("detalleTicket");
-    const formNuevoUsuario = document.getElementById("formNuevoUsuario");
+    const panelDetalleTicket = document.getElementById("panelDetalleTicket");
 
-    let mapaUsuarios = {};
+    function headersAutenticados() {
+      return tokenSesion ? { "Authorization": `Bearer ${tokenSesion}` } : {};
+    }
+
+    function crearBadge(texto, claseExtra) {
+      const span = document.createElement("span");
+      span.className = `badge ${claseExtra}`;
+      span.textContent = texto;
+      return span;
+    }
+
+    function mostrarAlertaTicket(mensaje, esError = false) {
+      const box = document.getElementById("alertaOperacionTicket");
+      box.textContent = mensaje;
+      box.className = `alert-box ${esError ? "alert-error" : "alert-ok"}`;
+      box.classList.remove("hidden");
+      setTimeout(() => box.classList.add("hidden"), 4500);
+    }
 
     function agregarMensaje(tipo, autor, texto, tools = []) {
       const div = document.createElement("div");
@@ -340,128 +853,614 @@
       chatLog.scrollTop = chatLog.scrollHeight;
     }
 
-    function actualizarBadgeUsuario() {
-      const u = mapaUsuarios[usuarioSelect.value];
-      if (!u) return;
-      badgeUsuarioActivo.innerHTML = `Sesion activa: <strong>${u.nombre}</strong> (${u.id}) <span class="badge rol-${u.rol}">${u.rol.toUpperCase()}</span>`;
-    }
-
-    async function cargarUsuarios(seleccionarId = null) {
+    async function inicializarPantallaLogin() {
       const r = await fetch("/usuarios");
       const data = await r.json();
-      const previo = seleccionarId || usuarioSelect.value;
-      usuarioSelect.innerHTML = "";
-      mapaUsuarios = {};
-      for (const u of data.usuarios) {
-        mapaUsuarios[u.id] = u;
+      const contSoporte = document.getElementById("demoSoporteList");
+      const contUsuarios = document.getElementById("demoUsuariosList");
+      contSoporte.innerHTML = "";
+      contUsuarios.innerHTML = "";
+
+      for (const u of data.usuarios || []) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `demo-user-btn ${u.rol === "soporte" ? "soporte-btn" : ""}`;
+
+        const left = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = `${u.nombre} (${u.id})`;
+        const meta = document.createElement("span");
+        meta.className = "demo-meta";
+        meta.textContent = `${u.area} — ${u.email}`;
+        left.appendChild(title);
+        left.appendChild(meta);
+
+        const badge = crearBadge(
+          u.rol === "soporte" ? "SOPORTE TI" : "USUARIO",
+          `rol-${u.rol}`
+        );
+
+        btn.appendChild(left);
+        btn.appendChild(badge);
+
+        btn.addEventListener("click", () => {
+          document.getElementById("loginIdentificador").value = u.id;
+          document.getElementById("loginPassword").value = CREDENCIALES_DEMO[u.id] || "";
+          loginForm.requestSubmit();
+        });
+
+        if (u.rol === "soporte") {
+          contSoporte.appendChild(btn);
+        } else {
+          contUsuarios.appendChild(btn);
+        }
+      }
+    }
+
+    async function cargarCatalogos() {
+      const r = await fetch("/catalogos");
+      catalogos = await r.json();
+
+      // Poblar filtros
+      const fEst = document.getElementById("filtroEstado");
+      fEst.innerHTML = '<option value="">Todos los estados</option>';
+      for (const e of catalogos.estados || []) {
         const opt = document.createElement("option");
-        opt.value = u.id;
-        opt.textContent = `${u.id} — ${u.nombre} (${u.rol.toUpperCase()})`;
-        usuarioSelect.appendChild(opt);
+        opt.value = e;
+        opt.textContent = e;
+        fEst.appendChild(opt);
       }
-      if (previo && mapaUsuarios[previo]) {
-        usuarioSelect.value = previo;
+
+      const fPrio = document.getElementById("filtroPrioridad");
+      fPrio.innerHTML = '<option value="">Todas las prioridades</option>';
+      for (const p of catalogos.prioridades || []) {
+        const opt = document.createElement("option");
+        opt.value = p;
+        opt.textContent = p;
+        fPrio.appendChild(opt);
       }
-      actualizarBadgeUsuario();
-      await cargarTickets();
+
+      const fCat = document.getElementById("filtroCategoria");
+      fCat.innerHTML = '<option value="">Todas las categorias</option>';
+      for (const c of catalogos.categorias || []) {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        fCat.appendChild(opt);
+      }
+
+      // Poblar archivos de prueba en el chat
+      archivoServidorSelect.innerHTML = '<option value="">-- Ninguno --</option>';
+      for (const arch of catalogos.archivos_disponibles || []) {
+        const opt = document.createElement("option");
+        opt.value = arch;
+        opt.textContent = arch;
+        archivoServidorSelect.appendChild(opt);
+      }
+    }
+
+    function configurarVistaPorRol() {
+      if (!usuarioActivo) return;
+      const esSoporte = usuarioActivo.rol === "soporte";
+
+      // Header y colores
+      mainHeader.classList.toggle("mode-soporte", esSoporte);
+      vistaActualBadge.textContent = esSoporte ? "VISTA CONSOLA SOPORTE TI" : "VISTA PORTAL USUARIO";
+      vistaActualBadge.className = `badge rol-${usuarioActivo.rol}`;
+      vistaActualBadge.classList.remove("hidden");
+      headerSessionArea.classList.remove("hidden");
+
+      badgeUsuarioActivo.innerHTML = "";
+      const txtUser = document.createElement("span");
+      txtUser.textContent = `${usuarioActivo.nombre} (${usuarioActivo.id}) · ${usuarioActivo.area}`;
+      badgeUsuarioActivo.appendChild(txtUser);
+      badgeUsuarioActivo.appendChild(crearBadge(usuarioActivo.rol.toUpperCase(), `rol-${usuarioActivo.rol}`));
+
+      // Banner contextual
+      const roleBanner = document.getElementById("roleBanner");
+      roleBanner.className = `view-banner ${esSoporte ? "banner-soporte" : "banner-usuario"}`;
+      document.getElementById("bannerTitulo").textContent = esSoporte
+        ? `Consola Operativa de Soporte TI — ${usuarioActivo.organizacion}`
+        : `Portal de Autogestion de Soporte — Area: ${usuarioActivo.area} (${usuarioActivo.organizacion})`;
+      document.getElementById("bannerSubtitulo").textContent = esSoporte
+        ? "Como especialista de soporte puedes supervisar todas las areas de la organizacion, revisar prioridades propuestas, gestionar transiciones de estado y asignar responsables."
+        : "Reporta tus inconvenientes en lenguaje natural o con capturas/logs y realiza el seguimiento en vivo de tus solicitudes.";
+
+      // Mostrar/ocultar Resumen F12 y títulos
+      soporteResumenSection.classList.toggle("hidden", !esSoporte);
+      document.getElementById("tituloChatCard").textContent = esSoporte
+        ? "Copiloto IA para Especialistas de Soporte"
+        : "Reportar Incidencia o Consultar al Agente (F01–F04)";
+      document.getElementById("tituloTablaTickets").textContent = esSoporte
+        ? "Bandeja Global de Tickets de la Organizacion (F07–F11)"
+        : "Mis Solicitudes de Soporte Registradas (F07, F09)";
+
+      // Quick prompts adaptados a cada vista
+      const qp = document.getElementById("quickPromptsContainer");
+      qp.innerHTML = "";
+      const sugerencias = esSoporte
+        ? [
+            { label: "Resumen de incidencias (F12)", msg: "Genera un resumen completo de las incidencias de la organizacion." },
+            { label: "Ver criticas pendientes (F09)", msg: "¿Que incidencias criticas o altas siguen abiertas o pendientes?" },
+            { label: "Analizar error_facturacion.log (F02)", msg: "Analiza el archivo error_facturacion.log y dime la causa raiz.", file: "error_facturacion.log" },
+            { label: "Tomar ticket #1051 (F08)", msg: "Asigna el ticket 1051 a mi usuario y pasalo a estado En revision." }
+          ]
+        : [
+            { label: "Mis tickets abiertos (F09)", msg: "Mostrame los tickets que tengo abiertos y en que estado estan." },
+            { label: "Subir captura VPN (Duplicado C10)", msg: "No puedo entrar a la VPN desde hoy, adjunto la captura del error.", file: "captura_error_vpn.png" },
+            { label: "Reportar corte de red c/TXT (F02)", msg: "Se corta internet en nuestro piso, adjunto el reporte de red con las pruebas.", file: "reporte_red.txt" },
+            { label: "Solicitud ambigua (F04)", msg: "Hola, no me anda nada en la computadora, necesito ayuda urgente." }
+          ];
+
+      for (const s of sugerencias) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "prompt-chip";
+        chip.textContent = s.label;
+        chip.addEventListener("click", () => {
+          mensajeInput.value = s.msg;
+          if (s.file) {
+            archivoServidorSelect.value = s.file;
+          }
+          mensajeInput.focus();
+        });
+        qp.appendChild(chip);
+      }
+    }
+
+    function renderizarChipsKPI(contenedorId, objetoDatos, prefijoClase = "") {
+      const cont = document.getElementById(contenedorId);
+      cont.innerHTML = "";
+      for (const [clave, valor] of Object.entries(objetoDatos || {})) {
+        const chip = document.createElement("span");
+        chip.className = `kpi-chip ${prefijoClase ? prefijoClase + clave.replace(/\s+/g, "-") : ""}`;
+        chip.textContent = `${clave}: ${valor}`;
+        cont.appendChild(chip);
+      }
+    }
+
+    async function cargarResumenSoporte() {
+      if (!usuarioActivo || usuarioActivo.rol !== "soporte") return;
+      const r = await fetch("/resumen", { headers: headersAutenticados() });
+      if (!r.ok) return;
+      const data = await r.json();
+      document.getElementById("kpiTotalTickets").textContent = `Total: ${data.total || 0} tickets`;
+      renderizarChipsKPI("kpiPorPrioridad", data.por_prioridad, "prio-");
+      renderizarChipsKPI("kpiPorEstado", data.por_estado, "est-");
+      renderizarChipsKPI("kpiPorCategoria", data.por_categoria);
+      renderizarChipsKPI("kpiPorArea", data.por_area);
     }
 
     async function cargarTickets() {
-      actualizarBadgeUsuario();
-      const uid = usuarioSelect.value;
-      const r = await fetch(`/tickets?usuario_id=${encodeURIComponent(uid)}`);
+      if (!usuarioActivo) return;
+      const params = new URLSearchParams();
+      const est = document.getElementById("filtroEstado").value;
+      const prio = document.getElementById("filtroPrioridad").value;
+      const cat = document.getElementById("filtroCategoria").value;
+      if (est) params.set("estado", est);
+      if (prio) params.set("prioridad", prio);
+      if (cat) params.set("categoria", cat);
+
+      const r = await fetch(`/tickets?${params.toString()}`, {
+        headers: headersAutenticados()
+      });
+      if (!r.ok) return;
       const data = await r.json();
+      const textoFiltro = document.getElementById("filtroAreaInput").value.trim().toLowerCase();
+
+      ticketsCargados = (data.tickets || []).filter((t) => {
+        if (!textoFiltro) return true;
+        const buscable = `${t.id} ${t.titulo} ${t.area || ""} ${t.solicitante_nombre || ""} ${t.solicitante}`.toLowerCase();
+        return buscable.includes(textoFiltro);
+      });
+
+      document.getElementById("contadorTablaTickets").textContent = `${ticketsCargados.length} registro(s)`;
       tbodyTickets.innerHTML = "";
-      for (const t of data.tickets || []) {
+
+      for (const t of ticketsCargados) {
         const tr = document.createElement("tr");
-        const claseEstado = "est-" + t.estado.replace(/\s+/g, "-");
-        tr.innerHTML = `
-          <td><strong>#${t.id}</strong></td>
-          <td>${t.titulo}</td>
-          <td>${t.categoria}</td>
-          <td><span class="badge prio-${t.prioridad}">${t.prioridad}</span></td>
-          <td><span class="badge ${claseEstado}">${t.estado}</span></td>
-          <td>${t.solicitante}</td>
-          <td>${t.responsable || "-"}</td>
-          <td><button type="button" class="btn-secondary" data-id="${t.id}">Ver</button></td>
-        `;
-        tr.querySelector("button").addEventListener("click", () => verDetalle(t.id));
+        if (t.id === ticketSeleccionadoId) tr.classList.add("selected-row");
+
+        const tdId = document.createElement("td");
+        const strongId = document.createElement("strong");
+        strongId.textContent = `#${t.id}`;
+        tdId.appendChild(strongId);
+
+        const tdTitulo = document.createElement("td");
+        tdTitulo.textContent = t.titulo;
+
+        const tdArea = document.createElement("td");
+        const divArea = document.createElement("div");
+        divArea.style.fontWeight = "600";
+        divArea.textContent = t.area || "General";
+        const divSol = document.createElement("div");
+        divSol.style.fontSize = "0.75rem";
+        divSol.style.color = "var(--muted)";
+        divSol.textContent = `${t.solicitante_nombre || t.solicitante} (${t.solicitante})`;
+        tdArea.appendChild(divArea);
+        tdArea.appendChild(divSol);
+
+        const tdCat = document.createElement("td");
+        tdCat.textContent = t.categoria;
+
+        const tdPrio = document.createElement("td");
+        tdPrio.appendChild(crearBadge(t.prioridad, `prio-${t.prioridad}`));
+
+        const tdEst = document.createElement("td");
+        tdEst.appendChild(crearBadge(t.estado, `est-${t.estado.replace(/\s+/g, "-")}`));
+
+        const tdResp = document.createElement("td");
+        tdResp.textContent = t.responsable_nombre
+          ? `${t.responsable_nombre} (${t.responsable})`
+          : "Sin asignar";
+
+        const tdAccion = document.createElement("td");
+        const btnVer = document.createElement("button");
+        btnVer.type = "button";
+        btnVer.className = "btn-secondary btn-sm";
+        btnVer.textContent = "Gestionar / Ver";
+        btnVer.addEventListener("click", () => verDetalle(t.id));
+        tdAccion.appendChild(btnVer);
+
+        tr.appendChild(tdId);
+        tr.appendChild(tdTitulo);
+        tr.appendChild(tdArea);
+        tr.appendChild(tdCat);
+        tr.appendChild(tdPrio);
+        tr.appendChild(tdEst);
+        tr.appendChild(tdResp);
+        tr.appendChild(tdAccion);
         tbodyTickets.appendChild(tr);
       }
+
+      await cargarResumenSoporte();
+      if (ticketSeleccionadoId && ticketsCargados.some((x) => x.id === ticketSeleccionadoId)) {
+        await verDetalle(ticketSeleccionadoId, true);
+      }
     }
 
-    async function verDetalle(ticketId) {
-      const uid = usuarioSelect.value;
-      const r = await fetch(`/tickets/${ticketId}?usuario_id=${encodeURIComponent(uid)}`);
+    async function verDetalle(ticketId, silencioso = false) {
+      ticketSeleccionadoId = ticketId;
+      const r = await fetch(`/tickets/${ticketId}`, { headers: headersAutenticados() });
       const data = await r.json();
-      detalleTicket.textContent = JSON.stringify(data.ticket || data, null, 2);
-    }
-
-    formNuevoUsuario.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const nombre = document.getElementById("nuevoNombre").value.trim();
-      const rol = document.getElementById("nuevoRol").value;
-      if (!nombre) return;
-
-      const fd = new FormData();
-      fd.append("nombre", nombre);
-      fd.append("rol", rol);
-
-      const r = await fetch("/usuarios", { method: "POST", body: fd });
-      const data = await r.json();
-      if (!r.ok) {
-        alert(data.detail || "Error al crear usuario");
+      if (!r.ok || !data.ticket) {
+        if (!silencioso) alert(data.detail || "No se pudo abrir el ticket");
         return;
       }
-      document.getElementById("nuevoNombre").value = "";
-      await cargarUsuarios(data.usuario.id);
-      agregarMensaje("sys", "Sistema", `Usuario creado y seleccionado: ${data.usuario.nombre} (${data.usuario.id}, rol: ${data.usuario.rol})`);
+
+      const t = data.ticket;
+      panelDetalleTicket.classList.remove("hidden");
+      document.getElementById("detalleTituloCabecera").textContent = `Ticket #${t.id} — ${t.titulo}`;
+
+      const badgesCab = document.getElementById("detalleBadgesCabecera");
+      badgesCab.innerHTML = "";
+      badgesCab.appendChild(crearBadge(t.prioridad, `prio-${t.prioridad}`));
+      badgesCab.appendChild(document.createTextNode(" "));
+      badgesCab.appendChild(crearBadge(t.estado, `est-${t.estado.replace(/\s+/g, "-")}`));
+
+      const grid = document.getElementById("detalleCamposGrid");
+      grid.innerHTML = "";
+      const campos = [
+        ["Fecha Creacion", t.creado],
+        ["Solicitante", `${t.solicitante_nombre || t.solicitante} (${t.solicitante})`],
+        ["Area / Sector", t.area || "General"],
+        ["Categoria", t.categoria],
+        ["Responsable TI", t.responsable_nombre ? `${t.responsable_nombre} (${t.responsable})` : "Sin asignar"],
+        ["Archivos Adjuntos", (t.adjuntos && t.adjuntos.length) ? t.adjuntos.join(", ") : "Ninguno"],
+        ["Descripcion del Problema", t.descripcion]
+      ];
+      for (const [etiqueta, valor] of campos) {
+        const item = document.createElement("div");
+        item.className = "detail-item";
+        if (etiqueta === "Descripcion del Problema") {
+          item.style.gridColumn = "1 / -1";
+        }
+        const st = document.createElement("strong");
+        st.textContent = etiqueta;
+        const val = document.createElement("span");
+        val.textContent = valor;
+        item.appendChild(st);
+        item.appendChild(val);
+        grid.appendChild(item);
+      }
+
+      // Controles exclusivos para Soporte
+      const panelSoporte = document.getElementById("controlesSoporteTicket");
+      if (usuarioActivo && usuarioActivo.rol === "soporte") {
+        panelSoporte.classList.remove("hidden");
+
+        // Transiciones permitidas desde el estado actual
+        const selEst = document.getElementById("selectNuevoEstado");
+        selEst.innerHTML = "";
+        const siguientes = (catalogos.transiciones_permitidas || {})[t.estado] || [];
+        if (siguientes.length === 0) {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.textContent = "Estado final (Cerrado)";
+          selEst.appendChild(opt);
+          document.getElementById("btnAplicarEstado").disabled = true;
+        } else {
+          document.getElementById("btnAplicarEstado").disabled = false;
+          for (const sig of siguientes) {
+            const opt = document.createElement("option");
+            opt.value = sig;
+            opt.textContent = `${t.estado} -> ${sig}`;
+            selEst.appendChild(opt);
+          }
+        }
+
+        // Prioridades
+        const selPrio = document.getElementById("selectNuevaPrioridad");
+        selPrio.innerHTML = "";
+        for (const p of catalogos.prioridades || []) {
+          const opt = document.createElement("option");
+          opt.value = p;
+          opt.textContent = p;
+          if (p === t.prioridad) opt.selected = true;
+          selPrio.appendChild(opt);
+        }
+
+        // Especialistas de soporte (Luana, Viviana, Stella)
+        const selResp = document.getElementById("selectNuevoResponsable");
+        selResp.innerHTML = "";
+        for (const s of catalogos.equipo_soporte || []) {
+          const opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = `${s.nombre} (${s.id})`;
+          if (s.id === t.responsable) opt.selected = true;
+          selResp.appendChild(opt);
+        }
+      } else {
+        panelSoporte.classList.add("hidden");
+      }
+
+      // Renderizar línea de tiempo del historial (F11)
+      const ul = document.getElementById("listaHistorialEventos");
+      ul.innerHTML = "";
+      for (const ev of t.historial || []) {
+        const li = document.createElement("li");
+        li.className = "timeline-item";
+
+        const meta = document.createElement("div");
+        meta.className = "timeline-meta";
+        const spanTipo = document.createElement("strong");
+        spanTipo.textContent = `${ev.tipo} · por ${ev.usuario_nombre || ev.usuario}`;
+        const spanFecha = document.createElement("span");
+        spanFecha.textContent = ev.fecha;
+        meta.appendChild(spanTipo);
+        meta.appendChild(spanFecha);
+
+        const det = document.createElement("div");
+        det.textContent = ev.detalle;
+
+        li.appendChild(meta);
+        li.appendChild(det);
+        ul.appendChild(li);
+      }
+    }
+
+    // EVENTOS DE LOGIN / LOGOUT
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      loginErrorBox.classList.add("hidden");
+      const ident = document.getElementById("loginIdentificador").value.trim();
+      const pass = document.getElementById("loginPassword").value;
+
+      const fd = new FormData();
+      fd.append("identificador", ident);
+      fd.append("password", pass);
+
+      const r = await fetch("/auth/login", { method: "POST", body: fd });
+      const data = await r.json();
+      if (!r.ok || !data.ok) {
+        loginErrorBox.textContent = data.detail || "Error de autenticacion.";
+        loginErrorBox.classList.remove("hidden");
+        return;
+      }
+
+      tokenSesion = data.token;
+      sessionStorage.setItem("ts_token", tokenSesion);
+      usuarioActivo = data.usuario;
+
+      loginView.classList.add("hidden");
+      appView.classList.remove("hidden");
+      panelDetalleTicket.classList.add("hidden");
+      ticketSeleccionadoId = null;
+      chatLog.innerHTML = "";
+
+      await cargarCatalogos();
+      configurarVistaPorRol();
+      await cargarTickets();
+
+      agregarMensaje(
+        "sys",
+        "Sistema de Seguridad TechSupport S.A.",
+        `Sesion iniciada como ${usuarioActivo.nombre} (${usuarioActivo.id}) — Rol: ${usuarioActivo.rol.toUpperCase()} — Area: ${usuarioActivo.area}`
+      );
     });
 
-    usuarioSelect.addEventListener("change", cargarTickets);
-    document.getElementById("btnRefrescarTickets").addEventListener("click", cargarTickets);
+    document.getElementById("btnCerrarSesion").addEventListener("click", async () => {
+      await fetch("/auth/logout", { method: "POST", headers: headersAutenticados() });
+      tokenSesion = "";
+      usuarioActivo = null;
+      sessionStorage.removeItem("ts_token");
+      appView.classList.add("hidden");
+      headerSessionArea.classList.add("hidden");
+      vistaActualBadge.classList.add("hidden");
+      loginView.classList.remove("hidden");
+      document.getElementById("loginPassword").value = "";
+    });
+
+    // EVENTOS DE GESTION DIRECTA EN DETALLE DE TICKET (F06, F08, F10)
+    document.getElementById("btnAplicarEstado").addEventListener("click", async () => {
+      if (!ticketSeleccionadoId) return;
+      const nuevo = document.getElementById("selectNuevoEstado").value;
+      if (!nuevo) return;
+      const fd = new FormData();
+      fd.append("nuevo_estado", nuevo);
+      const r = await fetch(`/tickets/${ticketSeleccionadoId}/estado`, {
+        method: "POST",
+        headers: headersAutenticados(),
+        body: fd
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        mostrarAlertaTicket(data.detail || "No se pudo cambiar el estado", true);
+        return;
+      }
+      mostrarAlertaTicket(`Estado actualizado a '${nuevo}'.`);
+      await cargarTickets();
+    });
+
+    document.getElementById("btnAplicarPrioridad").addEventListener("click", async () => {
+      if (!ticketSeleccionadoId) return;
+      const nueva = document.getElementById("selectNuevaPrioridad").value;
+      const fd = new FormData();
+      fd.append("nueva_prioridad", nueva);
+      const r = await fetch(`/tickets/${ticketSeleccionadoId}/prioridad`, {
+        method: "POST",
+        headers: headersAutenticados(),
+        body: fd
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        mostrarAlertaTicket(data.detail || "No se pudo cambiar la prioridad", true);
+        return;
+      }
+      mostrarAlertaTicket(`Prioridad actualizada a '${nueva}'.`);
+      await cargarTickets();
+    });
+
+    document.getElementById("btnAplicarResponsable").addEventListener("click", async () => {
+      if (!ticketSeleccionadoId) return;
+      const resp = document.getElementById("selectNuevoResponsable").value;
+      const fd = new FormData();
+      fd.append("responsable_id", resp);
+      const r = await fetch(`/tickets/${ticketSeleccionadoId}/asignar`, {
+        method: "POST",
+        headers: headersAutenticados(),
+        body: fd
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        mostrarAlertaTicket(data.detail || "No se pudo asignar el responsable", true);
+        return;
+      }
+      mostrarAlertaTicket(`Responsable asignado correctamente (${resp}).`);
+      await cargarTickets();
+    });
+
+    document.getElementById("formAgregarComentario").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!ticketSeleccionadoId) return;
+      const input = document.getElementById("inputNuevoComentario");
+      const texto = input.value.trim();
+      if (!texto) return;
+      const fd = new FormData();
+      fd.append("comentario", texto);
+      const r = await fetch(`/tickets/${ticketSeleccionadoId}/comentario`, {
+        method: "POST",
+        headers: headersAutenticados(),
+        body: fd
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        mostrarAlertaTicket(data.detail || "No se pudo agregar el comentario", true);
+        return;
+      }
+      input.value = "";
+      mostrarAlertaTicket("Comentario registrado en el historial.");
+      await cargarTickets();
+    });
+
+    // FILTROS Y BOTONES DE BARRA
+    document.getElementById("filtroEstado").addEventListener("change", cargarTickets);
+    document.getElementById("filtroPrioridad").addEventListener("change", cargarTickets);
+    document.getElementById("filtroCategoria").addEventListener("change", cargarTickets);
+    document.getElementById("filtroAreaInput").addEventListener("input", cargarTickets);
+    document.getElementById("btnRefrescarTodo").addEventListener("click", cargarTickets);
 
     document.getElementById("btnNuevaSesion").addEventListener("click", async () => {
-      const fd = new FormData();
-      fd.append("usuario_id", usuarioSelect.value);
-      await fetch("/reset-sesion", { method: "POST", body: fd });
+      await fetch("/reset-sesion", { method: "POST", headers: headersAutenticados() });
       chatLog.innerHTML = "";
-      agregarMensaje("sys", "Sistema", `Conversacion reiniciada para ${usuarioSelect.value}`);
+      agregarMensaje("sys", "Sistema", `Conversacion reiniciada para ${usuarioActivo.nombre} (${usuarioActivo.id})`);
     });
 
+    // ENVIO DE CHAT MULTIMODAL
     chatForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (!usuarioActivo) return;
       const msg = mensajeInput.value.trim();
       const file = archivoInput.files[0];
-      if (!msg && !file) return;
+      const srvFile = archivoServidorSelect.value;
+      if (!msg && !file && !srvFile) return;
 
-      const uid = usuarioSelect.value;
-      const u = mapaUsuarios[uid];
-      agregarMensaje("user", `${u ? u.nombre : uid} (${uid})`, msg + (file ? `\n[Archivo adjunto: ${file.name}]` : ""));
+      const etiquetaAdj = file
+        ? `\n[Archivo subido: ${file.name}]`
+        : (srvFile ? `\n[Archivo de prueba: ${srvFile}]` : "");
+
+      agregarMensaje(
+        "user",
+        `${usuarioActivo.nombre} (${usuarioActivo.id} · ${usuarioActivo.area})`,
+        (msg || "(Analizar archivo adjunto)") + etiquetaAdj
+      );
 
       const fd = new FormData();
-      fd.append("usuario_id", uid);
       fd.append("mensaje", msg);
-      if (file) fd.append("archivo", file);
+      if (file) {
+        fd.append("archivo", file);
+      } else if (srvFile) {
+        fd.append("archivo_servidor", srvFile);
+      }
 
       btnEnviar.disabled = true;
-      estadoEnvio.textContent = "Pensando con qwen3.5:4b...";
+      estadoEnvio.textContent = "Procesando con qwen3.5:4b...";
       try {
-        const r = await fetch("/chat", { method: "POST", body: fd });
+        const r = await fetch("/chat", {
+          method: "POST",
+          headers: headersAutenticados(),
+          body: fd
+        });
         const data = await r.json();
-        agregarMensaje("agent", "Agente TechSupport", data.respuesta || "(sin respuesta de texto)", data.tools_usadas || []);
+        const textoResp = data.respuesta || data.detail || "(sin respuesta de texto)";
+        agregarMensaje(
+          data.ok === false ? "sys" : "agent",
+          data.ok === false ? "Aviso de Seguridad / Validacion" : "Agente TechSupport",
+          textoResp,
+          data.tools_usadas || []
+        );
         mensajeInput.value = "";
         archivoInput.value = "";
+        archivoServidorSelect.value = "";
         await cargarTickets();
       } catch (err) {
-        agregarMensaje("sys", "Error", String(err));
+        agregarMensaje("sys", "Error de conexion", String(err));
       } finally {
         btnEnviar.disabled = false;
         estadoEnvio.textContent = "";
       }
     });
 
-    cargarUsuarios();
+    // Restaurar sesión si había token activo
+    async function restaurarSesionSiExiste() {
+      await inicializarPantallaLogin();
+      if (!tokenSesion) return;
+      const r = await fetch("/auth/me", { headers: headersAutenticados() });
+      if (!r.ok) {
+        tokenSesion = "";
+        sessionStorage.removeItem("ts_token");
+        return;
+      }
+      const data = await r.json();
+      usuarioActivo = data.usuario;
+      loginView.classList.add("hidden");
+      appView.classList.remove("hidden");
+      await cargarCatalogos();
+      configurarVistaPorRol();
+      await cargarTickets();
+    }
+
+    restaurarSesionSiExiste();
   </script>
 </body>
 </html>

@@ -1,134 +1,126 @@
-CATEGORIAS = [
-    "Hardware",
-    "Software",
-    "Redes y conectividad",
-    "Sistemas y aplicaciones",
-    "Accesos y permisos",
-    "Infraestructura",
-    "Otros",
-]
+import copy
+import hashlib
+import hmac
+import json
+import secrets
+from pathlib import Path
 
-PRIORIDADES = ["Baja", "Media", "Alta", "Critica"]
+DATASET_PATH = Path(__file__).resolve().parent.parent / "dataset" / "datos_iniciales.json"
 
-ESTADOS = ["Abierto", "En revision", "En progreso", "Pendiente", "Resuelto", "Cerrado"]
-
-TRANSICIONES_PERMITIDAS = {
-    "Abierto": ["En revision"],
-    "En revision": ["En progreso", "Pendiente"],
-    "En progreso": ["Pendiente", "Resuelto"],
-    "Pendiente": ["En revision", "En progreso"],
-    "Resuelto": ["Cerrado", "En progreso"],
-    "Cerrado": [],
-}
-
-USUARIOS = {
-    "u001": {"nombre": "Laura Gomez", "rol": "usuario", "email": "laura.gomez@cliente.test"},
-    "u002": {"nombre": "Martin Perez", "rol": "usuario", "email": "martin.perez@cliente.test"},
-    "u003": {"nombre": "Sofia Diaz", "rol": "usuario", "email": "sofia.diaz@cliente.test"},
-    "s001": {"nombre": "Carlos Ruiz", "rol": "soporte", "email": "carlos.ruiz@techsupport.test"},
-    "s002": {"nombre": "Ana Torres", "rol": "soporte", "email": "ana.torres@techsupport.test"},
-}
-
-PERMISOS_POR_ROL = {
-    "usuario": {"consultar_propios", "comentar_propios", "adjuntar_propios", "crear"},
-    "soporte": {
-        "consultar_todos", "comentar_todos", "adjuntar_todos", "crear",
-        "cambiar_estado", "cambiar_prioridad", "asignar",
-    },
-}
+CATEGORIAS: list[str] = []
+PRIORIDADES: list[str] = []
+ESTADOS: list[str] = []
+TRANSICIONES_PERMITIDAS: dict[str, list[str]] = {}
+PERMISOS_POR_ROL: dict[str, set[str]] = {}
+ORGANIZACIONES: dict[str, dict] = {}
+USUARIOS: dict[str, dict] = {}
+TICKETS: dict[int, dict] = {}
 
 
-def _evento(fecha, usuario, tipo, detalle):
-    return {"fecha": fecha, "usuario": usuario, "tipo": tipo, "detalle": detalle}
+def hashear_password(password: str, salt: str | None = None, iteraciones: int = 100000) -> str:
+    if salt is None:
+        salt = secrets.token_hex(8)
+    derivado = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt.encode("utf-8"),
+        iteraciones,
+    ).hex()
+    return f"pbkdf2_sha256${iteraciones}${salt}${derivado}"
 
 
-TICKETS = {
-    1050: {
-        "id": 1050,
-        "creado": "2026-10-20 09:15",
-        "solicitante": "u001",
-        "titulo": "No puedo conectarme a la VPN",
-        "descripcion": "Desde ayer la VPN corporativa muestra error de autenticacion.",
-        "categoria": "Redes y conectividad",
-        "prioridad": "Alta",
-        "adjuntos": [],
-        "estado": "En progreso",
-        "responsable": "s001",
-        "historial": [
-            _evento("2026-10-20 09:15", "u001", "Creacion", "Ticket creado"),
-            _evento("2026-10-20 09:40", "s001", "Cambio de estado", "Abierto -> En revision"),
-            _evento("2026-10-20 10:05", "s001", "Cambio de estado", "En revision -> En progreso"),
-        ],
-    },
-    1051: {
-        "id": 1051,
-        "creado": "2026-10-21 11:30",
-        "solicitante": "u002",
-        "titulo": "La impresora del piso 2 no imprime",
-        "descripcion": "La impresora enciende pero queda con luz roja y no toma trabajos.",
-        "categoria": "Hardware",
-        "prioridad": "Baja",
-        "adjuntos": [],
-        "estado": "Abierto",
-        "responsable": None,
-        "historial": [
-            _evento("2026-10-21 11:30", "u002", "Creacion", "Ticket creado"),
-        ],
-    },
-    1052: {
-        "id": 1052,
-        "creado": "2026-10-22 08:50",
-        "solicitante": "u001",
-        "titulo": "Sistema de facturacion caido",
-        "descripcion": "El sistema de facturacion devuelve error 500 y nadie puede emitir facturas.",
-        "categoria": "Sistemas y aplicaciones",
-        "prioridad": "Critica",
-        "adjuntos": ["error_facturacion.log"],
-        "estado": "Pendiente",
-        "responsable": "s002",
-        "historial": [
-            _evento("2026-10-22 08:50", "u001", "Creacion", "Ticket creado"),
-            _evento("2026-10-22 08:52", "u001", "Archivo", "Adjunto error_facturacion.log"),
-            _evento("2026-10-22 09:00", "s002", "Cambio de estado", "Abierto -> En revision"),
-            _evento("2026-10-22 09:20", "s002", "Cambio de estado", "En revision -> Pendiente"),
-            _evento("2026-10-22 09:21", "s002", "Comentario", "Esperando respuesta del proveedor de la base de datos."),
-        ],
-    },
-    1053: {
-        "id": 1053,
-        "creado": "2026-10-23 14:05",
-        "solicitante": "u003",
-        "titulo": "Olvide mi contrasena del correo",
-        "descripcion": "No puedo ingresar al correo corporativo y necesito restablecer la clave.",
-        "categoria": "Accesos y permisos",
-        "prioridad": "Media",
-        "adjuntos": [],
-        "estado": "Resuelto",
-        "responsable": "s001",
-        "historial": [
-            _evento("2026-10-23 14:05", "u003", "Creacion", "Ticket creado"),
-            _evento("2026-10-23 14:20", "s001", "Cambio de estado", "Abierto -> En revision"),
-            _evento("2026-10-23 14:30", "s001", "Cambio de estado", "En revision -> En progreso"),
-            _evento("2026-10-23 14:45", "s001", "Cambio de estado", "En progreso -> Resuelto"),
-        ],
-    },
-    1054: {
-        "id": 1054,
-        "creado": "2026-10-24 16:40",
-        "solicitante": "u002",
-        "titulo": "Servidor de archivos sin espacio",
-        "descripcion": "El servidor de archivos alcanzo el 98% de uso de disco.",
-        "categoria": "Infraestructura",
-        "prioridad": "Alta",
-        "adjuntos": [],
-        "estado": "Cerrado",
-        "responsable": "s002",
-        "historial": [
-            _evento("2026-10-24 16:40", "u002", "Creacion", "Ticket creado"),
-            _evento("2026-10-24 17:00", "s002", "Cambio de estado", "Abierto -> En revision"),
-            _evento("2026-10-24 17:30", "s002", "Cambio de estado", "En revision -> En progreso"),
-            _evento("2026-10-25 09:00", "s002", "Cambio de estado", "En progreso -> Resuelto"),
-            _evento("2026-10-26 09:00", "s002", "Cambio de estado", "Resuelto -> Cerrado"),
-        ],
-    },
-}
+def verificar_password(password: str, password_hash: str) -> bool:
+    if not password or not password_hash:
+        return False
+    partes = password_hash.split("$")
+    if len(partes) != 4 or partes[0] != "pbkdf2_sha256":
+        return False
+    try:
+        iteraciones = int(partes[1])
+    except ValueError:
+        return False
+    salt = partes[2]
+    esperado = partes[3]
+    calculado = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt.encode("utf-8"),
+        iteraciones,
+    ).hex()
+    return hmac.compare_digest(calculado, esperado)
+
+
+def usuario_publico(uid: str) -> dict | None:
+    datos = USUARIOS.get(uid)
+    if not datos:
+        return None
+    org_id = datos.get("organizacion_id", "")
+    org_nombre = ORGANIZACIONES.get(org_id, {}).get("nombre", org_id)
+    return {
+        "id": uid,
+        "nombre": datos["nombre"],
+        "rol": datos["rol"],
+        "email": datos.get("email", ""),
+        "organizacion_id": org_id,
+        "organizacion": org_nombre,
+        "area": datos.get("area", "General"),
+        "cargo": datos.get("cargo", ""),
+    }
+
+
+def autenticar_credenciales(identificador: str, password: str) -> dict | None:
+    if not identificador or not password:
+        return None
+    ident = identificador.strip().lower()
+    uid_encontrado = None
+    for uid, datos in USUARIOS.items():
+        if uid.lower() == ident or datos.get("email", "").lower() == ident:
+            uid_encontrado = uid
+            break
+    if not uid_encontrado:
+        return None
+    hash_guardado = USUARIOS[uid_encontrado].get("password_hash", "")
+    if not verificar_password(password, hash_guardado):
+        return None
+    return usuario_publico(uid_encontrado)
+
+
+def cargar_dataset(ruta: Path | str = DATASET_PATH) -> None:
+    ruta_path = Path(ruta)
+    raw = json.loads(ruta_path.read_text(encoding="utf-8"))
+    cfg = raw.get("configuracion", {})
+
+    CATEGORIAS.clear()
+    CATEGORIAS.extend(cfg.get("categorias", []))
+
+    PRIORIDADES.clear()
+    PRIORIDADES.extend(cfg.get("prioridades", []))
+
+    ESTADOS.clear()
+    ESTADOS.extend(cfg.get("estados", []))
+
+    TRANSICIONES_PERMITIDAS.clear()
+    for est, dests in cfg.get("transiciones_permitidas", {}).items():
+        TRANSICIONES_PERMITIDAS[est] = list(dests)
+
+    PERMISOS_POR_ROL.clear()
+    for rol, perms in cfg.get("permisos_por_rol", {}).items():
+        PERMISOS_POR_ROL[rol] = set(perms)
+
+    ORGANIZACIONES.clear()
+    for oid, odata in raw.get("organizaciones", {}).items():
+        ORGANIZACIONES[oid] = copy.deepcopy(odata)
+
+    USUARIOS.clear()
+    for uid, udata in raw.get("usuarios", {}).items():
+        USUARIOS[uid] = copy.deepcopy(udata)
+
+    TICKETS.clear()
+    for t in raw.get("tickets", []):
+        tid = int(t["id"])
+        copia = copy.deepcopy(t)
+        copia["id"] = tid
+        TICKETS[tid] = copia
+
+
+cargar_dataset()

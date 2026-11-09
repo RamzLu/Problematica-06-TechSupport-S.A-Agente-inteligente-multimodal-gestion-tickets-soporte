@@ -1,0 +1,332 @@
+{
+  "configuracion": {
+    "proveedor_soporte": "TechSupport S.A.",
+    "categorias": [
+      "Hardware",
+      "Software",
+      "Redes y conectividad",
+      "Sistemas y aplicaciones",
+      "Accesos y permisos",
+      "Infraestructura",
+      "Otros"
+    ],
+    "prioridades": [
+      "Baja",
+      "Media",
+      "Alta",
+      "Critica"
+    ],
+    "estados": [
+      "Abierto",
+      "En revision",
+      "En progreso",
+      "Pendiente",
+      "Resuelto",
+      "Cerrado"
+    ],
+    "transiciones_permitidas": {
+      "Abierto": ["En revision"],
+      "En revision": ["En progreso", "Pendiente"],
+      "En progreso": ["Pendiente", "Resuelto"],
+      "Pendiente": ["En revision", "En progreso"],
+      "Resuelto": ["Cerrado", "En progreso"],
+      "Cerrado": []
+    },
+    "permisos_por_rol": {
+      "usuario": [
+        "consultar_propios",
+        "comentar_propios",
+        "adjuntar_propios",
+        "crear"
+      ],
+      "soporte": [
+        "consultar_todos",
+        "comentar_todos",
+        "adjuntar_todos",
+        "crear",
+        "cambiar_estado",
+        "cambiar_prioridad",
+        "asignar"
+      ]
+    }
+  },
+  "organizaciones": {
+    "org_central": {
+      "id": "org_central",
+      "nombre": "Grupo Empresarial Andino S.A.",
+      "rubro": "Corporativo Multi-Área",
+      "areas": [
+        "Finanzas y Facturación",
+        "Administración y Compras",
+        "Recursos Humanos (RRHH)",
+        "Operaciones y Logística",
+        "Comercial y Atención al Cliente",
+        "Soporte TI (TechSupport S.A.)"
+      ]
+    }
+  },
+  "usuarios": {
+    "s001": {
+      "nombre": "Luana Ramirez",
+      "rol": "soporte",
+      "email": "luana.ramirez@techsupport.com",
+      "organizacion_id": "org_central",
+      "area": "Soporte TI - Redes y Ciberseguridad (N2)",
+      "cargo": "Especialista en Redes y Conectividad",
+      "password_hash": "pbkdf2_sha256$100000$salt_s001$9b0ef686c53e056c7a839718cca2b5adbe1ffb240cd29963aa3c14cb13166948"
+    },
+    "s002": {
+      "nombre": "Viviana Gonzales",
+      "rol": "soporte",
+      "email": "viviana.gonzales@techsupport.com",
+      "organizacion_id": "org_central",
+      "area": "Soporte TI - Sistemas y Bases de Datos (N3)",
+      "cargo": "Especialista en Sistemas y Aplicaciones",
+      "password_hash": "pbkdf2_sha256$100000$salt_s002$49c8266e8c4013b484e5173cf7a9c69943da28f8b0fb29c012e9f30c8a8ca34d"
+    },
+    "s003": {
+      "nombre": "Stella Bernard",
+      "rol": "soporte",
+      "email": "stella.bernard@techsupport.com",
+      "organizacion_id": "org_central",
+      "area": "Soporte TI - Infraestructura y Hardware (N2)",
+      "cargo": "Especialista en Infraestructura y Equipos",
+      "password_hash": "pbkdf2_sha256$100000$salt_s003$c8b590d6d40b2c7fe159f3982390dbd33b36f6946e322ea5ca4e2fb8f0945656"
+    },
+    "u001": {
+      "nombre": "Laura Gomez",
+      "rol": "usuario",
+      "email": "laura.gomez@empresa.com",
+      "organizacion_id": "org_central",
+      "area": "Finanzas y Facturación",
+      "cargo": "Analista de Facturación",
+      "password_hash": "pbkdf2_sha256$100000$salt_u001$d267909b7fb7edcde7cbe73249f1211d1cc42e0a565749678a343ab0fbcfeee5"
+    },
+    "u002": {
+      "nombre": "Martin Perez",
+      "rol": "usuario",
+      "email": "martin.perez@empresa.com",
+      "organizacion_id": "org_central",
+      "area": "Administración y Compras",
+      "cargo": "Coordinador Administrativo",
+      "password_hash": "pbkdf2_sha256$100000$salt_u002$fa6b8490bdcec3c701912b1a6aeb4c58917be19d61247c99e83e9f93aa02aa9c"
+    },
+    "u003": {
+      "nombre": "Sofia Diaz",
+      "rol": "usuario",
+      "email": "sofia.diaz@empresa.com",
+      "organizacion_id": "org_central",
+      "area": "Recursos Humanos (RRHH)",
+      "cargo": "Analista de RRHH",
+      "password_hash": "pbkdf2_sha256$100000$salt_u003$ad219ede07fe7da9bf1c321c5887a990ae5c6c3881f8eaca32beee992b9f41d5"
+    },
+    "u004": {
+      "nombre": "Lucas Torres",
+      "rol": "usuario",
+      "email": "lucas.torres@empresa.com",
+      "organizacion_id": "org_central",
+      "area": "Operaciones y Logística",
+      "cargo": "Supervisor de Depósito",
+      "password_hash": "pbkdf2_sha256$100000$salt_u004$7ca68d75de1b0813382d71fcf49835515c8056349044416c04d2edc221723efa"
+    },
+    "u005": {
+      "nombre": "Camila Vega",
+      "rol": "usuario",
+      "email": "camila.vega@empresa.com",
+      "organizacion_id": "org_central",
+      "area": "Comercial y Atención al Cliente",
+      "cargo": "Ejecutiva de Cuentas",
+      "password_hash": "pbkdf2_sha256$100000$salt_u005$947a6a2a1178bd75c9ff5924154915f81e119c6e26333e628398cbdf726de206"
+    }
+  },
+  "tickets": [
+    {
+      "id": 1050,
+      "creado": "2026-10-20 09:15",
+      "solicitante": "u001",
+      "organizacion_id": "org_central",
+      "area": "Finanzas y Facturación",
+      "titulo": "No puedo conectarme a la VPN",
+      "descripcion": "Desde ayer la VPN corporativa muestra error de autenticacion 691 al intentar conectarme desde mi notebook.",
+      "categoria": "Redes y conectividad",
+      "prioridad": "Alta",
+      "adjuntos": [],
+      "estado": "En progreso",
+      "responsable": "s001",
+      "historial": [
+        {
+          "fecha": "2026-10-20 09:15",
+          "usuario": "u001",
+          "tipo": "Creacion",
+          "detalle": "Ticket creado"
+        },
+        {
+          "fecha": "2026-10-20 09:40",
+          "usuario": "s001",
+          "tipo": "Cambio de estado",
+          "detalle": "Abierto -> En revision"
+        },
+        {
+          "fecha": "2026-10-20 10:05",
+          "usuario": "s001",
+          "tipo": "Cambio de estado",
+          "detalle": "En revision -> En progreso"
+        }
+      ]
+    },
+    {
+      "id": 1051,
+      "creado": "2026-10-21 11:30",
+      "solicitante": "u002",
+      "organizacion_id": "org_central",
+      "area": "Administración y Compras",
+      "titulo": "La impresora del piso 2 no imprime",
+      "descripcion": "La impresora enciende pero queda con luz roja y no toma trabajos de impresion del sector.",
+      "categoria": "Hardware",
+      "prioridad": "Baja",
+      "adjuntos": [],
+      "estado": "Abierto",
+      "responsable": null,
+      "historial": [
+        {
+          "fecha": "2026-10-21 11:30",
+          "usuario": "u002",
+          "tipo": "Creacion",
+          "detalle": "Ticket creado"
+        }
+      ]
+    },
+    {
+      "id": 1052,
+      "creado": "2026-10-22 08:50",
+      "solicitante": "u001",
+      "organizacion_id": "org_central",
+      "area": "Finanzas y Facturación",
+      "titulo": "Sistema de facturacion caido",
+      "descripcion": "El sistema de facturacion devuelve error 500 y nadie puede emitir facturas en el area.",
+      "categoria": "Sistemas y aplicaciones",
+      "prioridad": "Critica",
+      "adjuntos": ["error_facturacion.log"],
+      "estado": "Pendiente",
+      "responsable": "s002",
+      "historial": [
+        {
+          "fecha": "2026-10-22 08:50",
+          "usuario": "u001",
+          "tipo": "Creacion",
+          "detalle": "Ticket creado"
+        },
+        {
+          "fecha": "2026-10-22 08:52",
+          "usuario": "u001",
+          "tipo": "Archivo",
+          "detalle": "Adjunto error_facturacion.log"
+        },
+        {
+          "fecha": "2026-10-22 09:00",
+          "usuario": "s002",
+          "tipo": "Cambio de estado",
+          "detalle": "Abierto -> En revision"
+        },
+        {
+          "fecha": "2026-10-22 09:20",
+          "usuario": "s002",
+          "tipo": "Cambio de estado",
+          "detalle": "En revision -> Pendiente"
+        },
+        {
+          "fecha": "2026-10-22 09:21",
+          "usuario": "s002",
+          "tipo": "Comentario",
+          "detalle": "Esperando respuesta del proveedor de la base de datos."
+        }
+      ]
+    },
+    {
+      "id": 1053,
+      "creado": "2026-10-23 14:05",
+      "solicitante": "u003",
+      "organizacion_id": "org_central",
+      "area": "Recursos Humanos (RRHH)",
+      "titulo": "Olvide mi contrasena del correo",
+      "descripcion": "No puedo ingresar al correo corporativo y necesito restablecer la clave.",
+      "categoria": "Accesos y permisos",
+      "prioridad": "Media",
+      "adjuntos": [],
+      "estado": "Resuelto",
+      "responsable": "s001",
+      "historial": [
+        {
+          "fecha": "2026-10-23 14:05",
+          "usuario": "u003",
+          "tipo": "Creacion",
+          "detalle": "Ticket creado"
+        },
+        {
+          "fecha": "2026-10-23 14:20",
+          "usuario": "s001",
+          "tipo": "Cambio de estado",
+          "detalle": "Abierto -> En revision"
+        },
+        {
+          "fecha": "2026-10-23 14:30",
+          "usuario": "s001",
+          "tipo": "Cambio de estado",
+          "detalle": "En revision -> En progreso"
+        },
+        {
+          "fecha": "2026-10-23 14:45",
+          "usuario": "s001",
+          "tipo": "Cambio de estado",
+          "detalle": "En progreso -> Resuelto"
+        }
+      ]
+    },
+    {
+      "id": 1054,
+      "creado": "2026-10-24 16:40",
+      "solicitante": "u004",
+      "organizacion_id": "org_central",
+      "area": "Operaciones y Logística",
+      "titulo": "Servidor de archivos sin espacio",
+      "descripcion": "El servidor de archivos alcanzo el 98% de uso de disco en la carpeta de logistica.",
+      "categoria": "Infraestructura",
+      "prioridad": "Alta",
+      "adjuntos": [],
+      "estado": "Cerrado",
+      "responsable": "s003",
+      "historial": [
+        {
+          "fecha": "2026-10-24 16:40",
+          "usuario": "u004",
+          "tipo": "Creacion",
+          "detalle": "Ticket creado"
+        },
+        {
+          "fecha": "2026-10-24 17:00",
+          "usuario": "s003",
+          "tipo": "Cambio de estado",
+          "detalle": "Abierto -> En revision"
+        },
+        {
+          "fecha": "2026-10-24 17:30",
+          "usuario": "s003",
+          "tipo": "Cambio de estado",
+          "detalle": "En revision -> En progreso"
+        },
+        {
+          "fecha": "2026-10-25 09:00",
+          "usuario": "s003",
+          "tipo": "Cambio de estado",
+          "detalle": "En progreso -> Resuelto"
+        },
+        {
+          "fecha": "2026-10-26 09:00",
+          "usuario": "s003",
+          "tipo": "Cambio de estado",
+          "detalle": "Resuelto -> Cerrado"
+        }
+      ]
+    }
+  ]
+}

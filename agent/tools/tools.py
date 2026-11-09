@@ -1,3 +1,4 @@
+import contextvars
 import re
 import unicodedata
 from datetime import datetime
@@ -11,6 +12,7 @@ from langchain_ollama import OllamaEmbeddings
 from ..data import (
     CATEGORIAS,
     ESTADOS,
+    ORGANIZACIONES,
     PERMISOS_POR_ROL,
     PRIORIDADES,
     TICKETS,
@@ -18,13 +20,37 @@ from ..data import (
     USUARIOS,
 )
 
+_usuario_sesion_actual: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "usuario_sesion_actual", default=None
+)
+
+
+def fijar_usuario_sesion(usuario_id: str | None):
+    return _usuario_sesion_actual.set(usuario_id)
+
+
+def limpiar_usuario_sesion(token) -> None:
+    _usuario_sesion_actual.reset(token)
+
+
+def _resolver_usuario_efectivo(usuario_id_param: str) -> tuple[str, dict | None]:
+    fijado = _usuario_sesion_actual.get()
+    if fijado:
+        if usuario_id_param and usuario_id_param.strip().lower() != fijado.lower():
+            return fijado, _error(
+                f"Operacion bloqueada por seguridad: la sesion autenticada pertenece a '{fijado}' "
+                f"y no tiene permitido ejecutar herramientas en nombre de '{usuario_id_param}'."
+            )
+        return fijado, None
+    return usuario_id_param, None
+
 
 def _ahora() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
 def _sin_tildes(texto: str) -> str:
-    texto = unicodedata.normalize("NFD", texto.strip().lower())
+    texto = unicodedata.normalize("NFD", str(texto).strip().lower())
     return "".join(c for c in texto if unicodedata.category(c) != "Mn")
 
 
@@ -36,8 +62,15 @@ def _normalizar(valor: str, catalogo: list):
 
 
 def _registrar(ticket: dict, usuario_id: str, tipo: str, detalle: str) -> None:
+    nombre_usr = USUARIOS.get(usuario_id, {}).get("nombre", usuario_id)
     ticket["historial"].append(
-        {"fecha": _ahora(), "usuario": usuario_id, "tipo": tipo, "detalle": detalle}
+        {
+            "fecha": _ahora(),
+            "usuario": usuario_id,
+            "usuario_nombre": nombre_usr,
+            "tipo": tipo,
+            "detalle": detalle,
+        }
     )
 
 
@@ -48,10 +81,10 @@ def _error(mensaje: str) -> dict:
 _PATRONES_SQLI = re.compile(
     r"("
     r"(\bunion\s+(all\s+)?select\b)|"
-    r"(\bselect\b.+\bfrom\b)|"
-    r"(\binsert\s+into\b)|"
+    r"(\bselect\s+[\w\*\,\s]+\s+from\s+\w+)|"
+    r"(\binsert\s+into\s+\w+)|"
     r"(\bupdate\s+\w+\s+set\b)|"
-    r"(\bdelete\s+from\b)|"
+    r"(\bdelete\s+from\s+\w+)|"
     r"(\bdrop\s+(table|database|view|index)\b)|"
     r"(\balter\s+table\b)|"
     r"(\btruncate\s+table\b)|"
@@ -70,12 +103,16 @@ _PATRON_ID_SEGURO = re.compile(r"^[a-zA-Z0-9_-]{1,30}$")
 _PATRON_ARCHIVO_SEGURO = re.compile(r"^[a-zA-Z0-9._-]{1,120}$")
 
 
-def sanitizar_texto(valor: str, campo: str = "texto", max_largo: int = 2000) -> tuple[str | None, dict | None]:
+def sanitizar_texto(
+    valor: str, campo: str = "texto", max_largo: int = 2000
+) -> tuple[str | None, dict | None]:
     if valor is None:
         return "", None
     limpio = str(valor).replace("\x00", "").strip()
     if len(limpio) > max_largo:
-        return None, _error(f"El campo '{campo}' supera el largo maximo permitido ({max_largo} caracteres).")
+        return None, _error(
+            f"El campo '{campo}' supera el largo maximo permitido ({max_largo} caracteres)."
+        )
     if _PATRONES_SQLI.search(limpio):
         return None, _error(
             f"Entrada bloqueada por seguridad: se detecto un patron sospechoso de inyeccion SQL en '{campo}'."
@@ -83,7 +120,9 @@ def sanitizar_texto(valor: str, campo: str = "texto", max_largo: int = 2000) -> 
     return limpio, None
 
 
-def sanitizar_identificador(valor: str, campo: str = "usuario_id") -> tuple[str | None, dict | None]:
+def sanitizar_identificador(
+    valor: str, campo: str = "usuario_id"
+) -> tuple[str | None, dict | None]:
     limpio, err = sanitizar_texto(valor, campo=campo, max_largo=30)
     if err:
         return None, err
@@ -94,21 +133,36 @@ def sanitizar_identificador(valor: str, campo: str = "usuario_id") -> tuple[str 
     return limpio, None
 
 
-def _validar_usuario(usuario_id: str):
-    uid, err = sanitizar_identificador(usuario_id, campo="usuario_id")
+def _validar_usuario(usuario_id: str) -> tuple[str | None, dict | None]:
+    efectivo, err_sesion = _resolver_usuario_efectivo(usuario_id)
+    if err_sesion:
+        return None, err_sesion
+    uid, err = sanitizar_identificador(efectivo, campo="usuario_id")
     if err:
-        return err
+        return None, err
     if uid not in USUARIOS:
-        return _error(f"Usuario '{uid}' no existe en el directorio.")
-    return None
+        return None, _error(f"Usuario '{uid}' no existe en el directorio de la organizacion.")
+    return uid, None
 
 
 def _tiene_permiso(usuario_id: str, permiso: str) -> bool:
     rol = USUARIOS[usuario_id]["rol"]
-    return permiso in PERMISOS_POR_ROL[rol]
+    return permiso in PERMISOS_POR_ROL.get(rol, set())
+
+
+def _misma_organizacion(usuario_id: str, ticket: dict) -> bool:
+    org_usr = USUARIOS.get(usuario_id, {}).get("organizacion_id")
+    org_tkt = ticket.get("organizacion_id")
+    if not org_usr or not org_tkt:
+        return True
+    return org_usr == org_tkt
 
 
 def _puede_ver_o_tocar(usuario_id: str, ticket: dict, accion: str):
+    if not _misma_organizacion(usuario_id, ticket):
+        return _error(
+            f"El usuario {usuario_id} no pertenece a la organizacion del ticket {ticket['id']}."
+        )
     if _tiene_permiso(usuario_id, f"{accion}_todos"):
         return None
     if _tiene_permiso(usuario_id, f"{accion}_propios") and ticket["solicitante"] == usuario_id:
@@ -135,22 +189,45 @@ def _obtener_ticket(ticket_id: int):
     return ticket, None
 
 
-def _resumen_corto(t: dict) -> dict:
+def _enriquecer_ticket(t: dict) -> dict:
+    sol_id = t.get("solicitante", "")
+    resp_id = t.get("responsable")
+    sol_info = USUARIOS.get(sol_id, {})
+    resp_info = USUARIOS.get(resp_id, {}) if resp_id else {}
     return {
-        "id": t["id"],
-        "titulo": t["titulo"],
-        "estado": t["estado"],
-        "prioridad": t["prioridad"],
-        "categoria": t["categoria"],
-        "solicitante": t["solicitante"],
-        "responsable": t["responsable"],
+        **t,
+        "solicitante_nombre": sol_info.get("nombre", sol_id),
+        "area": t.get("area") or sol_info.get("area", "General"),
+        "responsable_nombre": resp_info.get("nombre", resp_id) if resp_id else None,
+    }
+
+
+def _resumen_corto(t: dict) -> dict:
+    enr = _enriquecer_ticket(t)
+    return {
+        "id": enr["id"],
+        "creado": enr.get("creado", ""),
+        "titulo": enr["titulo"],
+        "estado": enr["estado"],
+        "prioridad": enr["prioridad"],
+        "categoria": enr["categoria"],
+        "solicitante": enr["solicitante"],
+        "solicitante_nombre": enr["solicitante_nombre"],
+        "area": enr["area"],
+        "responsable": enr["responsable"],
+        "responsable_nombre": enr["responsable_nombre"],
+        "adjuntos": list(enr.get("adjuntos", [])),
     }
 
 
 def _tickets_visibles(usuario_id: str) -> list:
     if _tiene_permiso(usuario_id, "consultar_todos"):
-        return list(TICKETS.values())
-    return [t for t in TICKETS.values() if t["solicitante"] == usuario_id]
+        return [t for t in TICKETS.values() if _misma_organizacion(usuario_id, t)]
+    return [
+        t
+        for t in TICKETS.values()
+        if t["solicitante"] == usuario_id and _misma_organizacion(usuario_id, t)
+    ]
 
 
 VECTOR_STORE_DIR = str(Path(__file__).resolve().parent.parent.parent / "vector_store")
@@ -159,6 +236,12 @@ UMBRAL_DUPLICADO = 0.55
 
 _vector_store = None
 _ids_indexados = set()
+
+
+def resetear_indice_vectorial() -> None:
+    global _vector_store, _ids_indexados
+    _vector_store = None
+    _ids_indexados = set()
 
 
 def _obtener_vector_store() -> Chroma:
@@ -172,9 +255,17 @@ def _obtener_vector_store() -> Chroma:
         _vector_store = Chroma(
             client=client,
             collection_name=COLECCION_TICKETS,
-            embedding_function=OllamaEmbeddings(model="nomic-embed-text"),
+            embedding_function=OllamaEmbeddings(
+                model="nomic-embed-text",
+                client_kwargs={"timeout": 2.5},
+            ),
         )
         _ids_indexados = set()
+
+    ids_actuales = set(TICKETS.keys())
+    if not _ids_indexados.issubset(ids_actuales):
+        _vector_store = None
+        return _obtener_vector_store()
 
     faltantes = [t for tid, t in TICKETS.items() if tid not in _ids_indexados]
     if faltantes:
@@ -191,21 +282,33 @@ def _obtener_vector_store() -> Chroma:
     return _vector_store
 
 
-def _buscar_similares(texto: str, k: int = 3, umbral: float = UMBRAL_DUPLICADO) -> list:
+def _buscar_similares(
+    texto: str, usuario_id: str | None = None, k: int = 3, umbral: float = UMBRAL_DUPLICADO
+) -> list:
     vs = _obtener_vector_store()
     resultados = vs.similarity_search_with_relevance_scores(query=texto, k=k)
     coincidencias = []
     for doc, score in resultados:
         tid = int(doc.metadata["ticket_id"])
         ticket = TICKETS.get(tid)
-        if ticket and score >= umbral:
-            coincidencias.append(
-                {
-                    **_resumen_corto(ticket),
-                    "descripcion": ticket["descripcion"],
-                    "similitud": round(float(score), 4),
-                }
-            )
+        if not ticket or score < umbral:
+            continue
+        if usuario_id and not _misma_organizacion(usuario_id, ticket):
+            continue
+        resumen = _resumen_corto(ticket)
+        es_soporte = usuario_id and _tiene_permiso(usuario_id, "consultar_todos")
+        es_propio = usuario_id and ticket["solicitante"] == usuario_id
+        coincidencias.append(
+            {
+                **resumen,
+                "descripcion": (
+                    ticket["descripcion"]
+                    if (not usuario_id or es_soporte or es_propio)
+                    else "Incidencia similar reportada en la organizacion."
+                ),
+                "similitud": round(float(score), 4),
+            }
+        )
     return coincidencias
 
 
@@ -221,10 +324,11 @@ def buscar_duplicados(consulta: str) -> dict:
     consulta_limpia, err = sanitizar_texto(consulta, campo="consulta", max_largo=1500)
     if err:
         return err
+    uid_ctx = _usuario_sesion_actual.get()
     try:
-        coincidencias = _buscar_similares(consulta_limpia)
-    except Exception as e:
-        return _error(f"Error al consultar la base vectorial de duplicados: {e}")
+        coincidencias = _buscar_similares(consulta_limpia, usuario_id=uid_ctx)
+    except Exception:
+        return _error("Error al consultar la base vectorial de duplicados.")
 
     if not coincidencias:
         return {
@@ -259,12 +363,14 @@ def crear_ticket(
         usuario_id: identificador del usuario solicitante (por ejemplo "u001").
         titulo: titulo corto de la incidencia.
         descripcion: descripcion del problema, sin inventar datos.
-        categoria: Hardware, Software, Redes y conectividad, Sistemas y aplicaciones,
-            Accesos y permisos, Infraestructura u Otros.
+        categoria: una de las categorias oficiales configuradas en la organizacion.
         prioridad: Baja, Media, Alta o Critica.
         confirmar_duplicado: False por defecto; True solo si el usuario confirmo crear pese al duplicado.
     """
-    error = _validar_usuario(usuario_id) or _exigir_permiso(usuario_id, "crear", "crear tickets")
+    uid, error = _validar_usuario(usuario_id)
+    if error:
+        return error
+    error = _exigir_permiso(uid, "crear", "crear tickets")
     if error:
         return error
     titulo_limpio, err = sanitizar_texto(titulo, campo="titulo", max_largo=200)
@@ -288,7 +394,7 @@ def crear_ticket(
         try:
             similares = [
                 c
-                for c in _buscar_similares(f"{titulo_limpio}. {desc_limpia}")
+                for c in _buscar_similares(f"{titulo_limpio}. {desc_limpia}", usuario_id=uid)
                 if c["estado"] != "Cerrado"
             ]
         except Exception:
@@ -306,11 +412,14 @@ def crear_ticket(
                 ),
             }
 
+    info_usr = USUARIOS[uid]
     nuevo_id = max(TICKETS) + 1 if TICKETS else 1001
     ticket = {
         "id": nuevo_id,
         "creado": _ahora(),
-        "solicitante": usuario_id,
+        "solicitante": uid,
+        "organizacion_id": info_usr.get("organizacion_id", "org_central"),
+        "area": info_usr.get("area", "General"),
         "titulo": titulo_limpio,
         "descripcion": desc_limpia,
         "categoria": categoria_ok,
@@ -320,13 +429,14 @@ def crear_ticket(
         "responsable": None,
         "historial": [],
     }
-    _registrar(ticket, usuario_id, "Creacion", "Ticket creado")
+    _registrar(ticket, uid, "Creacion", "Ticket creado")
     TICKETS[nuevo_id] = ticket
-    try:
-        _obtener_vector_store()
-    except Exception:
-        pass
-    return {"ok": True, "ticket": ticket}
+    if _vector_store is not None:
+        try:
+            _obtener_vector_store()
+        except Exception:
+            pass
+    return {"ok": True, "ticket": _enriquecer_ticket(ticket)}
 
 
 def consultar_ticket(ticket_id: int, usuario_id: str) -> dict:
@@ -337,16 +447,16 @@ def consultar_ticket(ticket_id: int, usuario_id: str) -> dict:
         ticket_id: numero del ticket (por ejemplo 1052).
         usuario_id: identificador de quien consulta (por ejemplo "u001").
     """
-    error = _validar_usuario(usuario_id)
+    uid, error = _validar_usuario(usuario_id)
     if error:
         return error
     ticket, error = _obtener_ticket(ticket_id)
     if error:
         return error
-    error = _puede_ver_o_tocar(usuario_id, ticket, "consultar")
+    error = _puede_ver_o_tocar(uid, ticket, "consultar")
     if error:
         return error
-    return {"ok": True, "ticket": ticket}
+    return {"ok": True, "ticket": _enriquecer_ticket(ticket)}
 
 
 def buscar_tickets(
@@ -355,9 +465,10 @@ def buscar_tickets(
     estado: str = "",
     categoria: str = "",
     prioridad: str = "",
+    area: str = "",
 ) -> dict:
     """
-    Busca tickets filtrando por solicitante, estado, categoria y/o prioridad.
+    Busca tickets filtrando por solicitante, estado, categoria, prioridad y/o area.
 
     Args:
         usuario_id: identificador de quien hace la busqueda.
@@ -365,8 +476,9 @@ def buscar_tickets(
         estado: Abierto, En revision, En progreso, Pendiente, Resuelto o Cerrado.
         categoria: una de las categorias oficiales.
         prioridad: Baja, Media, Alta o Critica.
+        area: filtrar por nombre de area o sector (opcional).
     """
-    error = _validar_usuario(usuario_id)
+    uid, error = _validar_usuario(usuario_id)
     if error:
         return error
     filtros = {}
@@ -388,13 +500,29 @@ def buscar_tickets(
                 return _error(f"Valor invalido '{valor}' para {nombre}. Opciones: {catalogo}")
             filtros[nombre] = oficial
 
-    resultados = [
-        _resumen_corto(t)
-        for t in _tickets_visibles(usuario_id)
-        if all(t[campo] == valor for campo, valor in filtros.items())
-    ]
+    area_filtro = ""
+    if area:
+        area_limpia, err = sanitizar_texto(area, campo="area", max_largo=100)
+        if err:
+            return err
+        area_filtro = _sin_tildes(area_limpia)
+
+    resultados = []
+    for t in _tickets_visibles(uid):
+        if not all(t.get(campo) == valor for campo, valor in filtros.items()):
+            continue
+        res = _resumen_corto(t)
+        if area_filtro and area_filtro not in _sin_tildes(res.get("area", "")):
+            continue
+        resultados.append(res)
+
     if not resultados:
-        return {"ok": True, "cantidad": 0, "tickets": [], "mensaje": "No hay tickets que coincidan."}
+        return {
+            "ok": True,
+            "cantidad": 0,
+            "tickets": [],
+            "mensaje": "No hay tickets que coincidan.",
+        }
     return {"ok": True, "cantidad": len(resultados), "tickets": resultados}
 
 
@@ -407,21 +535,24 @@ def actualizar_estado(ticket_id: int, usuario_id: str, nuevo_estado: str) -> dic
         usuario_id: identificador de quien solicita el cambio (por ejemplo "s001").
         nuevo_estado: Abierto, En revision, En progreso, Pendiente, Resuelto o Cerrado.
     """
-    error = _validar_usuario(usuario_id) or _exigir_permiso(
-        usuario_id, "cambiar_estado", "cambiar el estado de un ticket"
-    )
+    uid, error = _validar_usuario(usuario_id)
+    if error:
+        return error
+    error = _exigir_permiso(uid, "cambiar_estado", "cambiar el estado de un ticket")
     if error:
         return error
     ticket, error = _obtener_ticket(ticket_id)
     if error:
         return error
+    if not _misma_organizacion(uid, ticket):
+        return _error(f"El usuario {uid} no pertenece a la organizacion del ticket {ticket['id']}.")
     estado_ok = _normalizar(nuevo_estado, ESTADOS)
     if estado_ok is None:
         return _error(f"Estado invalido '{nuevo_estado}'. Opciones: {ESTADOS}")
     anterior = ticket["estado"]
     if estado_ok == anterior:
         return _error(f"El ticket {ticket['id']} ya esta en estado '{estado_ok}'.")
-    permitidos = TRANSICIONES_PERMITIDAS[anterior]
+    permitidos = TRANSICIONES_PERMITIDAS.get(anterior, [])
     if estado_ok not in permitidos:
         return _error(
             f"Transicion no permitida: de '{anterior}' a '{estado_ok}'. "
@@ -429,7 +560,7 @@ def actualizar_estado(ticket_id: int, usuario_id: str, nuevo_estado: str) -> dic
         )
 
     ticket["estado"] = estado_ok
-    _registrar(ticket, usuario_id, "Cambio de estado", f"{anterior} -> {estado_ok}")
+    _registrar(ticket, uid, "Cambio de estado", f"{anterior} -> {estado_ok}")
     return {"ok": True, "ticket": _resumen_corto(ticket)}
 
 
@@ -442,14 +573,17 @@ def cambiar_prioridad(ticket_id: int, usuario_id: str, nueva_prioridad: str) -> 
         usuario_id: identificador de quien modifica (por ejemplo "s001").
         nueva_prioridad: Baja, Media, Alta o Critica.
     """
-    error = _validar_usuario(usuario_id) or _exigir_permiso(
-        usuario_id, "cambiar_prioridad", "cambiar la prioridad de un ticket"
-    )
+    uid, error = _validar_usuario(usuario_id)
+    if error:
+        return error
+    error = _exigir_permiso(uid, "cambiar_prioridad", "cambiar la prioridad de un ticket")
     if error:
         return error
     ticket, error = _obtener_ticket(ticket_id)
     if error:
         return error
+    if not _misma_organizacion(uid, ticket):
+        return _error(f"El usuario {uid} no pertenece a la organizacion del ticket {ticket['id']}.")
     prioridad_ok = _normalizar(nueva_prioridad, PRIORIDADES)
     if prioridad_ok is None:
         return _error(f"Prioridad invalida '{nueva_prioridad}'. Opciones: {PRIORIDADES}")
@@ -457,7 +591,7 @@ def cambiar_prioridad(ticket_id: int, usuario_id: str, nueva_prioridad: str) -> 
     if prioridad_ok == anterior:
         return _error(f"El ticket {ticket['id']} ya tiene prioridad '{prioridad_ok}'.")
     ticket["prioridad"] = prioridad_ok
-    _registrar(ticket, usuario_id, "Cambio de prioridad", f"{anterior} -> {prioridad_ok}")
+    _registrar(ticket, uid, "Cambio de prioridad", f"{anterior} -> {prioridad_ok}")
     return {"ok": True, "ticket": _resumen_corto(ticket)}
 
 
@@ -468,16 +602,19 @@ def asignar_responsable(ticket_id: int, usuario_id: str, responsable_id: str) ->
     Args:
         ticket_id: numero del ticket.
         usuario_id: identificador de quien realiza la asignacion.
-        responsable_id: identificador del integrante de soporte asignado.
+        responsable_id: identificador del integrante de soporte asignado (ej. "s001", "s002", "s003").
     """
-    error = _validar_usuario(usuario_id) or _exigir_permiso(
-        usuario_id, "asignar", "asignar responsables"
-    )
+    uid, error = _validar_usuario(usuario_id)
+    if error:
+        return error
+    error = _exigir_permiso(uid, "asignar", "asignar responsables")
     if error:
         return error
     ticket, error = _obtener_ticket(ticket_id)
     if error:
         return error
+    if not _misma_organizacion(uid, ticket):
+        return _error(f"El usuario {uid} no pertenece a la organizacion del ticket {ticket['id']}.")
     resp_ok, err = sanitizar_identificador(responsable_id, campo="responsable_id")
     if err:
         return err
@@ -490,7 +627,9 @@ def asignar_responsable(ticket_id: int, usuario_id: str, responsable_id: str) ->
         return _error(f"El ticket {ticket['id']} ya esta asignado a {resp_ok}.")
     ticket["responsable"] = resp_ok
     tipo = "Asignacion" if anterior is None else "Reasignacion"
-    _registrar(ticket, usuario_id, tipo, f"{anterior or 'sin asignar'} -> {resp_ok}")
+    nombre_ant = USUARIOS.get(anterior, {}).get("nombre", anterior) if anterior else "sin asignar"
+    nombre_nue = USUARIOS[resp_ok]["nombre"]
+    _registrar(ticket, uid, tipo, f"{nombre_ant} ({anterior or '-'}) -> {nombre_nue} ({resp_ok})")
     return {"ok": True, "ticket": _resumen_corto(ticket)}
 
 
@@ -503,13 +642,13 @@ def agregar_comentario(ticket_id: int, usuario_id: str, comentario: str) -> dict
         usuario_id: identificador de quien comenta.
         comentario: texto del comentario.
     """
-    error = _validar_usuario(usuario_id)
+    uid, error = _validar_usuario(usuario_id)
     if error:
         return error
     ticket, error = _obtener_ticket(ticket_id)
     if error:
         return error
-    error = _puede_ver_o_tocar(usuario_id, ticket, "comentar")
+    error = _puede_ver_o_tocar(uid, ticket, "comentar")
     if error:
         return error
     if not comentario or not comentario.strip():
@@ -517,8 +656,16 @@ def agregar_comentario(ticket_id: int, usuario_id: str, comentario: str) -> dict
     comentario_limpio, err = sanitizar_texto(comentario, campo="comentario", max_largo=1500)
     if err:
         return err
-    _registrar(ticket, usuario_id, "Comentario", comentario_limpio)
+    _registrar(ticket, uid, "Comentario", comentario_limpio)
     return {"ok": True, "ticket_id": ticket["id"], "mensaje": "Comentario agregado."}
+
+
+ARCHIVOS_DIR = Path(__file__).resolve().parent.parent.parent / "archivos"
+EXTENSIONES_TEXTO = {".txt", ".log"}
+EXTENSIONES_IMAGEN = {".png", ".jpg", ".jpeg", ".webp"}
+EXTENSIONES_PERMITIDAS = EXTENSIONES_TEXTO | EXTENSIONES_IMAGEN
+ARCHIVOS_PROTEGIDOS = {"captura_error_vpn.png", "error_facturacion.log", "reporte_red.txt"}
+MAX_TAMANO_ARCHIVO = 5 * 1024 * 1024  # 5 MB
 
 
 def adjuntar_archivo(ticket_id: int, usuario_id: str, nombre_archivo: str) -> dict:
@@ -530,13 +677,13 @@ def adjuntar_archivo(ticket_id: int, usuario_id: str, nombre_archivo: str) -> di
         usuario_id: identificador de quien adjunta.
         nombre_archivo: nombre del archivo, por ejemplo "error.log" o "captura.png".
     """
-    error = _validar_usuario(usuario_id)
+    uid, error = _validar_usuario(usuario_id)
     if error:
         return error
     ticket, error = _obtener_ticket(ticket_id)
     if error:
         return error
-    error = _puede_ver_o_tocar(usuario_id, ticket, "adjuntar")
+    error = _puede_ver_o_tocar(uid, ticket, "adjuntar")
     if error:
         return error
     if not nombre_archivo or not nombre_archivo.strip():
@@ -547,10 +694,15 @@ def adjuntar_archivo(ticket_id: int, usuario_id: str, nombre_archivo: str) -> di
     nombre = Path(nombre).name
     if not _PATRON_ARCHIVO_SEGURO.match(nombre):
         return _error("Nombre de archivo invalido: contiene caracteres no permitidos.")
+    ext = Path(nombre).suffix.lower()
+    if ext not in EXTENSIONES_PERMITIDAS:
+        return _error(
+            f"Extension de archivo '{ext}' no permitida. Solo se admiten: {sorted(EXTENSIONES_PERMITIDAS)}"
+        )
     if nombre in ticket["adjuntos"]:
         return _error(f"El archivo '{nombre}' ya esta adjunto al ticket {ticket['id']}.")
     ticket["adjuntos"].append(nombre)
-    _registrar(ticket, usuario_id, "Archivo", f"Adjunto {nombre}")
+    _registrar(ticket, uid, "Archivo", f"Adjunto {nombre}")
     return {"ok": True, "ticket_id": ticket["id"], "adjuntos": ticket["adjuntos"]}
 
 
@@ -562,13 +714,13 @@ def consultar_historial(ticket_id: int, usuario_id: str) -> dict:
         ticket_id: numero del ticket.
         usuario_id: identificador de quien consulta.
     """
-    error = _validar_usuario(usuario_id)
+    uid, error = _validar_usuario(usuario_id)
     if error:
         return error
     ticket, error = _obtener_ticket(ticket_id)
     if error:
         return error
-    error = _puede_ver_o_tocar(usuario_id, ticket, "consultar")
+    error = _puede_ver_o_tocar(uid, ticket, "consultar")
     if error:
         return error
     return {"ok": True, "ticket_id": ticket["id"], "historial": ticket["historial"]}
@@ -576,33 +728,45 @@ def consultar_historial(ticket_id: int, usuario_id: str) -> dict:
 
 def generar_resumen(usuario_id: str) -> dict:
     """
-    Genera un resumen de incidencias agrupadas por estado, categoria y prioridad.
+    Genera un resumen de incidencias agrupadas por estado, categoria, prioridad y area.
 
     Args:
         usuario_id: identificador de quien pide el resumen.
     """
-    error = _validar_usuario(usuario_id)
+    uid, error = _validar_usuario(usuario_id)
     if error:
         return error
-    visibles = _tickets_visibles(usuario_id)
+    visibles = _tickets_visibles(uid)
     if not visibles:
-        return {"ok": True, "total": 0, "mensaje": "No hay tickets para mostrar."}
+        return {
+            "ok": True,
+            "total": 0,
+            "por_estado": {e: 0 for e in ESTADOS},
+            "por_categoria": {c: 0 for c in CATEGORIAS},
+            "por_prioridad": {p: 0 for p in PRIORIDADES},
+            "por_area": {},
+            "mensaje": "No hay tickets para mostrar.",
+        }
     resumen = {
         "ok": True,
         "total": len(visibles),
         "por_estado": {e: 0 for e in ESTADOS},
         "por_categoria": {c: 0 for c in CATEGORIAS},
         "por_prioridad": {p: 0 for p in PRIORIDADES},
+        "por_area": {},
     }
     for t in visibles:
-        resumen["por_estado"][t["estado"]] += 1
-        resumen["por_categoria"][t["categoria"]] += 1
-        resumen["por_prioridad"][t["prioridad"]] += 1
+        enr = _enriquecer_ticket(t)
+        resumen["por_estado"][t["estado"]] = resumen["por_estado"].get(t["estado"], 0) + 1
+        resumen["por_categoria"][t["categoria"]] = (
+            resumen["por_categoria"].get(t["categoria"], 0) + 1
+        )
+        resumen["por_prioridad"][t["prioridad"]] = (
+            resumen["por_prioridad"].get(t["prioridad"], 0) + 1
+        )
+        area_t = enr.get("area", "General")
+        resumen["por_area"][area_t] = resumen["por_area"].get(area_t, 0) + 1
     return resumen
-
-
-ARCHIVOS_DIR = Path(__file__).resolve().parent.parent.parent / "archivos"
-EXTENSIONES_TEXTO = {".txt", ".log"}
 
 
 def listar_archivos() -> dict:
@@ -611,7 +775,11 @@ def listar_archivos() -> dict:
     """
     if not ARCHIVOS_DIR.exists():
         return {"ok": True, "archivos": [], "mensaje": "La carpeta 'archivos/' no existe."}
-    nombres = sorted(p.name for p in ARCHIVOS_DIR.iterdir() if p.is_file())
+    nombres = sorted(
+        p.name
+        for p in ARCHIVOS_DIR.iterdir()
+        if p.is_file() and p.suffix.lower() in EXTENSIONES_PERMITIDAS
+    )
     return {"ok": True, "cantidad": len(nombres), "archivos": nombres}
 
 
@@ -630,7 +798,9 @@ def leer_archivo(nombre_archivo: str) -> dict:
     limpio = Path(nombre_san).name
     if not _PATRON_ARCHIVO_SEGURO.match(limpio):
         return _error("Nombre de archivo invalido: contiene caracteres no permitidos.")
-    ruta = ARCHIVOS_DIR / limpio
+    ruta = (ARCHIVOS_DIR / limpio).resolve()
+    if ruta.parent != ARCHIVOS_DIR.resolve():
+        return _error("Acceso denegado: ruta fuera del directorio permitido.")
     if not ruta.exists() or not ruta.is_file():
         return _error(f"El archivo '{limpio}' no existe en la carpeta 'archivos/'.")
 
