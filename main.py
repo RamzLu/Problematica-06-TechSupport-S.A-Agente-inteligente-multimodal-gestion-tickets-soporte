@@ -137,7 +137,8 @@ def servir_frontend():
 
 
 @app.get("/usuarios")
-def listar_usuarios():
+def listar_usuarios(authorization: Optional[str] = Header(None)):
+    _resolver_usuario_request(authorization, None)
     return {
         "usuarios": [usuario_publico(uid) for uid in USUARIOS],
         "organizaciones": list(ORGANIZACIONES.values()),
@@ -175,7 +176,7 @@ def iniciar_sesion(
     if not info:
         raise HTTPException(
             status_code=401,
-            detail="Credenciales incorrectas. Verifique su ID/correo corporativo y contrasena asignada por la empresa.",
+            detail="Credenciales incorrectas. Verifique su ID/correo corporativo y contraseña asignada por la empresa.",
         )
 
     token = secrets.token_urlsafe(32)
