@@ -7,3 +7,4 @@ Ejecute ping al router interno (192.168.3.1) y devuelve:
    Paquetes enviados = 20, recibidos = 9, perdidos = 11 (55% perdidos).
 El switch del rack del piso 3 tiene el LED del puerto 1 parpadeando en color ambar.
 No podemos acceder al sistema contable ni a las carpetas compartidas.
+

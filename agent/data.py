@@ -1,15 +1,3 @@
-"""
-Datos ficticios y reglas de negocio de TechSupport S.A.
-
-Todo vive en memoria (diccionarios y listas de Python): al reiniciar el
-servidor los datos vuelven a su estado inicial.
-
-Fuente de las constantes: PDF "Problematica 06 - TechSupport S.A", secciones 4 y 5.
-Lo marcado como PROPUESTA no esta definido en el PDF y debe acordarse con el docente.
-"""
-
-# --- Catalogos definidos por el PDF (F05, F06, F08) ---------------------------------
-
 CATEGORIAS = [
     "Hardware",
     "Software",
@@ -24,22 +12,15 @@ PRIORIDADES = ["Baja", "Media", "Alta", "Critica"]
 
 ESTADOS = ["Abierto", "En revision", "En progreso", "Pendiente", "Resuelto", "Cerrado"]
 
-# PROPUESTA: el PDF exige respetar "las transiciones permitidas" (F08) pero no las
-# lista. Cada estado apunta a los estados a los que se puede pasar desde el.
 TRANSICIONES_PERMITIDAS = {
     "Abierto": ["En revision"],
     "En revision": ["En progreso", "Pendiente"],
     "En progreso": ["Pendiente", "Resuelto"],
     "Pendiente": ["En revision", "En progreso"],
-    "Resuelto": ["Cerrado", "En progreso"],  # se puede reabrir
-    "Cerrado": [],  # estado final
+    "Resuelto": ["Cerrado", "En progreso"],
+    "Cerrado": [],
 }
 
-# --- Directorio ficticio de usuarios y responsables (seccion 5 del PDF) --------------
-
-# PROPUESTA de roles: el PDF pide verificar permisos (F10, criterio 11) sin definirlos.
-#   "usuario": consulta y comenta SUS tickets, y puede adjuntar archivos a ellos.
-#   "soporte": ve y modifica cualquier ticket (estado, prioridad, asignacion).
 USUARIOS = {
     "u001": {"nombre": "Laura Gomez", "rol": "usuario", "email": "laura.gomez@cliente.test"},
     "u002": {"nombre": "Martin Perez", "rol": "usuario", "email": "martin.perez@cliente.test"},
@@ -58,13 +39,8 @@ PERMISOS_POR_ROL = {
 
 
 def _evento(fecha, usuario, tipo, detalle):
-    """Un evento del historial (F11): que paso, quien lo hizo y cuando."""
     return {"fecha": fecha, "usuario": usuario, "tipo": tipo, "detalle": detalle}
 
-
-# --- Tickets historicos de ejemplo (todos ficticios) ---------------------------------
-# Campos minimos de F07: id, fecha de creacion, solicitante, titulo, descripcion,
-# categoria, prioridad, adjuntos, estado y responsable.
 
 TICKETS = {
     1050: {
@@ -156,4 +132,3 @@ TICKETS = {
         ],
     },
 }
-

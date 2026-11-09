@@ -1,26 +1,12 @@
-"""
-Tools (herramientas) del agente de tickets de TechSupport S.A.
-
-Cada funcion es una tool: el modelo lee su docstring para saber cuando usarla y que
-argumentos recibe (apunte "Fundamentos de Agentes", seccion 4). Por eso los docstrings
-son parte del funcionamiento y no solo documentacion.
-
-Todas devuelven un diccionario con "ok": True/False. Si algo falla (argumento invalido,
-ticket inexistente, resultado vacio, falta de permiso, transicion no permitida) devuelven
-{"ok": False, "error": "..."} en lugar de lanzar una excepcion, para que el agente pueda
-explicarle el problema al usuario.
-
-Controles (Paso 5): el apunte de agentes llama "Controles" a los limites, validaciones y
-permisos de un agente, y dice que la aplicacion controla que herramientas existen y que
-permisos tienen. Aqui los controles viven dentro de las tools, no en el modelo: aunque el
-modelo se equivoque, la tool rechaza la operacion.
-
-Los permisos por rol y las transiciones de estado son una PROPUESTA (ver data.py): el PDF
-exige respetarlos pero no los define.
-"""
-
+import re
 import unicodedata
 from datetime import datetime
+from pathlib import Path
+
+import chromadb
+from langchain_chroma import Chroma
+from langchain_core.documents import Document
+from langchain_ollama import OllamaEmbeddings
 
 from ..data import (
     CATEGORIAS,
@@ -33,21 +19,16 @@ from ..data import (
 )
 
 
-# --- Funciones auxiliares (no son tools: el agente no las ve) ----------------------
-
-
 def _ahora() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
 def _sin_tildes(texto: str) -> str:
-    """Pasa a minusculas y quita tildes, para comparar 'Crítica' con 'Critica'."""
     texto = unicodedata.normalize("NFD", texto.strip().lower())
     return "".join(c for c in texto if unicodedata.category(c) != "Mn")
 
 
 def _normalizar(valor: str, catalogo: list):
-    """Devuelve el valor oficial del catalogo que coincide con 'valor', o None."""
     for oficial in catalogo:
         if _sin_tildes(oficial) == _sin_tildes(valor):
             return oficial
@@ -55,7 +36,6 @@ def _normalizar(valor: str, catalogo: list):
 
 
 def _registrar(ticket: dict, usuario_id: str, tipo: str, detalle: str) -> None:
-    """Agrega un evento al historial del ticket (F11): fecha, responsable y detalle."""
     ticket["historial"].append(
         {"fecha": _ahora(), "usuario": usuario_id, "tipo": tipo, "detalle": detalle}
     )
@@ -65,9 +45,61 @@ def _error(mensaje: str) -> dict:
     return {"ok": False, "error": mensaje}
 
 
+_PATRONES_SQLI = re.compile(
+    r"("
+    r"(\bunion\s+(all\s+)?select\b)|"
+    r"(\bselect\b.+\bfrom\b)|"
+    r"(\binsert\s+into\b)|"
+    r"(\bupdate\s+\w+\s+set\b)|"
+    r"(\bdelete\s+from\b)|"
+    r"(\bdrop\s+(table|database|view|index)\b)|"
+    r"(\balter\s+table\b)|"
+    r"(\btruncate\s+table\b)|"
+    r"(\bexec(ute)?\s*\()|"
+    r"(\bxp_cmdshell\b)|"
+    r"(['\"]\s*(or|and)\s+['\"]?\d+['\"]?\s*=\s*['\"]?\d+)|"
+    r"(['\"]\s*(or|and)\s+['\"][^'\"]+['\"]\s*=\s*['\"]?[^'\"]+)|"
+    r"(['\"];\s*--)|"
+    r"(/\*.*?\*/)|"
+    r"(;\s*(drop|delete|insert|update|alter|truncate)\b)"
+    r")",
+    re.IGNORECASE | re.DOTALL,
+)
+
+_PATRON_ID_SEGURO = re.compile(r"^[a-zA-Z0-9_-]{1,30}$")
+_PATRON_ARCHIVO_SEGURO = re.compile(r"^[a-zA-Z0-9._-]{1,120}$")
+
+
+def sanitizar_texto(valor: str, campo: str = "texto", max_largo: int = 2000) -> tuple[str | None, dict | None]:
+    if valor is None:
+        return "", None
+    limpio = str(valor).replace("\x00", "").strip()
+    if len(limpio) > max_largo:
+        return None, _error(f"El campo '{campo}' supera el largo maximo permitido ({max_largo} caracteres).")
+    if _PATRONES_SQLI.search(limpio):
+        return None, _error(
+            f"Entrada bloqueada por seguridad: se detecto un patron sospechoso de inyeccion SQL en '{campo}'."
+        )
+    return limpio, None
+
+
+def sanitizar_identificador(valor: str, campo: str = "usuario_id") -> tuple[str | None, dict | None]:
+    limpio, err = sanitizar_texto(valor, campo=campo, max_largo=30)
+    if err:
+        return None, err
+    if not limpio or not _PATRON_ID_SEGURO.match(limpio):
+        return None, _error(
+            f"Identificador invalido en '{campo}': solo se permiten letras, numeros, guion y guion bajo."
+        )
+    return limpio, None
+
+
 def _validar_usuario(usuario_id: str):
-    if not usuario_id or usuario_id not in USUARIOS:
-        return _error(f"Usuario '{usuario_id}' no existe en el directorio.")
+    uid, err = sanitizar_identificador(usuario_id, campo="usuario_id")
+    if err:
+        return err
+    if uid not in USUARIOS:
+        return _error(f"Usuario '{uid}' no existe en el directorio.")
     return None
 
 
@@ -77,11 +109,6 @@ def _tiene_permiso(usuario_id: str, permiso: str) -> bool:
 
 
 def _puede_ver_o_tocar(usuario_id: str, ticket: dict, accion: str):
-    """
-    Control de acceso a un ticket concreto. 'accion' es consultar, comentar o adjuntar.
-    Soporte puede con todos (permiso <accion>_todos); un usuario solo con los suyos
-    (permiso <accion>_propios y ser el solicitante). Devuelve un error o None.
-    """
     if _tiene_permiso(usuario_id, f"{accion}_todos"):
         return None
     if _tiene_permiso(usuario_id, f"{accion}_propios") and ticket["solicitante"] == usuario_id:
@@ -98,7 +125,6 @@ def _exigir_permiso(usuario_id: str, permiso: str, descripcion: str):
 
 
 def _obtener_ticket(ticket_id: int):
-    """Devuelve (ticket, None) o (None, error)."""
     try:
         ticket_id = int(ticket_id)
     except (TypeError, ValueError):
@@ -122,36 +148,134 @@ def _resumen_corto(t: dict) -> dict:
 
 
 def _tickets_visibles(usuario_id: str) -> list:
-    """Soporte ve todos los tickets; un usuario solo los suyos."""
     if _tiene_permiso(usuario_id, "consultar_todos"):
         return list(TICKETS.values())
     return [t for t in TICKETS.values() if t["solicitante"] == usuario_id]
 
 
-# --- Tools ---------------------------------------------------------------------------
+VECTOR_STORE_DIR = str(Path(__file__).resolve().parent.parent.parent / "vector_store")
+COLECCION_TICKETS = "tickets_soporte"
+UMBRAL_DUPLICADO = 0.55
+
+_vector_store = None
+_ids_indexados = set()
+
+
+def _obtener_vector_store() -> Chroma:
+    global _vector_store, _ids_indexados
+    if _vector_store is None:
+        client = chromadb.PersistentClient(path=VECTOR_STORE_DIR)
+        try:
+            client.delete_collection(COLECCION_TICKETS)
+        except Exception:
+            pass
+        _vector_store = Chroma(
+            client=client,
+            collection_name=COLECCION_TICKETS,
+            embedding_function=OllamaEmbeddings(model="nomic-embed-text"),
+        )
+        _ids_indexados = set()
+
+    faltantes = [t for tid, t in TICKETS.items() if tid not in _ids_indexados]
+    if faltantes:
+        docs = [
+            Document(
+                page_content=f"{t['titulo']}. {t['descripcion']}",
+                metadata={"ticket_id": t["id"], "categoria": t["categoria"]},
+            )
+            for t in faltantes
+        ]
+        _vector_store.add_documents(docs, ids=[str(t["id"]) for t in faltantes])
+        _ids_indexados.update(t["id"] for t in faltantes)
+
+    return _vector_store
+
+
+def _buscar_similares(texto: str, k: int = 3, umbral: float = UMBRAL_DUPLICADO) -> list:
+    vs = _obtener_vector_store()
+    resultados = vs.similarity_search_with_relevance_scores(query=texto, k=k)
+    coincidencias = []
+    for doc, score in resultados:
+        tid = int(doc.metadata["ticket_id"])
+        ticket = TICKETS.get(tid)
+        if ticket and score >= umbral:
+            coincidencias.append(
+                {
+                    **_resumen_corto(ticket),
+                    "descripcion": ticket["descripcion"],
+                    "similitud": round(float(score), 4),
+                }
+            )
+    return coincidencias
+
+
+def buscar_duplicados(consulta: str) -> dict:
+    """
+    Busca en ChromaDB si ya existen tickets similares a la incidencia descrita.
+
+    Args:
+        consulta: titulo y/o descripcion del problema reportado por el usuario.
+    """
+    if not consulta or not consulta.strip():
+        return _error("Falta el texto de la incidencia para buscar duplicados.")
+    consulta_limpia, err = sanitizar_texto(consulta, campo="consulta", max_largo=1500)
+    if err:
+        return err
+    try:
+        coincidencias = _buscar_similares(consulta_limpia)
+    except Exception as e:
+        return _error(f"Error al consultar la base vectorial de duplicados: {e}")
+
+    if not coincidencias:
+        return {
+            "ok": True,
+            "posibles_duplicados": 0,
+            "coincidencias": [],
+            "mensaje": "No se encontraron tickets similares.",
+        }
+    return {
+        "ok": True,
+        "posibles_duplicados": len(coincidencias),
+        "coincidencias": coincidencias,
+        "mensaje": (
+            "Se encontraron tickets similares. Advierte al usuario y solicita su "
+            "confirmacion antes de crear un ticket nuevo."
+        ),
+    }
 
 
 def crear_ticket(
-    usuario_id: str, titulo: str, descripcion: str, categoria: str, prioridad: str
+    usuario_id: str,
+    titulo: str,
+    descripcion: str,
+    categoria: str,
+    prioridad: str,
+    confirmar_duplicado: bool = False,
 ) -> dict:
     """
-    Crea un ticket nuevo de soporte tecnico. Usala solo cuando ya tengas todos los datos.
+    Crea un ticket nuevo de soporte tecnico. Verifica duplicados en ChromaDB antes de crear.
 
     Args:
         usuario_id: identificador del usuario solicitante (por ejemplo "u001").
         titulo: titulo corto de la incidencia.
-        descripcion: descripcion del problema, sin inventar datos que el usuario no dio.
-        categoria: una de Hardware, Software, Redes y conectividad,
-            Sistemas y aplicaciones, Accesos y permisos, Infraestructura, Otros.
-        prioridad: una de Baja, Media, Alta, Critica (es una propuesta que soporte puede
-            revisar y modificar).
+        descripcion: descripcion del problema, sin inventar datos.
+        categoria: Hardware, Software, Redes y conectividad, Sistemas y aplicaciones,
+            Accesos y permisos, Infraestructura u Otros.
+        prioridad: Baja, Media, Alta o Critica.
+        confirmar_duplicado: False por defecto; True solo si el usuario confirmo crear pese al duplicado.
     """
     error = _validar_usuario(usuario_id) or _exigir_permiso(usuario_id, "crear", "crear tickets")
     if error:
         return error
-    if not titulo or not titulo.strip():
+    titulo_limpio, err = sanitizar_texto(titulo, campo="titulo", max_largo=200)
+    if err:
+        return err
+    if not titulo_limpio:
         return _error("Falta el titulo del ticket.")
-    if not descripcion or not descripcion.strip():
+    desc_limpia, err = sanitizar_texto(descripcion, campo="descripcion", max_largo=2000)
+    if err:
+        return err
+    if not desc_limpia:
         return _error("Falta la descripcion del ticket.")
     categoria_ok = _normalizar(categoria, CATEGORIAS)
     if categoria_ok is None:
@@ -160,13 +284,35 @@ def crear_ticket(
     if prioridad_ok is None:
         return _error(f"Prioridad invalida '{prioridad}'. Opciones: {PRIORIDADES}")
 
+    if not confirmar_duplicado:
+        try:
+            similares = [
+                c
+                for c in _buscar_similares(f"{titulo_limpio}. {desc_limpia}")
+                if c["estado"] != "Cerrado"
+            ]
+        except Exception:
+            similares = []
+        if similares:
+            return {
+                "ok": False,
+                "duplicado_detectado": True,
+                "coincidencias": similares,
+                "error": (
+                    "Se detectaron tickets similares ya registrados. NO se creo el ticket. "
+                    "Informa al usuario sobre estas coincidencias y preguntale si desea "
+                    "crear el ticket igualmente (en ese caso vuelve a llamar a crear_ticket "
+                    "con confirmar_duplicado=True) o si prefiere consultar/actualizar el existente."
+                ),
+            }
+
     nuevo_id = max(TICKETS) + 1 if TICKETS else 1001
     ticket = {
         "id": nuevo_id,
         "creado": _ahora(),
         "solicitante": usuario_id,
-        "titulo": titulo.strip(),
-        "descripcion": descripcion.strip(),
+        "titulo": titulo_limpio,
+        "descripcion": desc_limpia,
         "categoria": categoria_ok,
         "prioridad": prioridad_ok,
         "adjuntos": [],
@@ -176,13 +322,16 @@ def crear_ticket(
     }
     _registrar(ticket, usuario_id, "Creacion", "Ticket creado")
     TICKETS[nuevo_id] = ticket
+    try:
+        _obtener_vector_store()
+    except Exception:
+        pass
     return {"ok": True, "ticket": ticket}
 
 
 def consultar_ticket(ticket_id: int, usuario_id: str) -> dict:
     """
     Devuelve todos los datos de un ticket a partir de su identificador numerico.
-    Un usuario solo puede consultar sus propios tickets; el personal de soporte, todos.
 
     Args:
         ticket_id: numero del ticket (por ejemplo 1052).
@@ -208,13 +357,11 @@ def buscar_tickets(
     prioridad: str = "",
 ) -> dict:
     """
-    Busca tickets filtrando por solicitante, estado, categoria y/o prioridad. Los filtros
-    vacios no se aplican. Un usuario solo ve sus propios tickets; soporte ve todos.
+    Busca tickets filtrando por solicitante, estado, categoria y/o prioridad.
 
     Args:
-        usuario_id: identificador de quien hace la busqueda (obligatorio).
-        solicitante: filtrar por el solicitante del ticket (por ejemplo "u001"). Vacio = todos
-            los que el usuario pueda ver.
+        usuario_id: identificador de quien hace la busqueda.
+        solicitante: filtrar por solicitante (vacio = todos los visibles).
         estado: Abierto, En revision, En progreso, Pendiente, Resuelto o Cerrado.
         categoria: una de las categorias oficiales.
         prioridad: Baja, Media, Alta o Critica.
@@ -224,9 +371,12 @@ def buscar_tickets(
         return error
     filtros = {}
     if solicitante:
-        if solicitante not in USUARIOS:
-            return _error(f"Usuario '{solicitante}' no existe en el directorio.")
-        filtros["solicitante"] = solicitante
+        sol_ok, err = sanitizar_identificador(solicitante, campo="solicitante")
+        if err:
+            return err
+        if sol_ok not in USUARIOS:
+            return _error(f"Usuario '{sol_ok}' no existe en el directorio.")
+        filtros["solicitante"] = sol_ok
     for nombre, valor, catalogo in (
         ("estado", estado, ESTADOS),
         ("categoria", categoria, CATEGORIAS),
@@ -250,9 +400,7 @@ def buscar_tickets(
 
 def actualizar_estado(ticket_id: int, usuario_id: str, nuevo_estado: str) -> dict:
     """
-    Cambia el estado de un ticket respetando las transiciones permitidas, y lo registra
-    en el historial. Solo el personal de soporte puede cambiar estados. Antes de usar esta
-    tool, confirma con el usuario el cambio.
+    Cambia el estado de un ticket respetando las transiciones permitidas (solo soporte).
 
     Args:
         ticket_id: numero del ticket.
@@ -287,9 +435,7 @@ def actualizar_estado(ticket_id: int, usuario_id: str, nuevo_estado: str) -> dic
 
 def cambiar_prioridad(ticket_id: int, usuario_id: str, nueva_prioridad: str) -> dict:
     """
-    Modifica la prioridad de un ticket (revision de la prioridad propuesta) y lo registra
-    en el historial. Solo el personal de soporte puede hacerlo. Confirma con el usuario
-    antes de usarla.
+    Modifica la prioridad de un ticket (solo soporte).
 
     Args:
         ticket_id: numero del ticket.
@@ -317,14 +463,12 @@ def cambiar_prioridad(ticket_id: int, usuario_id: str, nueva_prioridad: str) -> 
 
 def asignar_responsable(ticket_id: int, usuario_id: str, responsable_id: str) -> dict:
     """
-    Asigna o reasigna un ticket a un integrante del personal de soporte y lo registra en
-    el historial. Solo el personal de soporte puede hacerlo. Confirma antes de usarla.
+    Asigna o reasigna un ticket a un integrante de soporte (solo soporte).
 
     Args:
         ticket_id: numero del ticket.
-        usuario_id: identificador de quien realiza la asignacion (por ejemplo "s001").
-        responsable_id: identificador del integrante de soporte que quedara a cargo
-            (por ejemplo "s002").
+        usuario_id: identificador de quien realiza la asignacion.
+        responsable_id: identificador del integrante de soporte asignado.
     """
     error = _validar_usuario(usuario_id) or _exigir_permiso(
         usuario_id, "asignar", "asignar responsables"
@@ -334,23 +478,25 @@ def asignar_responsable(ticket_id: int, usuario_id: str, responsable_id: str) ->
     ticket, error = _obtener_ticket(ticket_id)
     if error:
         return error
-    if responsable_id not in USUARIOS:
-        return _error(f"Usuario '{responsable_id}' no existe en el directorio.")
-    if USUARIOS[responsable_id]["rol"] != "soporte":
-        return _error(f"{responsable_id} no pertenece al personal de soporte.")
+    resp_ok, err = sanitizar_identificador(responsable_id, campo="responsable_id")
+    if err:
+        return err
+    if resp_ok not in USUARIOS:
+        return _error(f"Usuario '{resp_ok}' no existe en el directorio.")
+    if USUARIOS[resp_ok]["rol"] != "soporte":
+        return _error(f"{resp_ok} no pertenece al personal de soporte.")
     anterior = ticket["responsable"]
-    if anterior == responsable_id:
-        return _error(f"El ticket {ticket['id']} ya esta asignado a {responsable_id}.")
-    ticket["responsable"] = responsable_id
+    if anterior == resp_ok:
+        return _error(f"El ticket {ticket['id']} ya esta asignado a {resp_ok}.")
+    ticket["responsable"] = resp_ok
     tipo = "Asignacion" if anterior is None else "Reasignacion"
-    _registrar(ticket, usuario_id, tipo, f"{anterior or 'sin asignar'} -> {responsable_id}")
+    _registrar(ticket, usuario_id, tipo, f"{anterior or 'sin asignar'} -> {resp_ok}")
     return {"ok": True, "ticket": _resumen_corto(ticket)}
 
 
 def agregar_comentario(ticket_id: int, usuario_id: str, comentario: str) -> dict:
     """
-    Agrega un comentario a un ticket y lo registra en el historial. Un usuario solo puede
-    comentar sus propios tickets; soporte, cualquiera.
+    Agrega un comentario a un ticket y lo registra en el historial.
 
     Args:
         ticket_id: numero del ticket.
@@ -368,14 +514,16 @@ def agregar_comentario(ticket_id: int, usuario_id: str, comentario: str) -> dict
         return error
     if not comentario or not comentario.strip():
         return _error("El comentario esta vacio.")
-    _registrar(ticket, usuario_id, "Comentario", comentario.strip())
+    comentario_limpio, err = sanitizar_texto(comentario, campo="comentario", max_largo=1500)
+    if err:
+        return err
+    _registrar(ticket, usuario_id, "Comentario", comentario_limpio)
     return {"ok": True, "ticket_id": ticket["id"], "mensaje": "Comentario agregado."}
 
 
 def adjuntar_archivo(ticket_id: int, usuario_id: str, nombre_archivo: str) -> dict:
     """
-    Registra un archivo adjunto en un ticket (por ejemplo una captura o un archivo LOG).
-    Un usuario solo puede adjuntar a sus propios tickets; soporte, a cualquiera.
+    Registra un archivo adjunto en un ticket.
 
     Args:
         ticket_id: numero del ticket.
@@ -393,7 +541,12 @@ def adjuntar_archivo(ticket_id: int, usuario_id: str, nombre_archivo: str) -> di
         return error
     if not nombre_archivo or not nombre_archivo.strip():
         return _error("Falta el nombre del archivo.")
-    nombre = nombre_archivo.strip()
+    nombre, err = sanitizar_texto(nombre_archivo, campo="nombre_archivo", max_largo=120)
+    if err:
+        return err
+    nombre = Path(nombre).name
+    if not _PATRON_ARCHIVO_SEGURO.match(nombre):
+        return _error("Nombre de archivo invalido: contiene caracteres no permitidos.")
     if nombre in ticket["adjuntos"]:
         return _error(f"El archivo '{nombre}' ya esta adjunto al ticket {ticket['id']}.")
     ticket["adjuntos"].append(nombre)
@@ -403,9 +556,7 @@ def adjuntar_archivo(ticket_id: int, usuario_id: str, nombre_archivo: str) -> di
 
 def consultar_historial(ticket_id: int, usuario_id: str) -> dict:
     """
-    Devuelve el historial completo de eventos de un ticket: creacion, cambios de estado y
-    prioridad, comentarios, archivos y asignaciones, con fecha y responsable de cada uno.
-    Un usuario solo puede ver el historial de sus propios tickets; soporte, el de todos.
+    Devuelve el historial completo de eventos de un ticket.
 
     Args:
         ticket_id: numero del ticket.
@@ -425,9 +576,7 @@ def consultar_historial(ticket_id: int, usuario_id: str) -> dict:
 
 def generar_resumen(usuario_id: str) -> dict:
     """
-    Genera un resumen de incidencias agrupadas por estado, por categoria y por prioridad.
-    Un usuario ve el resumen de sus propios tickets; soporte, el de todos. Sirve para
-    preguntas como "cuantos tickets criticos hay pendientes".
+    Genera un resumen de incidencias agrupadas por estado, categoria y prioridad.
 
     Args:
         usuario_id: identificador de quien pide el resumen.
@@ -450,3 +599,64 @@ def generar_resumen(usuario_id: str) -> dict:
         resumen["por_categoria"][t["categoria"]] += 1
         resumen["por_prioridad"][t["prioridad"]] += 1
     return resumen
+
+
+ARCHIVOS_DIR = Path(__file__).resolve().parent.parent.parent / "archivos"
+EXTENSIONES_TEXTO = {".txt", ".log"}
+
+
+def listar_archivos() -> dict:
+    """
+    Lista los archivos disponibles en la carpeta 'archivos/' del proyecto.
+    """
+    if not ARCHIVOS_DIR.exists():
+        return {"ok": True, "archivos": [], "mensaje": "La carpeta 'archivos/' no existe."}
+    nombres = sorted(p.name for p in ARCHIVOS_DIR.iterdir() if p.is_file())
+    return {"ok": True, "cantidad": len(nombres), "archivos": nombres}
+
+
+def leer_archivo(nombre_archivo: str) -> dict:
+    """
+    Lee y devuelve el contenido de un archivo .txt o .log ubicado en 'archivos/'.
+
+    Args:
+        nombre_archivo: nombre del archivo dentro de 'archivos/'.
+    """
+    if not nombre_archivo or not nombre_archivo.strip():
+        return _error("Falta indicar el nombre del archivo.")
+    nombre_san, err = sanitizar_texto(nombre_archivo, campo="nombre_archivo", max_largo=120)
+    if err:
+        return err
+    limpio = Path(nombre_san).name
+    if not _PATRON_ARCHIVO_SEGURO.match(limpio):
+        return _error("Nombre de archivo invalido: contiene caracteres no permitidos.")
+    ruta = ARCHIVOS_DIR / limpio
+    if not ruta.exists() or not ruta.is_file():
+        return _error(f"El archivo '{limpio}' no existe en la carpeta 'archivos/'.")
+
+    ext = ruta.suffix.lower()
+    if ext not in EXTENSIONES_TEXTO:
+        return _error(
+            f"Limitacion: la herramienta leer_archivo solo interpreta archivos .txt y .log "
+            f"(recibio '{ext}'). Si es una imagen o captura de pantalla, el usuario debe "
+            f"adjuntarla directamente en el mensaje del chat para analizarla con vision."
+        )
+
+    try:
+        contenido = ruta.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return _error(
+            f"Limitacion: no se pudo interpretar '{limpio}' porque no es texto UTF-8 valido."
+        )
+    except OSError as e:
+        return _error(f"No se pudo leer '{limpio}': {e}")
+
+    if not contenido.strip():
+        return _error(f"Limitacion: el archivo '{limpio}' esta vacio.")
+
+    return {
+        "ok": True,
+        "archivo": limpio,
+        "tipo": ext.lstrip(".").upper(),
+        "contenido": contenido,
+    }

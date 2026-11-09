@@ -6,3 +6,4 @@ java.sql.SQLTransientConnectionException: db-facturacion - Connection is not ava
     at com.techsupport.facturacion.db.Pool.getConnection(Pool.java:142)
     at com.techsupport.facturacion.service.FacturacionService.emitir(FacturacionService.java:88)
 2026-10-22 08:48:02 [CRITICAL] HealthCheck - Servicio de facturacion degradado: 0 conexiones disponibles en el pool.
+

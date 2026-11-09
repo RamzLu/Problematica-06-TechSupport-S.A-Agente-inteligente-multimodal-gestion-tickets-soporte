@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>TechSupport S.A. — Agente Inteligente Multimodal</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary: #e2e8f0;
+      --agent-bg: #f0fdf4;
+      --agent-border: #86efac;
+      --user-bg: #dbeafe;
+      --user-border: #93c5fd;
+      --tool-bg: #f3e8ff;
+      --tool-text: #6b21a8;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: #1e293b;
+      color: #ffffff;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header h1 { margin: 0; font-size: 1.25rem; }
+    header span { font-size: 0.85rem; color: #94a3b8; }
+
+    .container {
+      max-width: 1400px;
+      margin: 16px auto;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.05rem;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      justify-content: space-between;
+    }
+    .toolbar-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    select, input[type="text"], textarea {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+
+    button {
+      padding: 7px 13px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-primary:disabled { background: #94a3b8; cursor: wait; }
+    .btn-secondary { background: var(--secondary); color: #1e293b; border-color: var(--border); }
+    .btn-secondary:hover { background: #cbd5e1; }
+
+    .grid-main {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 16px;
+    }
+    @media (max-width: 980px) {
+      .grid-main { grid-template-columns: 1fr; }
+    }
+
+    #chatLog {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      height: 390px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .msg-user {
+      background: var(--user-bg);
+      border: 1px solid var(--user-border);
+      align-self: flex-end;
+      max-width: 88%;
+    }
+    .msg-agent {
+      background: var(--agent-bg);
+      border: 1px solid var(--agent-border);
+      align-self: flex-start;
+      max-width: 92%;
+    }
+    .msg-sys {
+      background: #fef9c3;
+      border: 1px solid #fde047;
+      font-size: 0.84rem;
+      text-align: center;
+    }
+    .msg-header {
+      font-weight: 700;
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+      color: var(--muted);
+    }
+    .tool-list {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .tool-pill {
+      background: var(--tool-bg);
+      color: var(--tool-text);
+      border: 1px solid #d8b4fe;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.76rem;
+      font-family: monospace;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 6px;
+      text-align: left;
+    }
+    th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    tr:hover td { background: #f8fafc; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+    .rol-usuario { background: #dbeafe; color: #1e40af; }
+    .rol-soporte { background: #dcfce7; color: #166534; }
+
+    .prio-Critica { background: #fee2e2; color: #991b1b; }
+    .prio-Alta { background: #ffedd5; color: #9a3412; }
+    .prio-Media { background: #fef9c3; color: #854d0e; }
+    .prio-Baja { background: #e0f2fe; color: #075985; }
+
+    .est-Abierto { background: #dbeafe; color: #1e40af; }
+    .est-En-revision { background: #f3e8ff; color: #6b21a8; }
+    .est-En-progreso { background: #ffedd5; color: #9a3412; }
+    .est-Pendiente { background: #fef9c3; color: #854d0e; }
+    .est-Resuelto { background: #dcfce7; color: #166534; }
+    .est-Cerrado { background: #e2e8f0; color: #475569; }
+
+    #detalleTicket {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      max-height: 220px;
+      overflow-y: auto;
+      margin: 8px 0 0 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>TechSupport S.A. — Agente Inteligente Multimodal de Tickets</h1>
+      <span>Modelo local: qwen3.5:4b (Vision + Tools) + ChromaDB (nomic-embed-text)</span>
+    </div>
+    <span id="badgeUsuarioActivo"></span>
+  </header>
+
+  <div class="container">
+    <section class="card">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <strong>Hablando como:</strong>
+          <select id="usuarioSelect"></select>
+          <button type="button" class="btn-secondary" id="btnNuevaSesion">Limpiar chat</button>
+          <button type="button" class="btn-secondary" id="btnRefrescarTickets">Actualizar tickets</button>
+        </div>
+
+        <form id="formNuevoUsuario" class="toolbar-group">
+          <strong>+ Crear mi usuario:</strong>
+          <input type="text" id="nuevoNombre" placeholder="Tu nombre (ej: Luana)" required />
+          <select id="nuevoRol">
+            <option value="usuario">Rol: Usuario solicitante</option>
+            <option value="soporte">Rol: Personal de soporte</option>
+          </select>
+          <button type="submit" class="btn-primary">Crear y usar</button>
+        </form>
+      </div>
+    </section>
+
+    <div class="grid-main">
+      <section class="card">
+        <h2>Conversacion con el Agente (F01, F02, F03, F04)</h2>
+        <div id="chatLog"></div>
+
+        <form id="chatForm" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+          <textarea id="mensajeInput" rows="3" placeholder="Escribe tu consulta o reporta un problema en lenguaje natural..."></textarea>
+          <div class="toolbar">
+            <div>
+              <label for="archivoInput" style="font-size:0.85rem; color:var(--muted);">Adjunto (.png, .jpg, .txt, .log): </label>
+              <input type="file" id="archivoInput" accept=".png,.jpg,.jpeg,.txt,.log" />
+            </div>
+            <div>
+              <span id="estadoEnvio" style="font-size:0.85rem; color:var(--primary); font-weight:600;"></span>
+              <button type="submit" class="btn-primary" id="btnEnviar">Enviar mensaje</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Tickets Visibles para el Usuario Activo (F07–F11)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Titulo</th>
+              <th>Categoria</th>
+              <th>Prioridad</th>
+              <th>Estado</th>
+              <th>Solicitante</th>
+              <th>Resp.</th>
+              <th>Accion</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyTickets"></tbody>
+        </table>
+
+        <h2 style="margin-top:14px;">Detalle e Historial de Trazabilidad (F11)</h2>
+        <pre id="detalleTicket">Haz clic en "Ver" sobre cualquier ticket de la tabla para inspeccionar sus datos completos y su historial de eventos.</pre>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const usuarioSelect = document.getElementById("usuarioSelect");
+    const badgeUsuarioActivo = document.getElementById("badgeUsuarioActivo");
+    const chatLog = document.getElementById("chatLog");
+    const chatForm = document.getElementById("chatForm");
+    const mensajeInput = document.getElementById("mensajeInput");
+    const archivoInput = document.getElementById("archivoInput");
+    const btnEnviar = document.getElementById("btnEnviar");
+    const estadoEnvio = document.getElementById("estadoEnvio");
+    const tbodyTickets = document.getElementById("tbodyTickets");
+    const detalleTicket = document.getElementById("detalleTicket");
+    const formNuevoUsuario = document.getElementById("formNuevoUsuario");
+
+    let mapaUsuarios = {};
+
+    function agregarMensaje(tipo, autor, texto, tools = []) {
+      const div = document.createElement("div");
+      div.className = `msg msg-${tipo}`;
+
+      const header = document.createElement("div");
+      header.className = "msg-header";
+      header.textContent = autor;
+      div.appendChild(header);
+
+      const body = document.createElement("div");
+      body.textContent = texto;
+      div.appendChild(body);
+
+      if (tools && tools.length > 0) {
+        const tl = document.createElement("div");
+        tl.className = "tool-list";
+        for (const t of tools) {
+          const pill = document.createElement("span");
+          pill.className = "tool-pill";
+          pill.textContent = `${t.tool}(${JSON.stringify(t.args)})`;
+          tl.appendChild(pill);
+        }
+        div.appendChild(tl);
+      }
+
+      chatLog.appendChild(div);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function actualizarBadgeUsuario() {
+      const u = mapaUsuarios[usuarioSelect.value];
+      if (!u) return;
+      badgeUsuarioActivo.innerHTML = `Sesion activa: <strong>${u.nombre}</strong> (${u.id}) <span class="badge rol-${u.rol}">${u.rol.toUpperCase()}</span>`;
+    }
+
+    async function cargarUsuarios(seleccionarId = null) {
+      const r = await fetch("/usuarios");
+      const data = await r.json();
+      const previo = seleccionarId || usuarioSelect.value;
+      usuarioSelect.innerHTML = "";
+      mapaUsuarios = {};
+      for (const u of data.usuarios) {
+        mapaUsuarios[u.id] = u;
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = `${u.id} — ${u.nombre} (${u.rol.toUpperCase()})`;
+        usuarioSelect.appendChild(opt);
+      }
+      if (previo && mapaUsuarios[previo]) {
+        usuarioSelect.value = previo;
+      }
+      actualizarBadgeUsuario();
+      await cargarTickets();
+    }
+
+    async function cargarTickets() {
+      actualizarBadgeUsuario();
+      const uid = usuarioSelect.value;
+      const r = await fetch(`/tickets?usuario_id=${encodeURIComponent(uid)}`);
+      const data = await r.json();
+      tbodyTickets.innerHTML = "";
+      for (const t of data.tickets || []) {
+        const tr = document.createElement("tr");
+        const claseEstado = "est-" + t.estado.replace(/\s+/g, "-");
+        tr.innerHTML = `
+          <td><strong>#${t.id}</strong></td>
+          <td>${t.titulo}</td>
+          <td>${t.categoria}</td>
+          <td><span class="badge prio-${t.prioridad}">${t.prioridad}</span></td>
+          <td><span class="badge ${claseEstado}">${t.estado}</span></td>
+          <td>${t.solicitante}</td>
+          <td>${t.responsable || "-"}</td>
+          <td><button type="button" class="btn-secondary" data-id="${t.id}">Ver</button></td>
+        `;
+        tr.querySelector("button").addEventListener("click", () => verDetalle(t.id));
+        tbodyTickets.appendChild(tr);
+      }
+    }
+
+    async function verDetalle(ticketId) {
+      const uid = usuarioSelect.value;
+      const r = await fetch(`/tickets/${ticketId}?usuario_id=${encodeURIComponent(uid)}`);
+      const data = await r.json();
+      detalleTicket.textContent = JSON.stringify(data.ticket || data, null, 2);
+    }
+
+    formNuevoUsuario.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("nuevoNombre").value.trim();
+      const rol = document.getElementById("nuevoRol").value;
+      if (!nombre) return;
+
+      const fd = new FormData();
+      fd.append("nombre", nombre);
+      fd.append("rol", rol);
+
+      const r = await fetch("/usuarios", { method: "POST", body: fd });
+      const data = await r.json();
+      if (!r.ok) {
+        alert(data.detail || "Error al crear usuario");
+        return;
+      }
+      document.getElementById("nuevoNombre").value = "";
+      await cargarUsuarios(data.usuario.id);
+      agregarMensaje("sys", "Sistema", `Usuario creado y seleccionado: ${data.usuario.nombre} (${data.usuario.id}, rol: ${data.usuario.rol})`);
+    });
+
+    usuarioSelect.addEventListener("change", cargarTickets);
+    document.getElementById("btnRefrescarTickets").addEventListener("click", cargarTickets);
+
+    document.getElementById("btnNuevaSesion").addEventListener("click", async () => {
+      const fd = new FormData();
+      fd.append("usuario_id", usuarioSelect.value);
+      await fetch("/reset-sesion", { method: "POST", body: fd });
+      chatLog.innerHTML = "";
+      agregarMensaje("sys", "Sistema", `Conversacion reiniciada para ${usuarioSelect.value}`);
+    });
+
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = mensajeInput.value.trim();
+      const file = archivoInput.files[0];
+      if (!msg && !file) return;
+
+      const uid = usuarioSelect.value;
+      const u = mapaUsuarios[uid];
+      agregarMensaje("user", `${u ? u.nombre : uid} (${uid})`, msg + (file ? `\n[Archivo adjunto: ${file.name}]` : ""));
+
+      const fd = new FormData();
+      fd.append("usuario_id", uid);
+      fd.append("mensaje", msg);
+      if (file) fd.append("archivo", file);
+
+      btnEnviar.disabled = true;
+      estadoEnvio.textContent = "Pensando con qwen3.5:4b...";
+      try {
+        const r = await fetch("/chat", { method: "POST", body: fd });
+        const data = await r.json();
+        agregarMensaje("agent", "Agente TechSupport", data.respuesta || "(sin respuesta de texto)", data.tools_usadas || []);
+        mensajeInput.value = "";
+        archivoInput.value = "";
+        await cargarTickets();
+      } catch (err) {
+        agregarMensaje("sys", "Error", String(err));
+      } finally {
+        btnEnviar.disabled = false;
+        estadoEnvio.textContent = "";
+      }
+    });
+
+    cargarUsuarios();
+  </script>
+</body>
+</html>
