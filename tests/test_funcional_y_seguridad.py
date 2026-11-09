@@ -131,7 +131,18 @@ class TestTechSupportFuncionalYSeguridad(unittest.TestCase):
         res_cerrado = actualizar_estado(tid, "s003", "En progreso")
         self.assertFalse(res_cerrado["ok"])
 
-        # F10 y F11: Comentario, adjunto e historial completo
+        # F10 y F11: Comentario de soporte visible para el usuario, comentario de usuario, adjunto e historial
+        self.assertTrue(
+            agregar_comentario(tid, "s003", "Reiniciamos el servicio CRM, por favor verifica.").get("ok")
+        )
+        listado_usr = buscar_tickets(usuario_id="u005")
+        t_en_tabla = next(x for x in listado_usr["tickets"] if x["id"] == tid)
+        self.assertIsNotNone(t_en_tabla["ultimo_comentario_soporte"])
+        self.assertEqual(
+            t_en_tabla["ultimo_comentario_soporte"]["usuario_nombre"], "Stella Bernard"
+        )
+        self.assertIn("Reiniciamos el servicio CRM", t_en_tabla["ultimo_comentario_soporte"]["texto"])
+
         self.assertTrue(agregar_comentario(tid, "u005", "Confirmo que ya funciona.").get("ok"))
         self.assertTrue(adjuntar_archivo(tid, "u005", "reporte_red.txt").get("ok"))
 

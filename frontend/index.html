@@ -761,11 +761,17 @@
             </div>
           </div>
 
-          <!-- AGREGAR COMENTARIO -->
-          <form id="formAgregarComentario" style="display:flex; gap:8px; margin-bottom:12px;">
-            <input type="text" id="inputNuevoComentario" placeholder="Agregar un comentario o informacion adicional a este ticket..." style="flex:1;" required />
-            <button type="submit" class="btn-secondary btn-sm">Enviar comentario</button>
-          </form>
+          <!-- SECCION DESTACADA DE COMENTARIOS (SOPORTE <-> USUARIO) -->
+          <div style="margin-bottom:12px;">
+            <strong style="font-size:0.8rem; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:6px;">
+              Comentarios y Respuestas de Soporte
+            </strong>
+            <div id="listaComentariosTicket" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
+            <form id="formAgregarComentario" style="display:flex; gap:8px;">
+              <input type="text" id="inputNuevoComentario" placeholder="Escribir una respuesta o comentario en este ticket..." style="flex:1;" required />
+              <button type="submit" class="btn-primary btn-sm">Enviar comentario</button>
+            </form>
+          </div>
 
           <!-- LINEA DE TIEMPO DE TRAZABILIDAD -->
           <strong style="font-size:0.8rem; color:var(--muted); text-transform:uppercase;">
@@ -1184,6 +1190,26 @@
           divFecha.textContent = `Creado: ${t.creado}`;
           tdTitulo.appendChild(divFecha);
         }
+        const comMostrar = t.ultimo_comentario_soporte || t.ultimo_comentario;
+        if (comMostrar) {
+          const divCom = document.createElement("div");
+          divCom.style.marginTop = "4px";
+          divCom.style.padding = "4px 7px";
+          divCom.style.borderRadius = "5px";
+          divCom.style.fontSize = "0.76rem";
+          if (comMostrar.rol === "soporte") {
+            divCom.style.background = "#f0fdf4";
+            divCom.style.border = "1px solid #bbf7d0";
+            divCom.style.color = "#166534";
+            divCom.textContent = `Soporte (${comMostrar.usuario_nombre}): "${comMostrar.texto}"`;
+          } else {
+            divCom.style.background = "#eff6ff";
+            divCom.style.border = "1px solid #bfdbfe";
+            divCom.style.color = "#1e40af";
+            divCom.textContent = `${comMostrar.usuario_nombre}: "${comMostrar.texto}"`;
+          }
+          tdTitulo.appendChild(divCom);
+        }
 
         const tdEst = document.createElement("td");
         tdEst.appendChild(crearBadge(t.estado, `est-${t.estado.replace(/\s+/g, "-")}`));
@@ -1249,6 +1275,10 @@
       }
 
       await cargarResumenSoporte();
+      if (!ticketSeleccionadoId && ticketsCargados.length > 0) {
+        const conCom = ticketsCargados.find((x) => x.ultimo_comentario_soporte) || ticketsCargados[0];
+        ticketSeleccionadoId = conCom.id;
+      }
       if (ticketSeleccionadoId && ticketsCargados.some((x) => x.id === ticketSeleccionadoId)) {
         await verDetalle(ticketSeleccionadoId, true);
       }
@@ -1358,6 +1388,67 @@
         }
       } else {
         panelSoporte.classList.add("hidden");
+      }
+
+      const contCom = document.getElementById("listaComentariosTicket");
+      contCom.innerHTML = "";
+      const listaCom = t.comentarios || [];
+      if (listaCom.length === 0) {
+        const vacio = document.createElement("div");
+        vacio.style.fontSize = "0.82rem";
+        vacio.style.color = "var(--muted)";
+        vacio.style.fontStyle = "italic";
+        vacio.style.padding = "6px 8px";
+        vacio.style.background = "#f8fafc";
+        vacio.style.borderRadius = "6px";
+        vacio.textContent = "Todavia no hay comentarios ni respuestas en este ticket.";
+        contCom.appendChild(vacio);
+      } else {
+        for (const c of listaCom) {
+          const cardCom = document.createElement("div");
+          cardCom.style.padding = "8px 10px";
+          cardCom.style.borderRadius = "6px";
+          cardCom.style.fontSize = "0.84rem";
+          if (c.rol === "soporte") {
+            cardCom.style.background = "#f0fdf4";
+            cardCom.style.border = "1px solid #86efac";
+          } else {
+            cardCom.style.background = "#eff6ff";
+            cardCom.style.border = "1px solid #93c5fd";
+          }
+
+          const headCom = document.createElement("div");
+          headCom.style.display = "flex";
+          headCom.style.justifyContent = "space-between";
+          headCom.style.alignItems = "center";
+          headCom.style.marginBottom = "4px";
+          headCom.style.fontSize = "0.75rem";
+
+          const autorLeft = document.createElement("div");
+          autorLeft.style.display = "flex";
+          autorLeft.style.alignItems = "center";
+          autorLeft.style.gap = "6px";
+          const stAutor = document.createElement("strong");
+          stAutor.textContent = c.usuario_nombre || c.usuario;
+          autorLeft.appendChild(stAutor);
+          autorLeft.appendChild(
+            crearBadge(c.rol === "soporte" ? "SOPORTE TI" : "USUARIO", `rol-${c.rol || "usuario"}`)
+          );
+
+          const spFecha = document.createElement("span");
+          spFecha.style.color = "var(--muted)";
+          spFecha.textContent = c.fecha;
+
+          headCom.appendChild(autorLeft);
+          headCom.appendChild(spFecha);
+
+          const bodyCom = document.createElement("div");
+          bodyCom.textContent = c.texto;
+
+          cardCom.appendChild(headCom);
+          cardCom.appendChild(bodyCom);
+          contCom.appendChild(cardCom);
+        }
       }
 
       const ul = document.getElementById("listaHistorialEventos");

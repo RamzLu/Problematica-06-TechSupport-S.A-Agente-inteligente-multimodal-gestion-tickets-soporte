@@ -194,11 +194,41 @@ def _enriquecer_ticket(t: dict) -> dict:
     resp_id = t.get("responsable")
     sol_info = USUARIOS.get(sol_id, {})
     resp_info = USUARIOS.get(resp_id, {}) if resp_id else {}
+
+    historial_enr = []
+    comentarios = []
+    for ev in t.get("historial", []):
+        uid_ev = ev.get("usuario", "")
+        u_ev_info = USUARIOS.get(uid_ev, {})
+        nombre_ev = ev.get("usuario_nombre") or u_ev_info.get("nombre", uid_ev)
+        rol_ev = u_ev_info.get("rol", "usuario")
+        ev_copia = {
+            **ev,
+            "usuario_nombre": nombre_ev,
+            "usuario_rol": rol_ev,
+        }
+        historial_enr.append(ev_copia)
+        if ev.get("tipo") == "Comentario":
+            comentarios.append(
+                {
+                    "fecha": ev.get("fecha", ""),
+                    "usuario": uid_ev,
+                    "usuario_nombre": nombre_ev,
+                    "rol": rol_ev,
+                    "texto": ev.get("detalle", ""),
+                }
+            )
+
+    comentarios_soporte = [c for c in comentarios if c["rol"] == "soporte"]
     return {
         **t,
         "solicitante_nombre": sol_info.get("nombre", sol_id),
         "area": t.get("area") or sol_info.get("area", "General"),
         "responsable_nombre": resp_info.get("nombre", resp_id) if resp_id else None,
+        "historial": historial_enr,
+        "comentarios": comentarios,
+        "ultimo_comentario": comentarios[-1] if comentarios else None,
+        "ultimo_comentario_soporte": comentarios_soporte[-1] if comentarios_soporte else None,
     }
 
 
@@ -217,6 +247,9 @@ def _resumen_corto(t: dict) -> dict:
         "responsable": enr["responsable"],
         "responsable_nombre": enr["responsable_nombre"],
         "adjuntos": list(enr.get("adjuntos", [])),
+        "comentarios": enr["comentarios"],
+        "ultimo_comentario": enr["ultimo_comentario"],
+        "ultimo_comentario_soporte": enr["ultimo_comentario_soporte"],
     }
 
 
