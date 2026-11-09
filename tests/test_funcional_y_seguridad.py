@@ -281,11 +281,14 @@ class TestTechSupportFuncionalYSeguridad(unittest.TestCase):
     def test_08_ausencia_xss_y_vistas_en_frontend(self):
         html = Path(main.FRONTEND_FILE).read_text(encoding="utf-8")
         self.assertNotIn("innerHTML = `", html)
-        self.assertIn("VISTA CONSOLA SOPORTE TI", html)
-        self.assertIn("VISTA PORTAL USUARIO", html)
-        self.assertIn("Luana2026!", html)
-        self.assertIn("Viviana2026!", html)
-        self.assertIn("Stella2026!", html)
+        self.assertIn("btnToggleSidebar", html)
+        self.assertIn("btnToggleDashboardBody", html)
+        self.assertIn("<svg", html)
+        # Verificar que no se expongan contraseñas ni credenciales sensibles en el HTML
+        self.assertNotIn("Luana2026!", html)
+        self.assertNotIn("Viviana2026!", html)
+        self.assertNotIn("Stella2026!", html)
+        self.assertNotIn("Laura2026!", html)
 
 
 if __name__ == "__main__":
