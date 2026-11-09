@@ -3,94 +3,72 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TechSupport S.A. — Sistema Inteligente Multimodal de Tickets</title>
+  <title>TechSupport S.A. — Smart Ticketing System</title>
   <style>
     :root {
-      --bg: #f1f5f9;
+      --bg-app: #f3f6fc;
+      --bg-gradient: linear-gradient(135deg, #f0f5ff 0%, #f5f3ff 50%, #eef2ff 100%);
+      --header-gradient: linear-gradient(90deg, #1d4ed8 0%, #4f46e5 55%, #7c3aed 100%);
+      --header-support: linear-gradient(90deg, #0f172a 0%, #1e3a8a 55%, #0f766e 100%);
+      --sidebar-bg: #1e293b;
+      --sidebar-active: #3b82f6;
       --card: #ffffff;
-      --border: #cbd5e1;
-      --border-light: #e2e8f0;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
       --text: #0f172a;
-      --muted: #475569;
+      --muted: #64748b;
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
-      --support-accent: #0f766e;
-      --support-hover: #115e59;
-      --secondary: #e2e8f0;
-      --agent-bg: #f0fdf4;
-      --agent-border: #86efac;
-      --user-bg: #eff6ff;
-      --user-border: #93c5fd;
-      --tool-bg: #f3e8ff;
-      --tool-text: #6b21a8;
-      --danger: #dc2626;
-      --success: #16a34a;
+      --purple: #6366f1;
+      --teal: #0d9488;
+      --green: #10b981;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 10px 25px -5px rgba(37, 99, 235, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
     }
 
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-gradient);
       color: var(--text);
       min-height: 100vh;
     }
 
     .hidden { display: none !important; }
 
-    /* HEADER */
-    header {
-      background: #0f172a;
-      color: #ffffff;
-      padding: 12px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      border-bottom: 3px solid var(--primary);
+    /* ================= LOGIN SCREEN (SMART TICKETING HERO) ================= */
+    .login-hero {
+      text-align: center;
+      padding: 28px 16px 10px 16px;
     }
-    header.mode-soporte {
-      border-bottom-color: #14b8a6;
-    }
-    .brand-title {
+    .login-hero h1 {
       margin: 0;
-      font-size: 1.2rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      font-size: 2rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
     }
-    .brand-sub {
-      font-size: 0.8rem;
-      color: #94a3b8;
-      display: block;
-      margin-top: 2px;
+    .login-hero h1 span {
+      background: linear-gradient(90deg, #2563eb, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .user-session-pill {
-      background: #1e293b;
-      border: 1px solid #334155;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 0.84rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .login-hero p {
+      margin: 6px 0 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
     }
 
-    /* LOGIN VIEW */
     .login-wrapper {
-      max-width: 960px;
-      margin: 36px auto;
+      max-width: 1020px;
+      margin: 18px auto 40px auto;
       padding: 0 16px;
       display: grid;
-      grid-template-columns: 1fr 1.15fr;
-      gap: 20px;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 22px;
       align-items: start;
     }
     @media (max-width: 860px) {
@@ -99,18 +77,18 @@
     .login-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 16px;
       padding: 24px;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+      box-shadow: var(--shadow-md);
     }
     .login-card h2 {
       margin: 0 0 6px 0;
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       color: #0f172a;
     }
     .login-card p {
-      margin: 0 0 18px 0;
-      font-size: 0.88rem;
+      margin: 0 0 16px 0;
+      font-size: 0.86rem;
       color: var(--muted);
       line-height: 1.45;
     }
@@ -121,14 +99,14 @@
       margin-bottom: 14px;
     }
     .form-field label {
-      font-size: 0.84rem;
+      font-size: 0.82rem;
       font-weight: 600;
       color: #334155;
     }
     .demo-group-title {
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
       color: var(--muted);
       font-weight: 700;
       margin: 12px 0 8px 0;
@@ -143,126 +121,332 @@
       justify-content: space-between;
       align-items: center;
       text-align: left;
-      padding: 8px 12px;
-      border-radius: 8px;
+      padding: 9px 12px;
+      border-radius: 10px;
       border: 1px solid var(--border);
       background: #f8fafc;
       cursor: pointer;
       transition: all 0.15s ease;
-      font-weight: 500;
     }
     .demo-user-btn:hover {
       background: #eff6ff;
       border-color: #93c5fd;
+      transform: translateY(-1px);
     }
     .demo-user-btn.soporte-btn:hover {
       background: #f0fdfa;
       border-color: #5eead4;
     }
     .demo-meta {
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       color: var(--muted);
       display: block;
     }
 
-    /* MAIN CONTAINER */
-    .container {
-      max-width: 1440px;
-      margin: 16px auto;
-      padding: 0 16px 32px 16px;
+    /* ================= APP SHELL (SIDEBAR + TOPBAR) ================= */
+    .app-shell {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      min-height: 100vh;
+    }
+    @media (max-width: 768px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .app-sidebar { display: none; }
+    }
+    .app-sidebar {
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 14px;
+      border-right: 1px solid #334155;
+    }
+    .side-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+      margin-bottom: 10px;
+    }
+    .side-icon-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 1.15rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .side-icon-btn:hover, .side-icon-btn.active {
+      background: rgba(59, 130, 246, 0.18);
+      color: #ffffff;
+    }
+
+    .app-main-area {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* TOPBAR ESTILO IMAGEN 2 + IMAGEN 1 */
+    header.topbar {
+      background: #ffffff;
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      min-width: 260px;
+    }
+    .workspace-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.03em;
+      color: #1e293b;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .global-search-wrap {
+      position: relative;
+      flex: 1;
+      max-width: 480px;
+    }
+    .global-search-wrap input {
+      width: 100%;
+      padding: 9px 14px 9px 34px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 0.86rem;
+    }
+    .global-search-wrap::before {
+      content: "🔍";
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.82rem;
+      opacity: 0.65;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-new-request {
+      background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
+    }
+    .btn-new-request:hover { opacity: 0.94; }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 4px 10px 4px 5px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+    }
+    .avatar-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.74rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .avatar-circle.soporte {
+      background: linear-gradient(135deg, #0d9488, #0284c7);
+    }
+
+    /* ================= CONTENT WORKSPACE ================= */
+    .workspace-container {
+      max-width: 1520px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 18px 22px 36px 22px;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
-    .view-banner {
-      padding: 12px 18px;
-      border-radius: 10px;
+    /* BANNER GRADIENTE SUPERIOR ESTILO IMAGEN 1 */
+    .dashboard-hero-bar {
+      background: var(--header-gradient);
+      color: #ffffff;
+      padding: 14px 20px;
+      border-radius: 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 10px;
-      font-size: 0.9rem;
+      box-shadow: var(--shadow-md);
     }
-    .banner-usuario {
-      background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
-      border: 1px solid #bfdbfe;
-      color: #1e3a8a;
+    .dashboard-hero-bar.mode-soporte {
+      background: var(--header-support);
     }
-    .banner-soporte {
-      background: linear-gradient(90deg, #f0fdfa 0%, #ccfbf1 100%);
-      border: 1px solid #99f6e4;
-      color: #134e4a;
+
+    /* ================= KPI CARDS (IMAGEN 1) + WORK TABS (IMAGEN 2) ================= */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .kpi-stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .kpi-stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: #93c5fd;
+    }
+    .kpi-stat-card.active-tab {
+      border: 2px solid var(--primary);
+      background: #f8faff;
+    }
+    .kpi-icon-circle {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    .icon-blue { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+    .icon-orange { background: linear-gradient(135deg, #f59e0b, #fb923c); }
+    .icon-green { background: linear-gradient(135deg, #10b981, #34d399); }
+    .icon-purple { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+    .icon-red { background: linear-gradient(135deg, #dc2626, #ef4444); }
+    .icon-slate { background: linear-gradient(135deg, #475569, #64748b); }
+
+    .kpi-stat-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .kpi-stat-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    .kpi-stat-number {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.15;
+    }
+    .kpi-stat-sub {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-top: 2px;
+    }
+
+    /* ================= MAIN 2-COLUMN WORKSPACE ================= */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .workspace-grid { grid-template-columns: 1fr; }
     }
 
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px 18px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
     }
-    .card h2 {
-      margin: 0 0 12px 0;
-      font-size: 1.02rem;
-      color: #1e293b;
+    .card-header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .card-header h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f172a;
     }
 
-    /* KPI / RESUMEN (F12) */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-    }
-    .kpi-box {
-      background: #f8fafc;
-      border: 1px solid var(--border-light);
-      border-radius: 8px;
-      padding: 10px 12px;
-    }
-    .kpi-box h3 {
-      margin: 0 0 8px 0;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--muted);
-    }
-    .kpi-chips {
+    /* BARRA DE FILTROS Y ORDENAMIENTO (ESTILO IMAGEN 2) */
+    . filter-sort-bar {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-    }
-    .kpi-chip {
-      font-size: 0.78rem;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: #ffffff;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
       border: 1px solid var(--border);
-      font-weight: 600;
+      padding: 10px 12px;
+      border-radius: 12px;
+      margin-bottom: 14px;
     }
-
-    /* LAYOUT GRIDS */
-    .grid-main {
-      display: grid;
-      grid-template-columns: 1fr 1.25fr;
-      gap: 16px;
-      align-items: start;
-    }
-    @media (max-width: 1024px) {
-      .grid-main { grid-template-columns: 1fr; }
-    }
-
-    /* INPUTS & BUTTONS */
     select, input[type="text"], input[type="password"], textarea {
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.9rem;
+      padding: 7px 11px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      font-size: 0.84rem;
       font-family: inherit;
       background: #fff;
       color: var(--text);
@@ -271,162 +455,207 @@
       outline: 2px solid #93c5fd;
       border-color: var(--primary);
     }
-
-    button {
-      padding: 7px 13px;
-      border-radius: 6px;
-      border: 1px solid transparent;
-      font-size: 0.86rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-primary:disabled { background: #94a3b8; cursor: wait; }
-    .btn-soporte { background: var(--support-accent); color: #fff; }
-    .btn-soporte:hover { background: var(--support-hover); }
-    .btn-secondary { background: var(--secondary); color: #1e293b; border-color: var(--border); }
-    .btn-secondary:hover { background: #cbd5e1; }
-    .btn-danger { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-    .btn-danger:hover { background: #fecaca; }
-    .btn-sm { padding: 4px 9px; font-size: 0.78rem; }
-
-    .toolbar {
+    .sort-pill-wrap {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      gap: 8px;
-      justify-content: space-between;
-    }
-
-    /* QUICK PROMPTS */
-    .quick-prompts {
-      display: flex;
-      flex-wrap: wrap;
       gap: 6px;
-      margin-bottom: 8px;
-    }
-    .prompt-chip {
-      background: #f1f5f9;
-      border: 1px solid var(--border);
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
       color: #334155;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.76rem;
-      cursor: pointer;
-      font-weight: 500;
     }
-    .prompt-chip:hover {
-      background: #e2e8f0;
-      border-color: #94a3b8;
-    }
-
-    /* CHAT */
-    #chatLog {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      height: 390px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .msg {
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      line-height: 1.48;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .msg code {
-      background: rgba(15, 23, 42, 0.07);
-      padding: 1px 5px;
-      border-radius: 4px;
-      font-size: 0.83rem;
-      font-family: monospace;
-    }
-    .msg-user {
-      background: var(--user-bg);
-      border: 1px solid var(--user-border);
-      align-self: flex-end;
-      max-width: 88%;
-    }
-    .msg-agent {
-      background: var(--agent-bg);
-      border: 1px solid var(--agent-border);
-      align-self: flex-start;
-      max-width: 92%;
-    }
-    .msg-sys {
-      background: #fef9c3;
-      border: 1px solid #fde047;
-      font-size: 0.82rem;
-      text-align: center;
-    }
-    .msg-header {
+    .sort-pill-wrap select {
+      border: none;
+      padding: 5px 4px;
       font-weight: 700;
-      font-size: 0.76rem;
-      margin-bottom: 4px;
-      color: var(--muted);
+      color: #1e293b;
     }
-    .tool-list {
-      margin-top: 6px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
-    .tool-pill {
-      background: var(--tool-bg);
-      color: var(--tool-text);
-      border: 1px solid #d8b4fe;
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-size: 0.72rem;
-      font-family: monospace;
-    }
+    .sort-pill-wrap select:focus { outline: none; }
 
-    .attachment-bar {
-      background: #f8fafc;
-      border: 1px dashed var(--border);
-      border-radius: 6px;
-      padding: 8px 10px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 0.82rem;
+    .view-toggle-group {
+      display: inline-flex;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
     }
-    .active-attachment-pill {
-      background: #dbeafe;
-      color: #1e40af;
-      border: 1px solid #93c5fd;
-      border-radius: 6px;
-      padding: 3px 8px;
+    .view-toggle-btn {
+      border: none;
+      background: transparent;
+      padding: 6px 10px;
       font-size: 0.78rem;
       font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .view-toggle-btn.active {
+      background: var(--primary);
+      color: #fff;
     }
 
-    /* TABLE */
-    .filter-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 10px;
+    /* ================= TARJETAS DE TICKETS (ESTILO IMAGEN 2) ================= */
+    .tickets-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(275px, 1fr));
+      gap: 14px;
+      max-height: 540px;
+      overflow-y: auto;
+      padding: 2px;
     }
+    .ticket-card-item {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.16s ease;
+      position: relative;
+    }
+    .ticket-card-item:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: #93c5fd;
+    }
+    .ticket-card-item.selected-card {
+      border: 2px solid var(--primary);
+      background: #f8faff;
+    }
+
+    .tcard-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .tcard-Ribbon {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #fff;
+    }
+    .ribbon-Critica { background: #dc2626; }
+    .ribbon-Alta { background: #ea580c; }
+    .ribbon-Media { background: #3b82f6; }
+    .ribbon-Baja { background: #64748b; }
+
+    .tcard-prio-text {
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .prio-text-Critica { color: #dc2626; }
+    .prio-text-Alta { color: #ea580c; }
+    .prio-text-Media { color: #d97706; }
+    .prio-text-Baja { color: #16a34a; }
+
+    .tcard-title {
+      font-size: 0.96rem;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.35;
+      margin: 2px 0;
+    }
+    .tcard-breadcrumb {
+      font-size: 0.76rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Barra de estado estilo SLA Imagen 2 */
+    .tcard-progress-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.73rem;
+      color: var(--muted);
+      padding-top: 4px;
+    }
+    .tcard-bars {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+    }
+    .tcard-bar-seg {
+      height: 5px;
+      border-radius: 999px;
+      flex: 1;
+      background: #e2e8f0;
+    }
+    .tcard-bar-seg.done-green { background: #10b981; }
+    .tcard-bar-seg.done-blue { background: #3b82f6; }
+    .tcard-bar-seg.done-orange { background: #f59e0b; }
+
+    .tcard-comment-preview {
+      font-size: 0.75rem;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      line-height: 1.35;
+    }
+
+    .tcard-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .tcard-agent-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .tcard-agent-name {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tcard-agent-role {
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: block;
+    }
+    .tcard-id-pill {
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      color: #475569;
+      font-size: 0.73rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    /* ================= TABLA COMPACTA (ESTILO TICKET QUEUE IMAGEN 1) ================= */
     .table-wrap {
       overflow-x: auto;
-      max-height: 320px;
+      max-height: 460px;
       overflow-y: auto;
-      border: 1px solid var(--border-light);
-      border-radius: 8px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
     }
     table {
       width: 100%;
@@ -434,14 +663,17 @@
       font-size: 0.84rem;
     }
     th, td {
-      border-bottom: 1px solid var(--border-light);
-      padding: 8px 8px;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 10px;
       text-align: left;
     }
     th {
       background: #f8fafc;
       color: var(--muted);
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
       position: sticky;
       top: 0;
       z-index: 1;
@@ -452,9 +684,9 @@
     /* BADGES */
     .badge {
       display: inline-block;
-      padding: 2px 8px;
+      padding: 3px 9px;
       border-radius: 999px;
-      font-size: 0.73rem;
+      font-size: 0.72rem;
       font-weight: 700;
       white-space: nowrap;
     }
@@ -464,16 +696,175 @@
     .prio-Critica { background: #fee2e2; color: #991b1b; }
     .prio-Alta { background: #ffedd5; color: #9a3412; }
     .prio-Media { background: #fef9c3; color: #854d0e; }
-    .prio-Baja { background: #e0f2fe; color: #075985; }
+    .prio-Baja { background: #dcfce7; color: #166534; }
 
     .est-Abierto { background: #dbeafe; color: #1e40af; }
     .est-En-revision { background: #f3e8ff; color: #6b21a8; }
     .est-En-progreso { background: #ffedd5; color: #9a3412; }
-    .est-Pendiente { background: #fef9c3; color: #854d0e; }
+    .est-Pendiente { background: #fef3c7; color: #92400e; }
     .est-Resuelto { background: #dcfce7; color: #166534; }
     .est-Cerrado { background: #e2e8f0; color: #475569; }
 
-    /* DETALLE E HISTORIAL VISUAL (F11) */
+    /* BUTTONS */
+    button {
+      padding: 7px 13px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-primary:disabled { background: #94a3b8; cursor: wait; }
+    .btn-soporte { background: var(--teal); color: #fff; }
+    .btn-soporte:hover { background: #0f766e; }
+    .btn-secondary { background: #f1f5f9; color: #1e293b; border-color: var(--border-strong); }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-sm { padding: 5px 10px; font-size: 0.76rem; }
+
+    /* ================= RIGHT COLUMN: TABS (CHAT IA / DETALLE Y LIVE UPDATES) ================= */
+    .right-panel-tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .rp-tab-btn {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .rp-tab-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    .quick-prompts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .prompt-chip {
+      background: #f1f5f9;
+      border: 1px solid var(--border-strong);
+      color: #334155;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .prompt-chip:hover {
+      background: #e0e7ff;
+      border-color: #818cf8;
+      color: #1e3a8a;
+    }
+
+    #chatLog {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      height: 310px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.87rem;
+      line-height: 1.46;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg code {
+      background: rgba(15, 23, 42, 0.07);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-family: monospace;
+    }
+    .msg-user {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      align-self: flex-end;
+      max-width: 88%;
+    }
+    .msg-agent {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      align-self: flex-start;
+      max-width: 92%;
+    }
+    .msg-sys {
+      background: #fef9c3;
+      border: 1px solid #fde047;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+    .msg-header {
+      font-weight: 700;
+      font-size: 0.74rem;
+      margin-bottom: 4px;
+      color: var(--muted);
+    }
+    .tool-list {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .tool-pill {
+      background: #f3e8ff;
+      color: #6b21a8;
+      border: 1px solid #d8b4fe;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 0.7rem;
+      font-family: monospace;
+    }
+
+    .attachment-bar {
+      background: #f8fafc;
+      border: 1px dashed var(--border-strong);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.8rem;
+    }
+    .active-attachment-pill {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* DETALLE E HISTORIAL VISUAL (LIVE UPDATES IMAGEN 1) */
     .ticket-detail-panel {
       margin-top: 14px;
       border-top: 1px solid var(--border);
@@ -481,25 +872,25 @@
     }
     .detail-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
       gap: 8px;
       background: #f8fafc;
-      border: 1px solid var(--border-light);
-      border-radius: 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
       padding: 10px 12px;
       margin-bottom: 10px;
-      font-size: 0.83rem;
+      font-size: 0.81rem;
     }
     .detail-item strong {
       display: block;
-      font-size: 0.73rem;
+      font-size: 0.7rem;
       color: var(--muted);
       text-transform: uppercase;
     }
     .support-actions-panel {
       background: #f0fdfa;
       border: 1px solid #99f6e4;
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 10px 12px;
       margin-bottom: 10px;
       display: flex;
@@ -511,275 +902,339 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      font-size: 0.78rem;
-      font-weight: 600;
+      font-size: 0.75rem;
+      font-weight: 700;
       color: #134e4a;
     }
-    .timeline {
+
+    /* LIVE UPDATES LIST (ESTILO IMAGEN 1) */
+    .live-updates-list {
       list-style: none;
-      margin: 8px 0 0 0;
-      padding: 0 0 0 12px;
-      border-left: 2px solid var(--border);
-      max-height: 210px;
+      margin: 6px 0 0 0;
+      padding: 0;
+      max-height: 200px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
-    .timeline-item {
+    .live-update-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
       background: #f8fafc;
-      border: 1px solid var(--border-light);
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 0.82rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
     }
-    .timeline-meta {
-      font-size: 0.74rem;
-      color: var(--muted);
+    .lu-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .lu-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .lu-meta {
       display: flex;
       justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--muted);
       margin-bottom: 2px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
     }
     .alert-box {
       padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 0.83rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
       margin-bottom: 10px;
     }
-    .alert-error {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      color: #991b1b;
-    }
-    .alert-ok {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      color: #166534;
-    }
+    .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .alert-ok { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
   </style>
 </head>
 <body>
-  <header id="mainHeader">
-    <div>
-      <h1 class="brand-title">
-        <span>TechSupport S.A.</span>
-        <span id="vistaActualBadge" class="badge rol-usuario hidden"></span>
-      </h1>
-      <span class="brand-sub" id="headerSubtitulo">Mesa de Ayuda y Gestion Inteligente de Incidencias</span>
-    </div>
-    <div id="headerSessionArea" class="header-right hidden">
-      <div class="user-session-pill" id="badgeUsuarioActivo"></div>
-      <button type="button" class="btn-danger btn-sm" id="btnCerrarSesion">Cerrar sesion</button>
-    </div>
-  </header>
 
-  <!-- PANTALLA DE LOGIN CORPORATIVO -->
-  <main id="loginView" class="login-wrapper">
-    <section class="login-card">
-      <h2>Ingreso Corporativo</h2>
-      <p>
-        Inicie sesion con las credenciales asignadas por su organizacion.
-        El sistema habilitara automaticamente el <strong>Portal de Usuario Solicitante</strong> o la
-        <strong>Consola Operativa de Soporte TI</strong> segun su rol.
-      </p>
-
-      <div id="loginErrorBox" class="alert-box alert-error hidden"></div>
-
-      <form id="loginForm">
-        <div class="form-field">
-          <label for="loginIdentificador">ID de Usuario o Correo Corporativo</label>
-          <input type="text" id="loginIdentificador" placeholder="Ej: s001, u001 o correo@empresa.com" required autocomplete="username" />
-        </div>
-        <div class="form-field">
-          <label for="loginPassword">Credencial / Contrasena</label>
-          <input type="password" id="loginPassword" placeholder="Ingrese su contrasena" required autocomplete="current-password" />
-        </div>
-        <button type="submit" class="btn-primary" style="width:100%; padding:10px;">Iniciar Sesion</button>
-      </form>
-    </section>
-
-    <section class="login-card">
-      <h2>Acceso Rapido para Pruebas</h2>
-      <p>
-        Seleccione un perfil preconfigurado del dataset para ingresar con un clic y comparar lo que ve cada rol:
-      </p>
-
-      <div class="demo-group-title">Equipo de Soporte Tecnico (Vista Consola TI)</div>
-      <div class="demo-grid" id="demoSoporteList"></div>
-
-      <div class="demo-group-title">Usuarios por Area de la Empresa (Vista Portal Solicitante)</div>
-      <div class="demo-grid" id="demoUsuariosList"></div>
-    </section>
-  </main>
-
-  <!-- APLICACION PRINCIPAL (DOS VISTAS DIFERENCIADAS SEGUN ROL) -->
-  <div id="appView" class="container hidden">
-    <!-- Banner contextual según vista -->
-    <div id="roleBanner" class="view-banner">
-      <div>
-        <strong id="bannerTitulo"></strong>
-        <div id="bannerSubtitulo" style="font-size:0.82rem; margin-top:2px;"></div>
-      </div>
-      <div class="toolbar">
-        <button type="button" class="btn-secondary btn-sm" id="btnNuevaSesion">Nueva conversacion</button>
-        <button type="button" class="btn-secondary btn-sm" id="btnRefrescarTodo">Actualizar</button>
-      </div>
+  <!-- ================= PANTALLA DE LOGIN CORPORATIVO ================= -->
+  <div id="loginView">
+    <div class="login-hero">
+      <h1>Respond Faster with a <span>Smart Ticketing System</span></h1>
+      <p>TechSupport S.A. — Gestion inteligente y multimodal de solicitudes e incidencias en tiempo real</p>
     </div>
 
-    <!-- SECCION EXCLUSIVA SOPORTE: DASHBOARD DE RESUMEN (F12) -->
-    <section id="soporteResumenSection" class="card hidden">
-      <h2>
-        <span>Resumen Ejecutivo de Incidencias de la Organizacion</span>
-        <span id="kpiTotalTickets" class="badge rol-soporte"></span>
-      </h2>
-      <div class="kpi-grid">
-        <div class="kpi-box">
-          <h3>Por Prioridad</h3>
-          <div id="kpiPorPrioridad" class="kpi-chips"></div>
-        </div>
-        <div class="kpi-box">
-          <h3>Por Estado</h3>
-          <div id="kpiPorEstado" class="kpi-chips"></div>
-        </div>
-        <div class="kpi-box">
-          <h3>Por Categoria</h3>
-          <div id="kpiPorCategoria" class="kpi-chips"></div>
-        </div>
-        <div class="kpi-box">
-          <h3>Por Area de la Empresa</h3>
-          <div id="kpiPorArea" class="kpi-chips"></div>
-        </div>
-      </div>
-    </section>
+    <main class="login-wrapper">
+      <section class="login-card">
+        <h2>Ingreso Corporativo</h2>
+        <p>
+          Inicie sesion con las credenciales asignadas por su organizacion.
+          El sistema habilitara el <strong>Portal de Usuario Solicitante</strong> o la
+          <strong>Consola de Priorizacion de Soporte TI</strong> segun su rol.
+        </p>
 
-    <div class="grid-main">
-      <!-- COLUMNA IZQUIERDA: CHAT MULTIMODAL ADAPTADO AL ROL -->
-      <section class="card">
-        <h2 id="tituloChatCard">Asistente de Soporte Tecnico</h2>
+        <div id="loginErrorBox" class="alert-box alert-error hidden"></div>
 
-        <div class="quick-prompts" id="quickPromptsContainer"></div>
-
-        <div id="chatLog"></div>
-
-        <form id="chatForm" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-          <textarea id="mensajeInput" rows="3" placeholder="Escribe tu consulta o describe el problema que necesitas resolver..."></textarea>
-
-          <div class="attachment-bar">
-            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
-              <label for="archivoInput" style="font-weight:600; color:var(--muted);">Adjuntar captura o log (.png, .jpg, .webp, .txt, .log):</label>
-              <input type="file" id="archivoInput" accept=".png,.jpg,.jpeg,.webp,.txt,.log" />
-            </div>
-
-            <!-- Indicador de archivo precargado o selector de soporte -->
-            <div id="chipArchivoPrecargado" class="active-attachment-pill hidden">
-              <span id="nombreArchivoPrecargado"></span>
-              <button type="button" id="btnQuitarPrecargado" class="btn-sm" style="background:transparent; color:#1e40af; padding:0 4px;">✕</button>
-            </div>
-
-            <div id="contenedorArchivoServidorSoporte" class="hidden" style="display:flex; align-items:center; gap:6px;">
-              <label for="archivoServidorSelect" style="color:var(--muted);">Repositorio de logs/capturas:</label>
-              <select id="archivoServidorSelect">
-                <option value="">-- Ninguno --</option>
-              </select>
-            </div>
+        <form id="loginForm">
+          <div class="form-field">
+            <label for="loginIdentificador">ID de Usuario o Correo Corporativo</label>
+            <input type="text" id="loginIdentificador" placeholder="Ej: s001, u001 o correo@empresa.com" required autocomplete="username" />
           </div>
-
-          <div class="toolbar">
-            <span id="estadoEnvio" style="font-size:0.84rem; color:var(--primary); font-weight:600;"></span>
-            <button type="submit" class="btn-primary" id="btnEnviar">Enviar mensaje</button>
+          <div class="form-field">
+            <label for="loginPassword">Credencial / Contrasena</label>
+            <input type="password" id="loginPassword" placeholder="Ingrese su contrasena" required autocomplete="current-password" />
           </div>
+          <button type="submit" class="btn-primary" style="width:100%; padding:10px;">Iniciar Sesion</button>
         </form>
       </section>
 
-      <!-- COLUMNA DERECHA: TABLA DE TICKETS + GESTION Y TRAZABILIDAD -->
-      <section class="card">
-        <h2>
-          <span id="tituloTablaTickets">Tickets</span>
-          <span id="contadorTablaTickets" style="font-size:0.8rem; color:var(--muted); font-weight:500;"></span>
-        </h2>
+      <section class="login-card">
+        <h2>Perfiles de Acceso Rapido</h2>
+        <p>
+          Seleccione un perfil preconfigurado del dataset para ingresar con un clic (hashes verificados con <code>PBKDF2-SHA256</code>):
+        </p>
 
-        <!-- Filtros de bandeja -->
-        <div class="filter-bar">
-          <select id="filtroEstado">
-            <option value="">Todos los estados</option>
-          </select>
-          <select id="filtroResponsable" class="hidden">
-            <option value="">Todos (con y sin tecnico)</option>
-          </select>
-          <select id="filtroPrioridad">
-            <option value="">Todas las prioridades</option>
-          </select>
-          <select id="filtroCategoria">
-            <option value="">Todas las categorias</option>
-          </select>
-          <input type="text" id="filtroAreaInput" placeholder="Buscar por titulo o #ID..." style="flex:1; min-width:140px;" />
-        </div>
+        <div class="demo-group-title">Equipo de Soporte Tecnico (Priorizacion y Gestion Global)</div>
+        <div class="demo-grid" id="demoSoporteList"></div>
 
-        <div class="table-wrap">
-          <table>
-            <thead id="theadTickets"></thead>
-            <tbody id="tbodyTickets"></tbody>
-          </table>
-        </div>
-
-        <!-- PANEL DETALLE + ACCIONES POR ROL + HISTORIAL -->
-        <div id="panelDetalleTicket" class="ticket-detail-panel hidden">
-          <div class="toolbar" style="margin-bottom:8px;">
-            <h2 style="margin:0;" id="detalleTituloCabecera">Detalle del Ticket</h2>
-            <span id="detalleBadgesCabecera"></span>
-          </div>
-
-          <div id="alertaOperacionTicket" class="alert-box hidden"></div>
-
-          <div class="detail-grid" id="detalleCamposGrid"></div>
-
-          <!-- CONTROLES EXCLUSIVOS DE SOPORTE TI -->
-          <div id="controlesSoporteTicket" class="support-actions-panel hidden">
-            <div class="action-group">
-              <label for="selectNuevoEstado">Cambiar Estado</label>
-              <div style="display:flex; gap:4px;">
-                <select id="selectNuevoEstado"></select>
-                <button type="button" class="btn-soporte btn-sm" id="btnAplicarEstado">Actualizar</button>
-              </div>
-            </div>
-
-            <div class="action-group">
-              <label for="selectNuevaPrioridad">Revisar Prioridad</label>
-              <div style="display:flex; gap:4px;">
-                <select id="selectNuevaPrioridad"></select>
-                <button type="button" class="btn-soporte btn-sm" id="btnAplicarPrioridad">Cambiar</button>
-              </div>
-            </div>
-
-            <div class="action-group">
-              <label for="selectNuevoResponsable">Asignar Especialista TI</label>
-              <div style="display:flex; gap:4px;">
-                <select id="selectNuevoResponsable"></select>
-                <button type="button" class="btn-soporte btn-sm" id="btnAplicarResponsable">Asignar</button>
-                <button type="button" class="btn-secondary btn-sm" id="btnAsignarmeAMi">Tomar yo</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- SECCION DESTACADA DE COMENTARIOS (SOPORTE <-> USUARIO) -->
-          <div style="margin-bottom:12px;">
-            <strong style="font-size:0.8rem; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:6px;">
-              Comentarios y Respuestas de Soporte
-            </strong>
-            <div id="listaComentariosTicket" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
-            <form id="formAgregarComentario" style="display:flex; gap:8px;">
-              <input type="text" id="inputNuevoComentario" placeholder="Escribir una respuesta o comentario en este ticket..." style="flex:1;" required />
-              <button type="submit" class="btn-primary btn-sm">Enviar comentario</button>
-            </form>
-          </div>
-
-          <!-- LINEA DE TIEMPO DE TRAZABILIDAD -->
-          <strong style="font-size:0.8rem; color:var(--muted); text-transform:uppercase;">
-            Historial de Actividad del Ticket
-          </strong>
-          <ul id="listaHistorialEventos" class="timeline"></ul>
-        </div>
+        <div class="demo-group-title">Usuarios por Area de la Empresa (Portal de Solicitudes)</div>
+        <div class="demo-grid" id="demoUsuariosList"></div>
       </section>
+    </main>
+  </div>
+
+  <!-- ================= APLICACION PRINCIPAL (ESTILO IMAGEN 1 + IMAGEN 2) ================= -->
+  <div id="appView" class="app-shell hidden">
+    <!-- SIDEBAR FINA IZQUIERDA (IMAGEN 2) -->
+    <aside class="app-sidebar">
+      <div class="side-logo">TS</div>
+      <button type="button" class="side-icon-btn active" title="Mi Trabajo / Bandeja de Tickets" id="sideBtnTickets">📋</button>
+      <button type="button" class="side-icon-btn" title="Asistente IA Multimodal" id="sideBtnChat">🤖</button>
+      <button type="button" class="side-icon-btn" title="Actualizar Tablero" id="sideBtnRefresh">🔄</button>
+    </aside>
+
+    <div class="app-main-area">
+      <!-- TOPBAR SUPERIOR (IMAGEN 2) -->
+      <header id="mainHeader" class="topbar">
+        <div class="topbar-left">
+          <span class="workspace-title" id="topbarWorkspaceTitle">MI TRABAJO</span>
+          <span id="vistaActualBadge" class="badge rol-usuario hidden"></span>
+          <div class="global-search-wrap">
+            <input type="text" id="filtroAreaInput" placeholder="Buscar tickets por titulo, #ID, area o solicitante..." />
+          </div>
+        </div>
+
+        <div id="headerSessionArea" class="topbar-right hidden">
+          <button type="button" class="btn-new-request" id="btnFocoNuevaSolicitud">+ NUEVA SOLICITUD IA</button>
+          <div class="user-pill" id="badgeUsuarioActivo"></div>
+          <button type="button" class="btn-danger btn-sm" id="btnCerrarSesion">Salir</button>
+        </div>
+      </header>
+
+      <div class="workspace-container">
+        <!-- BANNER HERO DEL DASHBOARD (IMAGEN 1) -->
+        <div id="roleBanner" class="dashboard-hero-bar">
+          <div>
+            <strong id="bannerTitulo" style="font-size:1.05rem;"></strong>
+            <div id="bannerSubtitulo" style="font-size:0.82rem; opacity:0.9; margin-top:2px;"></div>
+          </div>
+          <div class="toolbar">
+            <span id="kpiTotalTickets" class="badge" style="background:rgba(255,255,255,0.2); color:#fff; font-size:0.8rem;"></span>
+            <button type="button" class="btn-secondary btn-sm" id="btnRefrescarTodo">Actualizar tablero</button>
+          </div>
+        </div>
+
+        <!-- TARJETAS KPI INTERACTIVAS / PESTAÑAS DE TRABAJO (COMBINACION IMAGEN 1 E IMAGEN 2) -->
+        <section class="kpi-row" id="kpiTabsContainer"></section>
+
+        <!-- RESUMEN POR AREA Y CATEGORIA (EXCLUSIVO SOPORTE F12) -->
+        <section id="soporteResumenSection" class="card hidden" style="padding:12px 16px;">
+          <div class="toolbar" style="gap:16px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <strong style="font-size:0.76rem; color:var(--muted); text-transform:uppercase;">Carga por Area:</strong>
+              <div id="kpiPorArea" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <strong style="font-size:0.76rem; color:var(--muted); text-transform:uppercase;">Por Categoria:</strong>
+              <div id="kpiPorCategoria" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+            </div>
+            <div id="kpiPorPrioridad" class="hidden"></div>
+            <div id="kpiPorEstado" class="hidden"></div>
+          </div>
+        </section>
+
+        <!-- GRILLA PRINCIPAL: IZQUIERDA (TARJETAS/COLA DE TICKETS PRIORIZADOS) | DERECHA (ASISTENTE IA + GESTION Y LIVE UPDATES) -->
+        <div class="workspace-grid">
+          <!-- COLUMNA IZQUIERDA: BANDEJA DE TICKETS -->
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 id="tituloTablaTickets">Mis Solicitudes de Soporte</h2>
+                <span id="contadorTablaTickets" style="font-size:0.78rem; color:var(--muted);"></span>
+              </div>
+
+              <div class="toolbar">
+                <!-- ORDENAMIENTO DE PRIORIDAD (CLAVE EN SOPORTE - IMAGEN 2) -->
+                <div class="sort-pill-wrap">
+                  <span>⇅ Ordenar:</span>
+                  <select id="ordenarSelect">
+                    <option value="prioridad_desc">Prioridad (Critica → Baja)</option>
+                    <option value="sin_asignar">Sin tecnico asignado primero</option>
+                    <option value="recientes">Mas recientes primero</option>
+                    <option value="estado_flujo">Estado de atencion</option>
+                  </select>
+                </div>
+
+                <!-- CONMUTADOR VISTA TARJETAS (IMAGEN 2) / TABLA (IMAGEN 1) -->
+                <div class="view-toggle-group">
+                  <button type="button" class="view-toggle-btn active" id="btnVistaTarjetas">▦ Tarjetas</button>
+                  <button type="button" class="view-toggle-btn" id="btnVistaTabla">☰ Cola</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- BARRA DE FILTROS -->
+            <div class="filter-sort-bar">
+              <select id="filtroEstado">
+                <option value="">Estado: Todos</option>
+              </select>
+              <select id="filtroResponsable" class="hidden">
+                <option value="">Tecnico: Todos</option>
+              </select>
+              <select id="filtroPrioridad" class="hidden">
+                <option value="">Prioridad: Todas</option>
+              </select>
+              <select id="filtroCategoria" class="hidden">
+                <option value="">Categoria: Todas</option>
+              </select>
+              <button type="button" class="btn-secondary btn-sm" id="btnLimpiarFiltros">Ver todos</button>
+            </div>
+
+            <!-- VISTA 1: GRILLA DE TARJETAS ESTILO IMAGEN 2 -->
+            <div id="contenedorTarjetasTickets" class="tickets-cards-grid"></div>
+
+            <!-- VISTA 2: TABLA TICKET QUEUE ESTILO IMAGEN 1 -->
+            <div id="contenedorTablaTickets" class="table-wrap hidden">
+              <table>
+                <thead id="theadTickets"></thead>
+                <tbody id="tbodyTickets"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- COLUMNA DERECHA: ASISTENTE IA MULTIMODAL + DETALLE, COMENTARIOS Y LIVE UPDATES -->
+          <section class="card">
+            <!-- SECCION CHAT ASISTENTE IA MULTIMODAL -->
+            <div class="card-header" style="margin-bottom:8px;">
+              <h2 id="tituloChatCard">Asistente Inteligente Multimodal</h2>
+              <button type="button" class="btn-secondary btn-sm" id="btnNuevaSesion">Limpiar chat</button>
+            </div>
+
+            <div class="quick-prompts" id="quickPromptsContainer"></div>
+
+            <div id="chatLog"></div>
+
+            <form id="chatForm" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+              <textarea id="mensajeInput" rows="2" placeholder="Describe tu problema en lenguaje natural o consulta al agente..."></textarea>
+
+              <div class="attachment-bar">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+                  <label for="archivoInput" style="font-weight:600; color:var(--muted);">📎 Adjuntar (.png, .jpg, .webp, .txt, .log):</label>
+                  <input type="file" id="archivoInput" accept=".png,.jpg,.jpeg,.webp,.txt,.log" style="font-size:0.76rem;" />
+                </div>
+
+                <div id="chipArchivoPrecargado" class="active-attachment-pill hidden">
+                  <span id="nombreArchivoPrecargado"></span>
+                  <button type="button" id="btnQuitarPrecargado" class="btn-sm" style="background:transparent; color:#1e40af; padding:0 4px;">✕</button>
+                </div>
+
+                <div id="contenedorArchivoServidorSoporte" class="hidden" style="display:flex; align-items:center; gap:6px;">
+                  <label for="archivoServidorSelect" style="color:var(--muted);">Archivo de prueba:</label>
+                  <select id="archivoServidorSelect">
+                    <option value="">-- Ninguno --</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="toolbar">
+                <span id="estadoEnvio" style="font-size:0.8rem; color:var(--primary); font-weight:600;"></span>
+                <button type="submit" class="btn-primary" id="btnEnviar">Enviar al Agente IA</button>
+              </div>
+            </form>
+
+            <!-- PANEL DETALLE + ACCIONES DE SOPORTE + COMENTARIOS + LIVE UPDATES (IMAGEN 1) -->
+            <div id="panelDetalleTicket" class="ticket-detail-panel hidden">
+              <div class="toolbar" style="margin-bottom:8px;">
+                <h2 style="margin:0; font-size:0.98rem;" id="detalleTituloCabecera">Detalle del Ticket</h2>
+                <span id="detalleBadgesCabecera"></span>
+              </div>
+
+              <div id="alertaOperacionTicket" class="alert-box hidden"></div>
+
+              <!-- CONTROLES EXCLUSIVOS DE SOPORTE TI (PRIORIZAR, CAMBIAR ESTADO, ASIGNAR) -->
+              <div id="controlesSoporteTicket" class="support-actions-panel hidden">
+                <div class="action-group">
+                  <label for="selectNuevaPrioridad">Prioridad (F06)</label>
+                  <div style="display:flex; gap:4px;">
+                    <select id="selectNuevaPrioridad"></select>
+                    <button type="button" class="btn-soporte btn-sm" id="btnAplicarPrioridad">Priorizar</button>
+                  </div>
+                </div>
+
+                <div class="action-group">
+                  <label for="selectNuevoEstado">Estado (F08)</label>
+                  <div style="display:flex; gap:4px;">
+                    <select id="selectNuevoEstado"></select>
+                    <button type="button" class="btn-soporte btn-sm" id="btnAplicarEstado">Cambiar</button>
+                  </div>
+                </div>
+
+                <div class="action-group">
+                  <label for="selectNuevoResponsable">Tecnico Asignado</label>
+                  <div style="display:flex; gap:4px;">
+                    <select id="selectNuevoResponsable"></select>
+                    <button type="button" class="btn-soporte btn-sm" id="btnAplicarResponsable">Asignar</button>
+                    <button type="button" class="btn-secondary btn-sm" id="btnAsignarmeAMi">Tomar yo</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-grid" id="detalleCamposGrid"></div>
+
+              <!-- COMENTARIOS ENTRE SOPORTE Y USUARIO -->
+              <div style="margin-bottom:12px;">
+                <strong style="font-size:0.76rem; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:6px;">
+                  💬 Respuestas de Soporte y Comentarios del Ticket
+                </strong>
+                <div id="listaComentariosTicket" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
+                <form id="formAgregarComentario" style="display:flex; gap:8px;">
+                  <input type="text" id="inputNuevoComentario" placeholder="Escribir respuesta o comentario en este ticket..." style="flex:1;" required />
+                  <button type="submit" class="btn-primary btn-sm">Comentar</button>
+                </form>
+              </div>
+
+              <!-- LIVE UPDATES / TRAZABILIDAD (ESTILO IMAGEN 1) -->
+              <strong style="font-size:0.76rem; color:var(--muted); text-transform:uppercase; display:block;">
+                ⚡ Live Updates — Historial del Ticket (F11)
+              </strong>
+              <ul id="listaHistorialEventos" class="live-updates-list"></ul>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -795,6 +1250,16 @@
       u005: "Camila2026!"
     };
 
+    const PESO_PRIORIDAD = { "Critica": 4, "Alta": 3, "Media": 2, "Baja": 1 };
+    const PESO_ESTADO = {
+      "Abierto": 1,
+      "En revision": 2,
+      "En progreso": 3,
+      "Pendiente": 4,
+      "Resuelto": 5,
+      "Cerrado": 6
+    };
+
     let tokenSesion = sessionStorage.getItem("ts_token") || "";
     let usuarioActivo = null;
     let catalogos = {
@@ -807,6 +1272,8 @@
     };
     let ticketsCargados = [];
     let ticketSeleccionadoId = null;
+    let modoVistaTickets = "tarjetas"; // "tarjetas" (Imagen 2) o "tabla" (Imagen 1)
+    let tabRapidaActiva = "todos";
 
     const mainHeader = document.getElementById("mainHeader");
     const vistaActualBadge = document.getElementById("vistaActualBadge");
@@ -827,10 +1294,18 @@
     const btnEnviar = document.getElementById("btnEnviar");
     const estadoEnvio = document.getElementById("estadoEnvio");
     const tbodyTickets = document.getElementById("tbodyTickets");
+    const contenedorTarjetasTickets = document.getElementById("contenedorTarjetasTickets");
+    const contenedorTablaTickets = document.getElementById("contenedorTablaTickets");
     const panelDetalleTicket = document.getElementById("panelDetalleTicket");
 
     function headersAutenticados() {
       return tokenSesion ? { "Authorization": `Bearer ${tokenSesion}` } : {};
+    }
+
+    function obtenerIniciales(nombre) {
+      const partes = String(nombre || "U").trim().split(/\s+/);
+      if (partes.length >= 2) return (partes[0][0] + partes[1][0]).toUpperCase();
+      return partes[0].slice(0, 2).toUpperCase();
     }
 
     function crearBadge(texto, claseExtra) {
@@ -840,7 +1315,6 @@
       return span;
     }
 
-    // Formateador seguro de negritas (**texto**) y código (`texto`) usando nodos DOM (sin innerHTML)
     function renderizarTextoFormateadoSeguro(contenedor, texto) {
       contenedor.textContent = "";
       const patron = /(\*\*[^*]+\*\*|`[^`]+`)/g;
@@ -906,7 +1380,6 @@
       renderizarTextoFormateadoSeguro(body, texto);
       div.appendChild(body);
 
-      // Las trazas de herramientas internas (tool-pill) solo se muestran al personal de Soporte TI
       const esSoporte = usuarioActivo && usuarioActivo.rol === "soporte";
       if (esSoporte && tools && tools.length > 0) {
         const tl = document.createElement("div");
@@ -938,13 +1411,25 @@
         btn.className = `demo-user-btn ${u.rol === "soporte" ? "soporte-btn" : ""}`;
 
         const left = document.createElement("div");
+        left.style.display = "flex";
+        left.style.alignItems = "center";
+        left.style.gap = "10px";
+
+        const av = document.createElement("div");
+        av.className = `avatar-circle ${u.rol === "soporte" ? "soporte" : ""}`;
+        av.textContent = obtenerIniciales(u.nombre);
+
+        const txtWrap = document.createElement("div");
         const title = document.createElement("strong");
         title.textContent = `${u.nombre} (${u.id})`;
         const meta = document.createElement("span");
         meta.className = "demo-meta";
         meta.textContent = `${u.area} — ${u.email}`;
-        left.appendChild(title);
-        left.appendChild(meta);
+        txtWrap.appendChild(title);
+        txtWrap.appendChild(meta);
+
+        left.appendChild(av);
+        left.appendChild(txtWrap);
 
         const badge = crearBadge(
           u.rol === "soporte" ? "SOPORTE TI" : "USUARIO",
@@ -973,7 +1458,7 @@
       catalogos = await r.json();
 
       const fEst = document.getElementById("filtroEstado");
-      fEst.innerHTML = '<option value="">Todos los estados</option>';
+      fEst.innerHTML = '<option value="">Estado: Todos</option>';
       for (const e of catalogos.estados || []) {
         const opt = document.createElement("option");
         opt.value = e;
@@ -982,7 +1467,7 @@
       }
 
       const fPrio = document.getElementById("filtroPrioridad");
-      fPrio.innerHTML = '<option value="">Todas las prioridades</option>';
+      fPrio.innerHTML = '<option value="">Prioridad: Todas</option>';
       for (const p of catalogos.prioridades || []) {
         const opt = document.createElement("option");
         opt.value = p;
@@ -991,7 +1476,7 @@
       }
 
       const fCat = document.getElementById("filtroCategoria");
-      fCat.innerHTML = '<option value="">Todas las categorias</option>';
+      fCat.innerHTML = '<option value="">Categoria: Todas</option>';
       for (const c of catalogos.categorias || []) {
         const opt = document.createElement("option");
         opt.value = c;
@@ -1002,7 +1487,7 @@
       const fResp = document.getElementById("filtroResponsable");
       fResp.innerHTML = "";
       const opcionesBaseResp = [
-        ["", "Todos (con y sin tecnico)"],
+        ["", "Tecnico: Todos"],
         ["__sin_asignar__", "Sin tecnico asignado aun"],
         ["__mios__", "Asignados a mi"]
       ];
@@ -1031,43 +1516,50 @@
     function configurarVistaPorRol() {
       if (!usuarioActivo) return;
       const esSoporte = usuarioActivo.rol === "soporte";
+      tabRapidaActiva = "todos";
 
-      mainHeader.classList.toggle("mode-soporte", esSoporte);
+      document.getElementById("topbarWorkspaceTitle").textContent = esSoporte
+        ? "CONSOLA SOPORTE TI"
+        : "MI TRABAJO";
+
       vistaActualBadge.textContent = esSoporte ? "VISTA CONSOLA SOPORTE TI" : "VISTA PORTAL USUARIO";
       vistaActualBadge.className = `badge rol-${usuarioActivo.rol}`;
       vistaActualBadge.classList.remove("hidden");
       headerSessionArea.classList.remove("hidden");
 
       badgeUsuarioActivo.innerHTML = "";
+      const av = document.createElement("div");
+      av.className = `avatar-circle ${esSoporte ? "soporte" : ""}`;
+      av.textContent = obtenerIniciales(usuarioActivo.nombre);
       const txtUser = document.createElement("span");
-      txtUser.textContent = `${usuarioActivo.nombre} · ${usuarioActivo.area}`;
+      txtUser.style.fontWeight = "600";
+      txtUser.textContent = `${usuarioActivo.nombre} (${usuarioActivo.area})`;
+      badgeUsuarioActivo.appendChild(av);
       badgeUsuarioActivo.appendChild(txtUser);
-      badgeUsuarioActivo.appendChild(crearBadge(esSoporte ? "SOPORTE TI" : "USUARIO", `rol-${usuarioActivo.rol}`));
 
       const roleBanner = document.getElementById("roleBanner");
-      roleBanner.className = `view-banner ${esSoporte ? "banner-soporte" : "banner-usuario"}`;
+      roleBanner.className = `dashboard-hero-bar ${esSoporte ? "mode-soporte" : ""}`;
       document.getElementById("bannerTitulo").textContent = esSoporte
-        ? `Consola Operativa de Soporte TI — ${usuarioActivo.organizacion}`
-        : `Portal de Autogestion de Soporte — Area: ${usuarioActivo.area}`;
+        ? `TICKETING DASHBOARD — Priorizacion y Ordenamiento Global (${usuarioActivo.organizacion})`
+        : `MIS SOLICITUDES DE SOPORTE — Area: ${usuarioActivo.area}`;
       document.getElementById("bannerSubtitulo").textContent = esSoporte
-        ? "Supervisa todas las areas de la organizacion, revisa prioridades propuestas, gestiona transiciones de estado y asigna especialistas."
-        : "Describe tu inconveniente en el chat o adjunta una captura de pantalla para registrar un ticket y consultar el avance de tus solicitudes.";
+        ? "Prioriza tickets criticos, asigna especialistas del equipo (Luana, Viviana, Stella) y responde a los usuarios en tiempo real."
+        : "Sigue el estado de tus tickets en tiempo real, mira que tecnico de soporte te fue asignado y conversa con el asistente.";
 
-      // Mostrar/ocultar Resumen F12, filtros exclusivos de soporte y cabeceras de tabla según el rol
       soporteResumenSection.classList.toggle("hidden", !esSoporte);
       document.getElementById("contenedorArchivoServidorSoporte").classList.toggle("hidden", !esSoporte);
       document.getElementById("filtroResponsable").classList.toggle("hidden", !esSoporte);
       document.getElementById("filtroPrioridad").classList.toggle("hidden", !esSoporte);
       document.getElementById("filtroCategoria").classList.toggle("hidden", !esSoporte);
-      document.getElementById("filtroAreaInput").placeholder = esSoporte
-        ? "Filtrar por area, solicitante o titulo..."
-        : "Buscar en mis tickets...";
+
+      // Orden por defecto: en soporte priorizamos Crítica -> Baja; en usuario Más recientes
+      document.getElementById("ordenarSelect").value = esSoporte ? "prioridad_desc" : "recientes";
 
       const thead = document.getElementById("theadTickets");
       thead.innerHTML = "";
       const trHead = document.createElement("tr");
       const columnas = esSoporte
-        ? ["ID", "Titulo", "Area / Solicitante", "Categoria", "Prioridad", "Estado", "Tecnico Asignado", "Accion"]
+        ? ["ID", "Subject / Problema", "Area / Solicitante", "Priority", "Agent (Tecnico)", "Status", "Accion"]
         : ["Ticket", "Problema Reportado", "Estado", "Tecnico de Soporte Asignado", "Seguimiento"];
       for (const col of columnas) {
         const th = document.createElement("th");
@@ -1080,7 +1572,7 @@
         ? "Copiloto IA para Especialistas de Soporte"
         : "Asistente de Soporte Tecnico";
       document.getElementById("tituloTablaTickets").textContent = esSoporte
-        ? "Bandeja Global de Tickets de la Organizacion"
+        ? "Cola Priorizada de Tickets de la Organizacion"
         : "Mis Solicitudes de Soporte";
 
       actualizarChipArchivoPrecargado("");
@@ -1115,12 +1607,92 @@
       }
     }
 
-    function renderizarChipsKPI(contenedorId, objetoDatos, prefijoClase = "") {
+    function renderizarTarjetasKpiSuperiores(todosLosTickets) {
+      const esSoporte = usuarioActivo && usuarioActivo.rol === "soporte";
+      const cont = document.getElementById("kpiTabsContainer");
+      cont.innerHTML = "";
+
+      const abiertosEnCurso = todosLosTickets.filter((t) =>
+        ["Abierto", "En revision", "En progreso"].includes(t.estado)
+      ).length;
+      const pendientes = todosLosTickets.filter((t) => t.estado === "Pendiente").length;
+      const resueltos = todosLosTickets.filter((t) =>
+        ["Resuelto", "Cerrado"].includes(t.estado)
+      ).length;
+      const sinAsignar = todosLosTickets.filter((t) => !t.responsable).length;
+      const asignadosAMi = todosLosTickets.filter(
+        (t) => usuarioActivo && t.responsable === usuarioActivo.id
+      ).length;
+      const criticosAltos = todosLosTickets.filter(
+        (t) => ["Critica", "Alta"].includes(t.prioridad) && t.estado !== "Cerrado"
+      ).length;
+      const conTecnico = todosLosTickets.filter((t) => Boolean(t.responsable)).length;
+
+      const tarjetas = esSoporte
+        ? [
+            { id: "criticos", label: "Criticos y Altos", count: criticosAltos, sub: "Prioridad maxima", icon: "🔥", color: "icon-red" },
+            { id: "sin_asignar", label: "Sin Asignar", count: sinAsignar, sub: "Requieren tecnico", icon: "📥", color: "icon-orange" },
+            { id: "mios", label: "Asignados a Mi", count: asignadosAMi, sub: usuarioActivo.nombre, icon: "👤", color: "icon-purple" },
+            { id: "abiertos", label: "Abiertos / En Curso", count: abiertosEnCurso, sub: `${pendientes} en espera`, icon: "📄", color: "icon-blue" },
+            { id: "resueltos", label: "Resueltos / Cerrados", count: resueltos, sub: "Completados", icon: "✓", color: "icon-green" }
+          ]
+        : [
+            { id: "todos", label: "Mis Tickets", count: todosLosTickets.length, sub: "Total registrados", icon: "📋", color: "icon-purple" },
+            { id: "abiertos", label: "En Atencion", count: abiertosEnCurso, sub: "Abiertos / En progreso", icon: "📄", color: "icon-blue" },
+            { id: "pendientes", label: "Pendientes", count: pendientes, sub: "En espera", icon: "🕒", color: "icon-orange" },
+            { id: "resueltos", label: "Resueltos", count: resueltos, sub: `Con tecnico: ${conTecnico}`, icon: "✓", color: "icon-green" }
+          ];
+
+      for (const k of tarjetas) {
+        const card = document.createElement("div");
+        card.className = `kpi-stat-card ${tabRapidaActiva === k.id ? "active-tab" : ""}`;
+
+        const iconDiv = document.createElement("div");
+        iconDiv.className = `kpi-icon-circle ${k.color}`;
+        iconDiv.textContent = k.icon;
+
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "kpi-stat-info";
+
+        const lbl = document.createElement("span");
+        lbl.className = "kpi-stat-label";
+        lbl.textContent = k.label;
+
+        const num = document.createElement("span");
+        num.className = "kpi-stat-number";
+        num.textContent = String(k.count);
+
+        const sub = document.createElement("span");
+        sub.className = "kpi-stat-sub";
+        sub.textContent = k.sub;
+
+        infoDiv.appendChild(lbl);
+        infoDiv.appendChild(num);
+        infoDiv.appendChild(sub);
+
+        card.appendChild(iconDiv);
+        card.appendChild(infoDiv);
+
+        card.addEventListener("click", () => {
+          tabRapidaActiva = (tabRapidaActiva === k.id && k.id !== "todos") ? "todos" : k.id;
+          cargarTickets();
+        });
+
+        cont.appendChild(card);
+      }
+    }
+
+    function renderizarChipsKPI(contenedorId, objetoDatos) {
       const cont = document.getElementById(contenedorId);
+      if (!cont) return;
       cont.innerHTML = "";
       for (const [clave, valor] of Object.entries(objetoDatos || {})) {
+        if (!valor) continue;
         const chip = document.createElement("span");
-        chip.className = `kpi-chip ${prefijoClase ? prefijoClase + clave.replace(/\s+/g, "-") : ""}`;
+        chip.className = "badge";
+        chip.style.background = "#f1f5f9";
+        chip.style.border = "1px solid #cbd5e1";
+        chip.style.color = "#334155";
         chip.textContent = `${clave}: ${valor}`;
         cont.appendChild(chip);
       }
@@ -1131,11 +1703,145 @@
       const r = await fetch("/resumen", { headers: headersAutenticados() });
       if (!r.ok) return;
       const data = await r.json();
-      document.getElementById("kpiTotalTickets").textContent = `Total: ${data.total || 0} tickets`;
-      renderizarChipsKPI("kpiPorPrioridad", data.por_prioridad, "prio-");
-      renderizarChipsKPI("kpiPorEstado", data.por_estado, "est-");
-      renderizarChipsKPI("kpiPorCategoria", data.por_categoria);
+      document.getElementById("kpiTotalTickets").textContent = `Total organizacion: ${data.total || 0} tickets`;
       renderizarChipsKPI("kpiPorArea", data.por_area);
+      renderizarChipsKPI("kpiPorCategoria", data.por_categoria);
+    }
+
+    function ordenarListaTickets(lista) {
+      const criterio = document.getElementById("ordenarSelect").value;
+      const copia = [...lista];
+      copia.sort((a, b) => {
+        if (criterio === "prioridad_desc") {
+          const pa = PESO_PRIORIDAD[a.prioridad] || 0;
+          const pb = PESO_PRIORIDAD[b.prioridad] || 0;
+          if (pb !== pa) return pb - pa;
+          return b.id - a.id;
+        }
+        if (criterio === "sin_asignar") {
+          const sa = a.responsable ? 1 : 0;
+          const sb = b.responsable ? 1 : 0;
+          if (sa !== sb) return sa - sb;
+          return (PESO_PRIORIDAD[b.prioridad] || 0) - (PESO_PRIORIDAD[a.prioridad] || 0);
+        }
+        if (criterio === "estado_flujo") {
+          const ea = PESO_ESTADO[a.estado] || 99;
+          const eb = PESO_ESTADO[b.estado] || 99;
+          if (ea !== eb) return ea - eb;
+          return (PESO_PRIORIDAD[b.prioridad] || 0) - (PESO_PRIORIDAD[a.prioridad] || 0);
+        }
+        return b.id - a.id;
+      });
+      return copia;
+    }
+
+    function crearTarjetaVisualTicket(t, esSoporte) {
+      const card = document.createElement("div");
+      card.className = `ticket-card-item ${t.id === ticketSeleccionadoId ? "selected-card" : ""}`;
+      card.addEventListener("click", () => verDetalle(t.id));
+
+      // Cabecera estilo Imagen 2: Etiqueta de estado + Prioridad
+      const top = document.createElement("div");
+      top.className = "tcard-top";
+
+      const ribbon = document.createElement("span");
+      ribbon.className = `tcard-Ribbon ribbon-${esSoporte ? t.prioridad : "Media"}`;
+      ribbon.textContent = `⏱ ${t.estado}`;
+      top.appendChild(ribbon);
+
+      if (esSoporte) {
+        const prioTxt = document.createElement("span");
+        prioTxt.className = `tcard-prio-text prio-text-${t.prioridad}`;
+        prioTxt.textContent = `Prioridad ${t.prioridad}`;
+        top.appendChild(prioTxt);
+      } else {
+        const fechaTxt = document.createElement("span");
+        fechaTxt.style.fontSize = "0.73rem";
+        fechaTxt.style.color = "var(--muted)";
+        fechaTxt.textContent = t.creado || "";
+        top.appendChild(fechaTxt);
+      }
+
+      // Título principal
+      const title = document.createElement("div");
+      title.className = "tcard-title";
+      title.textContent = t.titulo;
+
+      // Breadcrumb de área / categoría (en soporte) o estado de atención (en usuario)
+      const bread = document.createElement("div");
+      bread.className = "tcard-breadcrumb";
+      bread.textContent = esSoporte
+        ? `🏢 ${t.area || "General"} » ${t.categoria} (${t.solicitante_nombre || t.solicitante})`
+        : `Estado del ticket: ${t.estado}`;
+
+      // Barra visual de avance estilo Imagen 2
+      const progRow = document.createElement("div");
+      progRow.className = "tcard-progress-row";
+      const bars = document.createElement("div");
+      bars.className = "tcard-bars";
+      const nivelAvance = PESO_ESTADO[t.estado] || 1;
+      for (let i = 1; i <= 3; i++) {
+        const seg = document.createElement("div");
+        let cls = "tcard-bar-seg";
+        if (nivelAvance >= 5) cls += " done-green";
+        else if (i <= Math.min(3, nivelAvance)) cls += (t.estado === "Pendiente" ? " done-orange" : " done-blue");
+        seg.className = cls;
+        bars.appendChild(seg);
+      }
+      progRow.appendChild(bars);
+
+      card.appendChild(top);
+      card.appendChild(title);
+      card.appendChild(bread);
+      card.appendChild(progRow);
+
+      // Si hay respuesta de soporte, mostrarla destacada en la tarjeta
+      const comMostrar = t.ultimo_comentario_soporte || t.ultimo_comentario;
+      if (comMostrar) {
+        const comBox = document.createElement("div");
+        comBox.className = "tcard-comment-preview";
+        comBox.textContent = comMostrar.rol === "soporte"
+          ? `💬 Soporte (${comMostrar.usuario_nombre}): "${comMostrar.texto}"`
+          : `💬 ${comMostrar.usuario_nombre}: "${comMostrar.texto}"`;
+        card.appendChild(comBox);
+      }
+
+      // Footer estilo Imagen 2: Avatar + Técnico asignado (o Sin técnico asignado aún) + #ID
+      const footer = document.createElement("div");
+      footer.className = "tcard-footer";
+
+      const agentInfo = document.createElement("div");
+      agentInfo.className = "tcard-agent-info";
+
+      const av = document.createElement("div");
+      av.className = `avatar-circle ${t.responsable ? "soporte" : ""}`;
+      av.style.background = t.responsable ? "" : "#94a3b8";
+      av.textContent = t.responsable_nombre ? obtenerIniciales(t.responsable_nombre) : "?";
+
+      const nameWrap = document.createElement("div");
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "tcard-agent-name";
+      nameSpan.textContent = t.responsable_nombre
+        ? (esSoporte ? `${t.responsable_nombre} (${t.responsable})` : t.responsable_nombre)
+        : "Sin tecnico asignado aun";
+      const roleSpan = document.createElement("span");
+      roleSpan.className = "tcard-agent-role";
+      roleSpan.textContent = t.responsable_nombre ? "Tecnico de Soporte Asignado" : "En espera de asignacion";
+      nameWrap.appendChild(nameSpan);
+      nameWrap.appendChild(roleSpan);
+
+      agentInfo.appendChild(av);
+      agentInfo.appendChild(nameWrap);
+
+      const idPill = document.createElement("span");
+      idPill.className = "tcard-id-pill";
+      idPill.textContent = `#TK-${t.id}`;
+
+      footer.appendChild(agentInfo);
+      footer.appendChild(idPill);
+      card.appendChild(footer);
+
+      return card;
     }
 
     async function cargarTickets() {
@@ -1154,28 +1860,51 @@
       });
       if (!r.ok) return;
       const data = await r.json();
+      const baseTickets = data.tickets || [];
+
+      renderizarTarjetasKpiSuperiores(baseTickets);
+      if (!esSoporte) {
+        document.getElementById("kpiTotalTickets").textContent = `${baseTickets.length} solicitud(es)`;
+      }
+
       const textoFiltro = document.getElementById("filtroAreaInput").value.trim().toLowerCase();
       const respFiltro = esSoporte ? document.getElementById("filtroResponsable").value : "";
 
-      ticketsCargados = (data.tickets || []).filter((t) => {
+      const filtrados = baseTickets.filter((t) => {
+        // Filtro por pestaña KPI rápida
+        if (tabRapidaActiva === "criticos" && !(["Critica", "Alta"].includes(t.prioridad) && t.estado !== "Cerrado")) return false;
+        if (tabRapidaActiva === "sin_asignar" && t.responsable) return false;
+        if (tabRapidaActiva === "mios" && t.responsable !== usuarioActivo.id) return false;
+        if (tabRapidaActiva === "abiertos" && !["Abierto", "En revision", "En progreso"].includes(t.estado)) return false;
+        if (tabRapidaActiva === "pendientes" && t.estado !== "Pendiente") return false;
+        if (tabRapidaActiva === "resueltos" && !["Resuelto", "Cerrado"].includes(t.estado)) return false;
+
         if (respFiltro === "__sin_asignar__" && t.responsable) return false;
         if (respFiltro === "__mios__" && t.responsable !== usuarioActivo.id) return false;
         if (respFiltro && !respFiltro.startsWith("__") && t.responsable !== respFiltro) return false;
         if (!textoFiltro) return true;
-        const buscable = `${t.id} ${t.titulo} ${t.area || ""} ${t.solicitante_nombre || ""} ${t.solicitante}`.toLowerCase();
+        const buscable = `${t.id} ${t.titulo} ${t.area || ""} ${t.solicitante_nombre || ""} ${t.solicitante} ${t.responsable_nombre || ""}`.toLowerCase();
         return buscable.includes(textoFiltro);
       });
 
-      document.getElementById("contadorTablaTickets").textContent = `${ticketsCargados.length} solicitud(es)`;
-      tbodyTickets.innerHTML = "";
+      ticketsCargados = ordenarListaTickets(filtrados);
+      document.getElementById("contadorTablaTickets").textContent = `Mostrando ${ticketsCargados.length} de ${baseTickets.length} ticket(s)`;
 
+      // Renderizar Vista de Tarjetas (Imagen 2)
+      contenedorTarjetasTickets.innerHTML = "";
+      for (const t of ticketsCargados) {
+        contenedorTarjetasTickets.appendChild(crearTarjetaVisualTicket(t, esSoporte));
+      }
+
+      // Renderizar Vista de Tabla / Cola (Imagen 1)
+      tbodyTickets.innerHTML = "";
       for (const t of ticketsCargados) {
         const tr = document.createElement("tr");
         if (t.id === ticketSeleccionadoId) tr.classList.add("selected-row");
 
         const tdId = document.createElement("td");
         const strongId = document.createElement("strong");
-        strongId.textContent = `#${t.id}`;
+        strongId.textContent = `#TK-${t.id}`;
         tdId.appendChild(strongId);
 
         const tdTitulo = document.createElement("td");
@@ -1183,31 +1912,18 @@
         divTit.style.fontWeight = "600";
         divTit.textContent = t.titulo;
         tdTitulo.appendChild(divTit);
-        if (!esSoporte && t.creado) {
-          const divFecha = document.createElement("div");
-          divFecha.style.fontSize = "0.74rem";
-          divFecha.style.color = "var(--muted)";
-          divFecha.textContent = `Creado: ${t.creado}`;
-          tdTitulo.appendChild(divFecha);
-        }
         const comMostrar = t.ultimo_comentario_soporte || t.ultimo_comentario;
         if (comMostrar) {
           const divCom = document.createElement("div");
           divCom.style.marginTop = "4px";
-          divCom.style.padding = "4px 7px";
+          divCom.style.padding = "3px 7px";
           divCom.style.borderRadius = "5px";
-          divCom.style.fontSize = "0.76rem";
-          if (comMostrar.rol === "soporte") {
-            divCom.style.background = "#f0fdf4";
-            divCom.style.border = "1px solid #bbf7d0";
-            divCom.style.color = "#166534";
-            divCom.textContent = `Soporte (${comMostrar.usuario_nombre}): "${comMostrar.texto}"`;
-          } else {
-            divCom.style.background = "#eff6ff";
-            divCom.style.border = "1px solid #bfdbfe";
-            divCom.style.color = "#1e40af";
-            divCom.textContent = `${comMostrar.usuario_nombre}: "${comMostrar.texto}"`;
-          }
+          divCom.style.fontSize = "0.74rem";
+          divCom.style.background = comMostrar.rol === "soporte" ? "#f0fdf4" : "#eff6ff";
+          divCom.style.color = comMostrar.rol === "soporte" ? "#166534" : "#1e40af";
+          divCom.textContent = comMostrar.rol === "soporte"
+            ? `Soporte (${comMostrar.usuario_nombre}): "${comMostrar.texto}"`
+            : `${comMostrar.usuario_nombre}: "${comMostrar.texto}"`;
           tdTitulo.appendChild(divCom);
         }
 
@@ -1240,18 +1956,7 @@
 
         if (esSoporte) {
           const tdArea = document.createElement("td");
-          const divArea = document.createElement("div");
-          divArea.style.fontWeight = "600";
-          divArea.textContent = t.area || "General";
-          const divSol = document.createElement("div");
-          divSol.style.fontSize = "0.75rem";
-          divSol.style.color = "var(--muted)";
-          divSol.textContent = `${t.solicitante_nombre || t.solicitante} (${t.solicitante})`;
-          tdArea.appendChild(divArea);
-          tdArea.appendChild(divSol);
-
-          const tdCat = document.createElement("td");
-          tdCat.textContent = t.categoria;
+          tdArea.textContent = `${t.area || "General"} · ${t.solicitante_nombre || t.solicitante}`;
 
           const tdPrio = document.createElement("td");
           tdPrio.appendChild(crearBadge(t.prioridad, `prio-${t.prioridad}`));
@@ -1259,10 +1964,9 @@
           tr.appendChild(tdId);
           tr.appendChild(tdTitulo);
           tr.appendChild(tdArea);
-          tr.appendChild(tdCat);
           tr.appendChild(tdPrio);
-          tr.appendChild(tdEst);
           tr.appendChild(tdResp);
+          tr.appendChild(tdEst);
           tr.appendChild(tdAccion);
         } else {
           tr.appendChild(tdId);
@@ -1294,14 +1998,21 @@
         return;
       }
 
+      // Resaltar tarjeta activa
+      for (const el of contenedorTarjetasTickets.children) {
+        el.classList.remove("selected-card");
+      }
+
       const t = data.ticket;
       panelDetalleTicket.classList.remove("hidden");
-      document.getElementById("detalleTituloCabecera").textContent = `Ticket #${t.id} — ${t.titulo}`;
+      document.getElementById("detalleTituloCabecera").textContent = `#TK-${t.id} — ${t.titulo}`;
 
       const badgesCab = document.getElementById("detalleBadgesCabecera");
       badgesCab.innerHTML = "";
-      badgesCab.appendChild(crearBadge(t.prioridad, `prio-${t.prioridad}`));
-      badgesCab.appendChild(document.createTextNode(" "));
+      if (esSoporte) {
+        badgesCab.appendChild(crearBadge(t.prioridad, `prio-${t.prioridad}`));
+        badgesCab.appendChild(document.createTextNode(" "));
+      }
       badgesCab.appendChild(crearBadge(t.estado, `est-${t.estado.replace(/\s+/g, "-")}`));
 
       const grid = document.getElementById("detalleCamposGrid");
@@ -1309,18 +2020,27 @@
       const textoTecnico = t.responsable_nombre
         ? (esSoporte ? `${t.responsable_nombre} (${t.responsable})` : t.responsable_nombre)
         : "Sin tecnico asignado aun";
-      // F07 exige mostrar como minimo: ID, Fecha/hora, Solicitante, Titulo, Descripcion, Categoria, Prioridad, Adjuntos, Estado y Responsable
-      const campos = [
-        ["Identificador", `#${t.id}`],
-        ["Fecha y Hora Creacion", t.creado],
-        ["Usuario Solicitante", esSoporte ? `${t.solicitante_nombre || t.solicitante} (${t.solicitante}) — ${t.area || "General"}` : `${t.solicitante_nombre || t.solicitante} (${t.area || "General"})`],
-        ["Estado Actual", t.estado],
-        ["Tecnico Asignado (Soporte)", textoTecnico],
-        ["Categoria (F05)", t.categoria],
-        ["Prioridad Propuesta (F06)", esSoporte ? `${t.prioridad} (Revisable por soporte)` : `${t.prioridad} (Sujeta a revision de soporte)`],
-        ["Archivos Adjuntos", (t.adjuntos && t.adjuntos.length) ? t.adjuntos.join(", ") : "Ninguno"],
-        ["Descripcion del Problema", t.descripcion]
-      ];
+
+      const campos = esSoporte
+        ? [
+            ["Ticket ID", `#TK-${t.id}`],
+            ["Creado", t.creado],
+            ["Solicitante / Area", `${t.solicitante_nombre || t.solicitante} (${t.area || "General"})`],
+            ["Estado Actual", t.estado],
+            ["Tecnico Asignado", textoTecnico],
+            ["Categoria", t.categoria],
+            ["Prioridad", t.prioridad],
+            ["Adjuntos", (t.adjuntos && t.adjuntos.length) ? t.adjuntos.join(", ") : "Ninguno"],
+            ["Descripcion del Problema", t.descripcion]
+          ]
+        : [
+            ["Ticket", `#TK-${t.id} (${t.creado})`],
+            ["Estado Actual", t.estado],
+            ["Tecnico Asignado (Soporte)", textoTecnico],
+            ["Adjuntos", (t.adjuntos && t.adjuntos.length) ? t.adjuntos.join(", ") : "Ninguno"],
+            ["Descripcion del Problema", t.descripcion]
+          ];
+
       for (const [etiqueta, valor] of campos) {
         const item = document.createElement("div");
         item.className = "detail-item";
@@ -1395,7 +2115,7 @@
       const listaCom = t.comentarios || [];
       if (listaCom.length === 0) {
         const vacio = document.createElement("div");
-        vacio.style.fontSize = "0.82rem";
+        vacio.style.fontSize = "0.8rem";
         vacio.style.color = "var(--muted)";
         vacio.style.fontStyle = "italic";
         vacio.style.padding = "6px 8px";
@@ -1407,8 +2127,8 @@
         for (const c of listaCom) {
           const cardCom = document.createElement("div");
           cardCom.style.padding = "8px 10px";
-          cardCom.style.borderRadius = "6px";
-          cardCom.style.fontSize = "0.84rem";
+          cardCom.style.borderRadius = "8px";
+          cardCom.style.fontSize = "0.82rem";
           if (c.rol === "soporte") {
             cardCom.style.background = "#f0fdf4";
             cardCom.style.border = "1px solid #86efac";
@@ -1422,7 +2142,7 @@
           headCom.style.justifyContent = "space-between";
           headCom.style.alignItems = "center";
           headCom.style.marginBottom = "4px";
-          headCom.style.fontSize = "0.75rem";
+          headCom.style.fontSize = "0.73rem";
 
           const autorLeft = document.createElement("div");
           autorLeft.style.display = "flex";
@@ -1451,15 +2171,31 @@
         }
       }
 
+      // Live Updates (Imagen 1)
       const ul = document.getElementById("listaHistorialEventos");
       ul.innerHTML = "";
-      for (const ev of t.historial || []) {
+      const eventos = [...(t.historial || [])].reverse();
+      for (const ev of eventos) {
         const li = document.createElement("li");
-        li.className = "timeline-item";
+        li.className = "live-update-item";
+
+        const dot = document.createElement("div");
+        let colorDot = "icon-blue";
+        let icono = "●";
+        if (ev.tipo === "Cambio de prioridad") { colorDot = "icon-orange"; icono = "⚑"; }
+        else if (ev.tipo === "Asignacion" || ev.tipo === "Reasignacion") { colorDot = "icon-purple"; icono = "👤"; }
+        else if (ev.tipo === "Comentario") { colorDot = "icon-green"; icono = "💬"; }
+        else if (ev.tipo === "Cambio de estado") { colorDot = "icon-blue"; icono = "✓"; }
+        dot.className = `lu-dot ${colorDot}`;
+        dot.textContent = icono;
+
+        const content = document.createElement("div");
+        content.className = "lu-content";
 
         const meta = document.createElement("div");
-        meta.className = "timeline-meta";
+        meta.className = "lu-meta";
         const spanTipo = document.createElement("strong");
+        spanTipo.style.color = "#0f172a";
         spanTipo.textContent = `${ev.tipo} · ${ev.usuario_nombre || ev.usuario}`;
         const spanFecha = document.createElement("span");
         spanFecha.textContent = ev.fecha;
@@ -1469,11 +2205,51 @@
         const det = document.createElement("div");
         det.textContent = ev.detalle;
 
-        li.appendChild(meta);
-        li.appendChild(det);
+        content.appendChild(meta);
+        content.appendChild(det);
+
+        li.appendChild(dot);
+        li.appendChild(content);
         ul.appendChild(li);
       }
     }
+
+    // CONMUTAR VISTA TARJETAS / TABLA
+    document.getElementById("btnVistaTarjetas").addEventListener("click", () => {
+      modoVistaTickets = "tarjetas";
+      document.getElementById("btnVistaTarjetas").classList.add("active");
+      document.getElementById("btnVistaTabla").classList.remove("active");
+      contenedorTarjetasTickets.classList.remove("hidden");
+      contenedorTablaTickets.classList.add("hidden");
+    });
+
+    document.getElementById("btnVistaTabla").addEventListener("click", () => {
+      modoVistaTickets = "tabla";
+      document.getElementById("btnVistaTabla").classList.add("active");
+      document.getElementById("btnVistaTarjetas").classList.remove("active");
+      contenedorTablaTickets.classList.remove("hidden");
+      contenedorTarjetasTickets.classList.add("hidden");
+    });
+
+    document.getElementById("btnLimpiarFiltros").addEventListener("click", () => {
+      tabRapidaActiva = "todos";
+      document.getElementById("filtroEstado").value = "";
+      document.getElementById("filtroResponsable").value = "";
+      document.getElementById("filtroPrioridad").value = "";
+      document.getElementById("filtroCategoria").value = "";
+      document.getElementById("filtroAreaInput").value = "";
+      cargarTickets();
+    });
+
+    document.getElementById("btnFocoNuevaSolicitud").addEventListener("click", () => {
+      mensajeInput.focus();
+      mensajeInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    document.getElementById("sideBtnChat").addEventListener("click", () => {
+      mensajeInput.focus();
+    });
+    document.getElementById("sideBtnRefresh").addEventListener("click", cargarTickets);
 
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1511,8 +2287,8 @@
         "sys",
         "Bienvenido/a",
         usuarioActivo.rol === "soporte"
-          ? `Has ingresado a la Consola de Soporte TI como ${usuarioActivo.nombre} (${usuarioActivo.area}).`
-          : `Hola ${usuarioActivo.nombre}. Puedes describir tu problema en el chat o adjuntar una captura de pantalla para que el asistente gestione tu ticket.`
+          ? `Has ingresado a la Consola de Soporte TI como ${usuarioActivo.nombre}. Los tickets estan ordenados por prioridad.`
+          : `Hola ${usuarioActivo.nombre}. Puedes reportar un problema en el chat o revisar el estado y tecnico asignado en tus tarjetas.`
       );
     });
 
@@ -1604,7 +2380,7 @@
         mostrarAlertaTicket(data.detail || "No se pudo asignar el ticket", true);
         return;
       }
-      mostrarAlertaTicket(`Te has asignado el ticket #${ticketSeleccionadoId}.`);
+      mostrarAlertaTicket(`Te has asignado el ticket #TK-${ticketSeleccionadoId}.`);
       await cargarTickets();
     });
 
@@ -1627,10 +2403,11 @@
         return;
       }
       input.value = "";
-      mostrarAlertaTicket("Comentario registrado en el historial.");
+      mostrarAlertaTicket("Comentario registrado en el ticket.");
       await cargarTickets();
     });
 
+    document.getElementById("ordenarSelect").addEventListener("change", cargarTickets);
     document.getElementById("filtroEstado").addEventListener("change", cargarTickets);
     document.getElementById("filtroResponsable").addEventListener("change", cargarTickets);
     document.getElementById("filtroPrioridad").addEventListener("change", cargarTickets);
@@ -1671,7 +2448,7 @@
       }
 
       btnEnviar.disabled = true;
-      estadoEnvio.textContent = "El asistente esta analizando tu solicitud...";
+      estadoEnvio.textContent = "Analizando con IA...";
       try {
         const r = await fetch("/chat", {
           method: "POST",
