@@ -301,39 +301,33 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 10px 16px 10px;
+      padding: 10px 10px 18px 10px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .sidebar-brand-left {
       display: flex;
       align-items: center;
-      gap: 11px;
+      gap: 12px;
     }
     .side-logo {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
-      background: var(--lime-bright);
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: var(--lime-pill);
       color: var(--forest-dark);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 900;
-      font-size: 0.92rem;
+      font-size: 1.05rem;
+      flex-shrink: 0;
     }
     .sidebar-brand-text {
       font-weight: 800;
-      font-size: 1.02rem;
-      letter-spacing: -0.01em;
+      font-size: 1.32rem;
+      letter-spacing: -0.02em;
       color: #ffffff;
-    }
-    .sidebar-brand-sub {
-      display: block;
-      font-size: 0.68rem;
-      color: var(--lime-bright);
-      font-weight: 600;
-      letter-spacing: 0.03em;
     }
 
     .sidebar-section-caption {
@@ -345,38 +339,38 @@
       font-weight: 700;
     }
 
-    /* Botones del menú con sombreado de abajo hacia arriba cuando está posicionado o activo */
+    /* Botones del menú con destacado sobrio y armónico (sin brillo ni línea verde manzana) */
     .side-nav-btn {
       width: 100%;
       background: transparent;
       border: none;
-      border-bottom: 2.5px solid transparent;
-      color: rgba(255, 255, 255, 0.82);
+      border-left: 3.5px solid transparent;
+      color: rgba(255, 255, 255, 0.80);
       padding: 11px 14px;
-      border-radius: 9px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 0.87rem;
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
       text-align: left;
-      transition: all 0.18s ease;
+      transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
     }
     .side-nav-btn:hover,
     .side-nav-btn.active {
       color: #ffffff;
       font-weight: 700;
-      background: linear-gradient(0deg, rgba(163, 230, 53, 0.34) 0%, rgba(92, 230, 139, 0.12) 60%, rgba(15, 77, 42, 0) 100%);
-      border-bottom: 2.5px solid var(--lime-pill);
-      box-shadow: inset 0 -10px 18px -8px rgba(163, 230, 53, 0.4);
+      background: rgba(255, 255, 255, 0.12);
+      border-left: 3.5px solid rgba(255, 255, 255, 0.85);
+      box-shadow: none;
     }
     .side-nav-btn:hover svg,
     .side-nav-btn.active svg {
-      color: var(--lime-pill);
+      color: #ffffff;
     }
 
-    /* AREA PRINCIPAL CON EL MISMO FONDO Y TRAZOS DE REGISTRO DE SESION */
+    /* AREA PRINCIPAL SIN BRILLO RADIAL */
     .app-main-area {
       flex: 1;
       margin-left: 252px;
@@ -386,8 +380,6 @@
       display: flex;
       flex-direction: column;
       background-color: var(--forest-main);
-      background-image:
-        radial-gradient(circle at 50% 42%, rgba(163, 230, 53, 0.32) 0%, rgba(92, 230, 139, 0.14) 35%, rgba(20, 99, 54, 0) 70%);
       padding: 20px 26px 34px 26px;
       gap: 18px;
     }
@@ -517,54 +509,70 @@
       gap: 10px;
     }
 
+    /* Grilla 2x2 (dos gráficos arriba y dos debajo) con tamaño más grande */
     .dashboard-charts-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .dashboard-charts-grid {
+        grid-template-columns: 1fr;
+      }
     }
     /* Todas las tarjetas de gráficas tienen exactamente el mismo fondo limpio y centrado */
     .chart-bento-card {
       background: #f9fbfa;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 18px;
+      border-radius: 14px;
+      padding: 22px 26px;
+      min-height: 250px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
+      gap: 16px;
     }
     .chart-bento-card h4 {
       margin: 0;
-      font-size: 0.76rem;
+      font-size: 0.85rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--forest-dark);
       text-align: center;
       width: 100%;
-      padding-bottom: 8px;
+      padding-bottom: 10px;
       border-bottom: 1px solid var(--border);
     }
 
-    /* Gráfica de anillo centrada */
+    /* Gráfica de anillo más grande y centrada */
     .donut-wrap {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      gap: 28px;
       width: 100%;
+      flex: 1;
+    }
+    @media (max-width: 640px) {
+      .donut-wrap {
+        flex-direction: column;
+      }
     }
     .donut-svg-box {
       position: relative;
-      width: 116px;
-      height: 116px;
+      width: 158px;
+      height: 158px;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
     .donut-svg {
-      width: 116px;
-      height: 116px;
+      width: 158px;
+      height: 158px;
       transform: rotate(-90deg);
     }
     .donut-center-label {
@@ -576,65 +584,66 @@
       pointer-events: none;
     }
     .donut-center-num {
-      font-size: 1.25rem;
+      font-size: 1.65rem;
       font-weight: 800;
       color: var(--forest-dark);
       line-height: 1;
     }
     .donut-center-sub {
-      font-size: 0.65rem;
+      font-size: 0.72rem;
       font-weight: 700;
       color: var(--muted);
       text-transform: uppercase;
-      margin-top: 2px;
+      margin-top: 3px;
     }
     .donut-legend {
-      width: 100%;
+      flex: 1;
+      max-width: 240px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      font-size: 0.78rem;
+      gap: 9px;
+      font-size: 0.86rem;
     }
     .donut-legend-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      gap: 10px;
       font-weight: 600;
       color: var(--text);
     }
     .legend-dot-label {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 8px;
     }
     .legend-dot {
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       border-radius: 3px;
       flex-shrink: 0;
     }
 
-    /* Gráficas de barras limpias, centradas y fáciles de leer */
+    /* Gráficas de barras más grandes, limpias y fáciles de leer */
     .clean-bars-container {
       width: 100%;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 11px;
+      gap: 14px;
       flex: 1;
     }
     .clean-bar-item {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       width: 100%;
     }
     .clean-bar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.78rem;
+      font-size: 0.86rem;
       font-weight: 600;
       color: var(--text);
     }
@@ -644,9 +653,9 @@
     }
     .clean-bar-track {
       width: 100%;
-      height: 8px;
+      height: 11px;
       background: #e3ece6;
-      border-radius: 4px;
+      border-radius: 6px;
       overflow: hidden;
     }
     .clean-bar-fill {
@@ -1596,10 +1605,7 @@
         <div class="sidebar-brand" id="btnToggleSidebar">
           <div class="sidebar-brand-left">
             <div class="side-logo">TS</div>
-            <div>
-              <span class="sidebar-brand-text">TechSupport</span>
-              <span class="sidebar-brand-sub">Service Desk</span>
-            </div>
+            <span class="sidebar-brand-text">TechSupport</span>
           </div>
         </div>
 
@@ -1849,7 +1855,7 @@
                   </strong>
                   <div id="listaComentariosTicket" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
                   <form id="formAgregarComentario" style="display:flex; gap:8px;">
-                    <input type="text" id="inputNuevoComentario" placeholder="Escribir respuesta o comentario..." style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--border-strong);" required />
+                    <input type="text" id="inputNuevoComentario" maxlength="1500" placeholder="Escribir respuesta o comentario..." style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--border-strong);" required />
                     <button type="submit" class="btn-primary btn-sm">Enviar</button>
                   </form>
                 </div>
@@ -1940,7 +1946,7 @@
                 </label>
                 <input type="file" id="archivoInput" accept=".png,.jpg,.jpeg,.webp,.txt,.log" class="hidden" />
 
-                <textarea id="mensajeInput" class="wa-input-pill" rows="1" placeholder="Escribe un mensaje o describe el problema aquí..."></textarea>
+                <textarea id="mensajeInput" class="wa-input-pill" rows="1" maxlength="2000" placeholder="Escribe un mensaje o describe el problema aquí..."></textarea>
 
                 <button type="submit" class="wa-send-circle" id="btnEnviar" title="Enviar mensaje">
                   <svg class="svg-icon" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -2094,7 +2100,27 @@
 
     archivoInput.addEventListener("change", () => {
       const f = archivoInput.files[0];
-      labelArchivoLocal.textContent = f ? `Archivo listo: ${f.name}` : "";
+      if (!f) {
+        labelArchivoLocal.textContent = "";
+        return;
+      }
+      const ext = "." + (f.name.split(".").pop() || "").toLowerCase();
+      const permitidas = [".png", ".jpg", ".jpeg", ".webp", ".txt", ".log"];
+      if (!permitidas.includes(ext)) {
+        agregarMensaje("sys", "Seguridad", `Formato '${ext}' no permitido. Solo se aceptan .png, .jpg, .webp, .txt y .log.`);
+        archivoInput.value = "";
+        labelArchivoLocal.textContent = "";
+        return;
+      }
+      const esTexto = [".txt", ".log"].includes(ext);
+      const maxBytes = esTexto ? 100 * 1024 : 5 * 1024 * 1024;
+      if (f.size > maxBytes) {
+        agregarMensaje("sys", "Seguridad", esTexto ? "El archivo de texto/log supera el límite de 100 KB." : "La imagen supera el límite de 5 MB.");
+        archivoInput.value = "";
+        labelArchivoLocal.textContent = "";
+        return;
+      }
+      labelArchivoLocal.textContent = `Archivo listo: ${f.name}`;
     });
 
     document.getElementById("btnQuitarPrecargado").addEventListener("click", () => {
