@@ -23,7 +23,9 @@ from agent.tools.tools import (
     ARCHIVOS_PROTEGIDOS,
     EXTENSIONES_IMAGEN,
     EXTENSIONES_PERMITIDAS,
+    EXTENSIONES_TEXTO,
     MAX_TAMANO_ARCHIVO,
+    MAX_TAMANO_TEXTO_BYTES,
     _PATRON_ARCHIVO_SEGURO,
     actualizar_estado,
     agregar_comentario,
@@ -31,6 +33,8 @@ from agent.tools.tools import (
     buscar_tickets,
     cambiar_prioridad,
     consultar_ticket,
+    detectar_prompt_injection,
+    encapsular_mensaje_usuario_seguro,
     fijar_usuario_sesion,
     generar_resumen,
     limpiar_usuario_sesion,
@@ -329,15 +333,28 @@ async def chat_con_agente(
 ):
     uid = _resolver_usuario_request(authorization, usuario_id)
 
-    mensaje_limpio, err = sanitizar_texto(mensaje, campo="mensaje", max_largo=2000)
+    mensaje_str = mensaje if isinstance(mensaje, str) else ""
+    archivo_srv_str = archivo_servidor if isinstance(archivo_servidor, str) else ""
+    tiene_archivo_subido = bool(archivo and getattr(archivo, "filename", None))
+    tiene_archivo_srv = bool(archivo_srv_str and archivo_srv_str.strip())
+
+    mensaje_limpio, err = sanitizar_texto(mensaje_str, campo="mensaje", max_largo=2000)
     if err:
         return {"ok": False, "usuario_id": uid, "tools_usadas": [], "respuesta": err["error"]}
+
+    if not mensaje_limpio and not tiene_archivo_subido and not tiene_archivo_srv:
+        return {
+            "ok": False,
+            "usuario_id": uid,
+            "tools_usadas": [],
+            "respuesta": "Falta ingresar un mensaje o adjuntar un archivo (.png, .jpg, .webp, .txt, .log) para procesar la consulta.",
+        }
 
     info_usuario = usuario_publico(uid)
     partes: list[types.Part] = []
     nota_archivo = ""
 
-    if archivo and archivo.filename:
+    if tiene_archivo_subido:
         nombre_arch, err = sanitizar_texto(archivo.filename, campo="archivo", max_largo=120)
         if err:
             return {"ok": False, "usuario_id": uid, "tools_usadas": [], "respuesta": err["error"]}
@@ -382,6 +399,38 @@ async def chat_con_agente(
                 "respuesta": f"El archivo '{nombre_limpio}' no contiene una imagen valida ({ext}).",
             }
 
+        if ext in EXTENSIONES_TEXTO:
+            if len(contenido_bytes) > MAX_TAMANO_TEXTO_BYTES:
+                return {
+                    "ok": False,
+                    "usuario_id": uid,
+                    "tools_usadas": [],
+                    "respuesta": "El archivo de texto/log supera el limite permitido de 100 KB.",
+                }
+            if b"\x00" in contenido_bytes:
+                return {
+                    "ok": False,
+                    "usuario_id": uid,
+                    "tools_usadas": [],
+                    "respuesta": f"El archivo '{nombre_limpio}' contiene bytes binarios no validos para un archivo de texto.",
+                }
+            try:
+                texto_arch = contenido_bytes.decode("utf-8")
+            except UnicodeDecodeError:
+                return {
+                    "ok": False,
+                    "usuario_id": uid,
+                    "tools_usadas": [],
+                    "respuesta": f"El archivo '{nombre_limpio}' no tiene codificacion de texto UTF-8 valida.",
+                }
+            if detectar_prompt_injection(texto_arch):
+                return {
+                    "ok": False,
+                    "usuario_id": uid,
+                    "tools_usadas": [],
+                    "respuesta": f"Archivo '{nombre_limpio}' bloqueado por seguridad: contiene patrones de inyeccion de prompt o instrucciones maliciosas.",
+                }
+
         destino = ARCHIVOS_DIR / nombre_limpio
         if nombre_limpio in ARCHIVOS_PROTEGIDOS and destino.exists():
             if destino.read_bytes() != contenido_bytes:
@@ -403,8 +452,8 @@ async def chat_con_agente(
                 f" [Archivo subido y guardado en 'archivos/{nombre_limpio}': "
                 f"analizalo con leer_archivo('{nombre_limpio}')]"
             )
-    elif archivo_servidor and archivo_servidor.strip():
-        nom_srv, err = sanitizar_texto(archivo_servidor, campo="archivo_servidor", max_largo=120)
+    elif tiene_archivo_srv:
+        nom_srv, err = sanitizar_texto(archivo_srv_str, campo="archivo_servidor", max_largo=120)
         if err:
             return {"ok": False, "usuario_id": uid, "tools_usadas": [], "respuesta": err["error"]}
         nombre_limpio = Path(nom_srv).name
@@ -436,11 +485,14 @@ async def chat_con_agente(
                 f"analizalo con leer_archivo('{nombre_limpio}')]"
             )
 
+    bloque_usuario = encapsular_mensaje_usuario_seguro(
+        mensaje_limpio or "Analiza el archivo adjunto."
+    )
     texto_final = (
         f"[Contexto de sesion verificada -> usuario_id: {uid} | "
         f"nombre: {info_usuario['nombre']} | rol: {info_usuario['rol']} | "
         f"area: {info_usuario['area']} | organizacion: {info_usuario['organizacion']}]{nota_archivo}\n"
-        f"{mensaje_limpio or 'Analiza el archivo adjunto.'}"
+        f"{bloque_usuario}"
     )
     partes.append(types.Part(text=texto_final))
 
@@ -466,6 +518,13 @@ async def chat_con_agente(
                         )
                     if p.text:
                         respuestas.append(p.text)
+    except Exception:
+        return {
+            "ok": False,
+            "usuario_id": uid,
+            "tools_usadas": tools_usadas,
+            "respuesta": "Limitacion del servicio: no se pudo completar la consulta con el motor de IA local en este momento.",
+        }
     finally:
         limpiar_usuario_sesion(token_ctx)
 
