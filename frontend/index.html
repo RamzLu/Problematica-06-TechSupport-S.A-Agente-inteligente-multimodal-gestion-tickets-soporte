@@ -370,7 +370,7 @@
       color: #ffffff;
     }
 
-    /* AREA PRINCIPAL SIN BRILLO RADIAL */
+    /* AREA PRINCIPAL SIN BRILLO RADIAL NI TOPBAR REPETITIVO */
     .app-main-area {
       flex: 1;
       margin-left: 252px;
@@ -380,7 +380,7 @@
       display: flex;
       flex-direction: column;
       background-color: var(--forest-main);
-      padding: 20px 26px 34px 26px;
+      padding: 22px 26px 36px 26px;
       gap: 18px;
     }
 
@@ -397,80 +397,55 @@
       z-index: 0;
     }
 
-    /* TOPBAR SUPERIOR FLOTANTE (SIN BOTON SALIR DUPLICADO) */
-    .topbar {
-      position: relative;
-      z-index: 5;
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 13px 22px;
+    /* BLOQUE DE PERFIL UNIFICADO EN EL MENU LATERAL FIJO */
+    .sidebar-bottom-stack {
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar-user-card {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      box-shadow: var(--shadow-float);
-    }
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .workspace-title {
-      font-size: 0.98rem;
-      font-weight: 800;
-      color: var(--forest-dark);
-      letter-spacing: -0.01em;
-    }
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .user-pill {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      background: #f4f7f5;
-      border: 1px solid var(--border-strong);
-      padding: 5px 12px 5px 6px;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      color: var(--text);
-    }
-    .avatar-circle {
-      width: 28px;
-      height: 28px;
-      border-radius: 7px;
-      background: var(--forest-main);
+      gap: 10px;
+      padding: 10px 11px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       color: #ffffff;
-      display: inline-flex;
+    }
+    .sidebar-user-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: rgba(163, 230, 53, 0.18);
+      border: 1px solid rgba(163, 230, 53, 0.45);
+      color: var(--lime-pill);
+      display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
-      font-size: 0.72rem;
       flex-shrink: 0;
     }
-
-    .btn-open-ai {
-      background: var(--forest-main);
-      color: #ffffff;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      transition: all 0.15s;
+    .sidebar-user-info {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    .btn-open-ai:hover {
-      background: var(--forest-dark);
+    .sidebar-user-name {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-user-role {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 1.25;
+      word-break: break-word;
     }
 
     .workspace-container {
@@ -665,154 +640,201 @@
       transition: width 0.3s ease;
     }
 
-    /* ================= MODAL UNICO FLOTANTE: FILTROS + COLA Y ORDEN POR COLUMNAS ================= */
+    /* ================= MODAL UNICO FLOTANTE: COLA Y ORDEN POR COLUMNAS (ESTILO LIMPIO) ================= */
     .queue-workspace-card {
       background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 22px 24px;
+      border: 1.5px solid #cfe3d6;
+      border-radius: 20px;
+      padding: 24px 26px;
       box-shadow: var(--shadow-float);
     }
 
-    /* Pestañas rápidas integradas dentro del mismo modal de Cola */
-    .invgate-work-tabs {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    .work-tab-card {
-      background: #f8faf9;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
+    .queue-window-topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      cursor: pointer;
-      transition: all 0.15s ease;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid #e4efe8;
     }
-    .work-tab-card:hover {
-      border-color: var(--forest-main);
-      background: #f1f7f3;
+    .queue-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
-    .work-tab-card.active-tab {
-      background: #eef8f2;
-      border: 1.5px solid var(--forest-main);
-    }
-    .work-tab-title {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .work-tab-badge {
-      min-width: 28px;
-      height: 24px;
-      padding: 0 8px;
-      border-radius: 6px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+    .queue-title-main {
+      margin: 0;
+      font-size: 1.38rem;
       font-weight: 800;
-      font-size: 0.78rem;
-      color: #ffffff;
+      color: var(--text);
+      letter-spacing: -0.02em;
     }
-    .wtab-green { background: var(--forest-main); }
-    .wtab-red { background: var(--prio-critica); }
-    .wtab-orange { background: var(--prio-alta); }
-    .wtab-blue { background: #2563eb; }
-    .wtab-slate { background: #475569; }
+    .queue-title-main em {
+      font-style: normal;
+      font-family: inherit;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--forest-main);
+    }
 
-    /* Barra de filtros seria e integrada en el mismo modal */
+    /* Barra unificada: Buscador grande y visible + 1 único filtro funcional y atractivo */
     .queue-toolbar {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    /* Espacio dedicado para filtrar únicamente tickets Finalizados / Cerrados con etiqueta Verde Manzana */
+    .closed-filter-strip {
+      display: flex;
+      align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 10px;
-      padding: 12px 14px;
-      background: #f8faf9;
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      background: #f6fbf8;
+      border: 1px solid #d4e8db;
+      border-radius: 12px;
+      padding: 8px 14px;
       margin-bottom: 18px;
     }
-    .filter-pills-group {
+    .closed-filter-left {
       display: flex;
+      align-items: center;
+      gap: 10px;
       flex-wrap: wrap;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--forest-dark);
+    }
+    .lime-closed-chip {
+      display: inline-flex;
       align-items: center;
       gap: 8px;
-      flex: 1;
+      background: var(--lime-pill);
+      color: var(--forest-dark);
+      border: 1.5px solid #84cc16;
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: 0.79rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
+    .lime-closed-chip:hover {
+      filter: brightness(0.96);
+      transform: translateY(-1px);
+    }
+    .lime-closed-chip.active-closed-filter {
+      border-color: var(--forest-dark);
+      box-shadow: 0 0 0 2.5px rgba(20, 99, 54, 0.25);
+    }
+    .lime-closed-count {
+      background: var(--forest-dark);
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 1px 7px;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+    .closed-filter-hint {
+      font-size: 0.76rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
     .search-box-styled {
       position: relative;
       flex: 1;
-      min-width: 220px;
+      min-width: 260px;
       display: flex;
       align-items: center;
     }
-    .search-box-styled svg {
+    .search-icon-badge {
       position: absolute;
-      left: 11px;
-      color: var(--muted);
+      left: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: #e6f7ed;
+      color: var(--forest-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       pointer-events: none;
     }
     .search-box-styled input {
       width: 100%;
-      padding: 8px 12px 8px 34px;
-      border-radius: 8px;
-      border: 1px solid var(--border-strong);
-      background: #ffffff;
-      font-size: 0.83rem;
+      height: 48px;
+      padding: 10px 16px 10px 50px;
+      border-radius: 12px;
+      border: 1.5px solid #52b788;
+      background: #f9fdfb;
+      font-size: 0.94rem;
+      font-weight: 500;
       color: var(--text);
+      transition: all 0.16s ease;
+      box-shadow: 0 2px 6px rgba(20, 99, 54, 0.05);
+    }
+    .search-box-styled input::placeholder {
+      color: #648271;
     }
     .search-box-styled input:focus {
       outline: none;
+      background: #ffffff;
       border-color: var(--forest-main);
+      box-shadow: 0 0 0 3.5px rgba(34, 153, 84, 0.16);
     }
 
-    .filter-pill-select {
+    .single-filter-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 10px;
+      height: 48px;
       background: #ffffff;
-      border: 1px solid var(--border-strong);
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 0.77rem;
-      font-weight: 600;
-      color: var(--muted);
+      border: 1.5px solid #52b788;
+      border-radius: 12px;
+      padding: 0 16px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--forest-dark);
+      box-shadow: 0 2px 6px rgba(20, 99, 54, 0.05);
     }
-    .filter-pill-select select {
+    .single-filter-pill select {
       border: none;
       background: transparent;
       font-weight: 700;
-      font-size: 0.79rem;
+      font-size: 0.88rem;
       color: var(--text);
       cursor: pointer;
       outline: none;
+      padding-right: 4px;
     }
 
     .view-toggle-group {
       display: inline-flex;
-      background: #f1f5f3;
-      border: 1px solid var(--border-strong);
-      border-radius: 8px;
-      padding: 2px;
-      gap: 2px;
+      background: #f2f7f4;
+      border: 1px solid #cfe3d6;
+      border-radius: 999px;
+      padding: 3px;
+      gap: 3px;
     }
     .view-toggle-btn {
       background: transparent;
       border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.76rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem;
       font-weight: 700;
       color: var(--muted);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
+      transition: all 0.15s ease;
     }
     .view-toggle-btn.active {
       background: var(--forest-main);
@@ -820,193 +842,174 @@
     }
 
     .main-queue-layout {
+      display: block;
+      width: 100%;
+    }
+
+    /* ================= TABLERO DE COLUMNAS ESTILO CALENDARIO ESTRATEGICO LIMPIO ================= */
+    .tickets-columns-board {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 18px;
-      align-items: start;
+      grid-template-columns: repeat(4, minmax(220px, 1fr));
+      border: 1.5px solid #cfe3d6;
+      border-radius: 16px;
+      background: #ffffff;
+      overflow-x: auto;
     }
-    .main-queue-layout.with-detail-open {
-      grid-template-columns: 1fr 410px;
+    @media (max-width: 1100px) {
+      .tickets-columns-board {
+        grid-template-columns: repeat(2, minmax(240px, 1fr));
+      }
     }
-    @media (max-width: 1180px) {
-      .main-queue-layout.with-detail-open {
+    @media (max-width: 680px) {
+      .tickets-columns-board {
         grid-template-columns: 1fr;
       }
     }
 
-    /* ================= TABLERO DE COLUMNAS ORDENADAS DE COLA ================= */
-    .tickets-columns-board {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 14px;
-      align-items: start;
-    }
-
     .queue-column-box {
-      background: #f8faf9;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px;
+      background: #ffffff;
+      border-right: 1px solid #e4efe8;
+      padding: 16px 14px 20px 14px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      min-height: 220px;
+      gap: 12px;
+      min-height: 280px;
+    }
+    .queue-column-box:last-child {
+      border-right: none;
     }
 
     .queue-column-header {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e9f2ec;
+    }
+    .qcol-bar-pill {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+    }
+    .qcol-prio-Critica .qcol-bar-pill { background: #ef4444; }
+    .qcol-prio-Alta .qcol-bar-pill { background: #f97316; }
+    .qcol-prio-Media .qcol-bar-pill { background: #eab308; }
+    .qcol-prio-Baja .qcol-bar-pill { background: #22c55e; }
+
+    .qcol-head-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      box-shadow: var(--shadow-sm);
-    }
-    .qcol-head-left {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .qcol-order-tag {
-      font-size: 0.64rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
+      padding: 0 2px;
     }
     .qcol-title {
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       font-weight: 800;
-      color: var(--forest-dark);
+      color: var(--text);
+      letter-spacing: -0.01em;
     }
     .qcol-count {
       min-width: 26px;
-      height: 24px;
+      height: 22px;
       padding: 0 8px;
-      border-radius: 6px;
-      background: #eef5f0;
+      border-radius: 999px;
+      background: #eef7f1;
       color: var(--forest-dark);
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       font-weight: 800;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
-    .qcol-prio-Critica { border-top: 3.5px solid var(--prio-critica); }
-    .qcol-prio-Alta { border-top: 3.5px solid var(--prio-alta); }
-    .qcol-prio-Media { border-top: 3.5px solid var(--prio-media); }
-    .qcol-prio-Baja { border-top: 3.5px solid var(--prio-baja); }
 
     .queue-column-body {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
     .queue-empty-slot {
-      padding: 22px 12px;
+      padding: 26px 12px;
       text-align: center;
-      border: 1px dashed var(--border-strong);
-      border-radius: 8px;
+      border: 1px dashed #cfe3d6;
+      border-radius: 12px;
       color: var(--muted);
-      font-size: 0.78rem;
+      font-size: 0.79rem;
+      background: #fafdfb;
     }
 
-    /* ================= TARJETAS DE TICKETS ================= */
+    /* ================= TARJETAS DE TICKETS (ESTILO BORDE VERDE LIMPIO DE IMAGEN ADJUNTA) ================= */
     .ticket-card-item {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
+      background: linear-gradient(180deg, #ffffff 0%, #f5fcf7 100%);
+      border: 1.5px solid #52b788;
+      border-radius: 14px;
+      padding: 13px 14px;
       display: flex;
       flex-direction: column;
-      gap: 9px;
+      gap: 10px;
       cursor: pointer;
-      transition: all 0.16s ease;
-      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      box-shadow: 0 3px 10px rgba(15, 41, 26, 0.05);
     }
     .ticket-card-item:hover {
       transform: translateY(-2px);
       border-color: var(--forest-main);
-      box-shadow: 0 10px 20px -6px rgba(15, 41, 26, 0.12);
+      box-shadow: 0 10px 20px -6px rgba(20, 99, 54, 0.16);
     }
     .ticket-card-item.selected-card {
-      background: #f4fbf7;
-      border: 1.5px solid var(--forest-main);
+      background: #eefaf2;
+      border: 2px solid var(--forest-dark);
     }
-
-    .card-prio-border-Critica { border-left: 4px solid var(--prio-critica); }
-    .card-prio-border-Alta { border-left: 4px solid var(--prio-alta); }
-    .card-prio-border-Media { border-left: 4px solid var(--prio-media); }
-    .card-prio-border-Baja { border-left: 4px solid var(--prio-baja); }
 
     .tcard-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 6px;
-      flex-wrap: wrap;
     }
-    .queue-rank-pill {
-      background: #eef5f0;
-      color: var(--forest-dark);
-      border: 1px solid var(--border-strong);
-      padding: 2px 7px;
-      border-radius: 5px;
-      font-size: 0.67rem;
+    .tcard-id-pill {
+      font-size: 0.73rem;
       font-weight: 800;
+      color: var(--forest-dark);
+      background: #e6f7ed;
+      padding: 2px 8px;
+      border-radius: 6px;
     }
 
-    .tcard-service-body {
-      display: grid;
-      grid-template-columns: 1fr 34px;
-      gap: 8px;
-      align-items: center;
+    .tcard-main-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
     }
-    .tcard-service-icon-box {
-      border-left: 1px solid var(--border);
-      padding-left: 8px;
+    .tcard-icon-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #e6f7ed;
+      border: 1px solid #a7f3d0;
+      color: var(--forest-main);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--forest-main);
+      flex-shrink: 0;
     }
-
+    .tcard-text-col {
+      min-width: 0;
+      flex: 1;
+    }
     .tcard-title {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-weight: 800;
       color: var(--text);
-      line-height: 1.32;
-      margin: 0 0 2px 0;
+      line-height: 1.3;
+      margin: 0 0 3px 0;
     }
     .tcard-breadcrumb {
       font-size: 0.74rem;
       color: var(--muted);
-    }
-
-    .tcard-bars {
-      display: flex;
-      gap: 4px;
-      width: 100%;
-    }
-    .tcard-bar-seg {
-      height: 4px;
-      flex: 1;
-      border-radius: 3px;
-      background: #e2e8f0;
-    }
-    .tcard-bar-seg.done-step { background: #3b82f6; }
-    .tcard-bar-seg.done-complete { background: #22c55e; }
-
-    .tcard-comment-preview {
-      background: #f0fdf4;
-      border-left: 3px solid #22c55e;
-      padding: 6px 8px;
-      border-radius: 6px;
-      font-size: 0.74rem;
-      color: #14532d;
-      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .tcard-footer {
@@ -1014,36 +1017,32 @@
       justify-content: space-between;
       align-items: center;
       padding-top: 8px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid #e2f0e7;
+      font-size: 0.73rem;
+      color: var(--muted);
       gap: 8px;
     }
-    .tcard-agent-info {
-      display: flex;
+    .user-name-inline {
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 5px;
       min-width: 0;
     }
+    .user-name-inline svg {
+      width: 14px;
+      height: 14px;
+      color: var(--forest-main);
+      flex-shrink: 0;
+    }
     .tcard-agent-name {
-      font-size: 0.75rem;
       font-weight: 700;
-      color: var(--text);
-      display: block;
-    }
-    .tcard-agent-role {
-      font-size: 0.68rem;
-      color: var(--muted);
-      display: block;
-    }
-    .tcard-id-pill {
-      background: #f1f5f9;
-      color: #334155;
-      padding: 2px 7px;
-      border-radius: 5px;
-      font-size: 0.7rem;
-      font-weight: 800;
+      color: var(--forest-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* BADGES DE ESTADO Y PRIORIDAD (PALETA SERIA ANTERIOR) */
+    /* BADGES DE ESTADO Y PRIORIDAD */
     .badge {
       display: inline-flex;
       align-items: center;
@@ -1070,131 +1069,354 @@
     /* TABLA DE COLA */
     .table-wrap {
       overflow-x: auto;
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      border: 1.5px solid #cfe3d6;
+      border-radius: 14px;
       background: #ffffff;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.83rem;
+      font-size: 0.84rem;
     }
     th, td {
-      padding: 11px 14px;
+      padding: 12px 14px;
       text-align: left;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid #e4efe8;
       vertical-align: middle;
     }
     th {
-      background: #f8faf9;
-      color: var(--muted);
+      background: #f6fbf8;
+      color: var(--forest-dark);
       font-weight: 800;
-      font-size: 0.72rem;
+      font-size: 0.73rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
     tr:hover td { background: #f4fbf7; }
     tr.selected-row td { background: #e6f7ed; }
 
-    /* PANEL LATERAL DE DETALLE DEL TICKET */
-    .ticket-detail-panel {
+    /* ================= MODAL GRANDE Y ESTETICO (CUBRE TODA LA PAGINA MENOS EL MENU FIJO) ================= */
+    .ticket-modal-backdrop {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 252px;
+      background: rgba(9, 32, 18, 0.56);
+      backdrop-filter: blur(3px);
+      z-index: 45;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 28px;
+    }
+    .ticket-modal-card {
+      position: relative;
       background: #ffffff;
-      border: 1.5px solid var(--forest-main);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: var(--shadow-float);
-      position: sticky;
-      top: 18px;
+      border: 1.5px solid #52b788;
+      border-radius: 22px;
+      width: 100%;
+      max-width: 860px;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 28px 32px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
     }
-    .detail-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      font-size: 0.8rem;
-      margin-bottom: 12px;
-    }
-    .detail-item {
-      background: #f8faf9;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-    .detail-item strong {
-      display: block;
-      color: var(--muted);
-      font-size: 0.68rem;
-      text-transform: uppercase;
-      margin-bottom: 2px;
-    }
-    .support-actions-panel {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
+    .modal-close-corner {
+      position: absolute;
+      top: 20px;
+      right: 22px;
+      width: 36px;
+      height: 36px;
       border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 12px;
+      border: 1px solid #cfe3d6;
+      background: #f6fbf8;
+      color: var(--forest-dark);
+      font-size: 1.05rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .modal-close-corner:hover {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+
+    .modal-header-simple {
+      padding-right: 48px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      border-bottom: 1px solid #e7f1eb;
+      padding-bottom: 14px;
+    }
+    .modal-title-simple {
+      margin: 0;
+      font-size: 1.32rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.25;
+      letter-spacing: -0.015em;
+    }
+    .modal-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .modal-meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .modal-meta-chip svg {
+      width: 15px;
+      height: 15px;
+      color: var(--forest-main);
+    }
+
+    .modal-desc-box {
+      background: #f8fcf9;
+      border: 1px solid #cde5d5;
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .support-actions-panel {
+      background: #f3faf5;
+      border: 1.5px solid #bce3c8;
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: grid;
+      grid-template-columns: 1fr 1.25fr 1.45fr;
+      gap: 14px;
+      align-items: end;
+    }
+    @media (max-width: 820px) {
+      .support-actions-panel {
+        grid-template-columns: 1fr;
+      }
     }
     .action-group {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 5px;
+      min-width: 0;
     }
     .action-group label {
-      font-size: 0.68rem;
+      font-size: 0.7rem;
       font-weight: 800;
       color: var(--forest-dark);
       text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
     .action-group select {
       flex: 1;
-      padding: 6px 10px;
-      border-radius: 7px;
-      border: 1px solid var(--border-strong);
-      font-size: 0.8rem;
+      min-width: 0;
+      padding: 8px 10px;
+      border-radius: 9px;
+      border: 1px solid #b7d7c2;
+      font-size: 0.82rem;
+      font-weight: 600;
       background: #ffffff;
+      color: var(--text);
+    }
+    .action-row-inline {
+      display: flex;
+      gap: 6px;
+      align-items: center;
     }
 
-    .live-updates-list {
-      list-style: none;
-      padding: 0;
-      margin: 6px 0 0 0;
-      max-height: 180px;
+    /* SECCION COMENTARIOS COMO BURBUJAS DE CHAT TIPO WHATSAPP */
+    .modal-section-heading {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--forest-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .ticket-comments-shell {
+      border: 1.5px solid #cfe3d6;
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: #efeae2;
+      background-image: radial-gradient(rgba(20, 99, 54, 0.07) 1.4px, transparent 1.4px);
+      background-size: 22px 22px;
+    }
+    .ticket-bubbles-list {
+      padding: 14px 16px;
+      max-height: 220px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 9px;
     }
-    .live-update-item {
+    .ticket-bubble {
+      max-width: 82%;
+      padding: 9px 13px 7px 13px;
+      border-radius: 11px;
+      font-size: 0.85rem;
+      line-height: 1.42;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.09);
+      word-break: break-word;
+    }
+    .ticket-bubble-out {
+      align-self: flex-end;
+      background: #d9fdd3;
+      color: #111b21;
+      border-top-right-radius: 3px;
+    }
+    .ticket-bubble-in {
+      align-self: flex-start;
+      background: #ffffff;
+      color: #111b21;
+      border-top-left-radius: 3px;
+    }
+    .ticket-bubble-author {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--forest-main);
+      margin-bottom: 2px;
+    }
+    .ticket-bubble-time {
+      font-size: 0.66rem;
+      color: #667781;
+      text-align: right;
+      margin-top: 4px;
+    }
+    .ticket-chat-empty {
+      align-self: center;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid #d7e3db;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+    .ticket-chat-composer {
       display: flex;
+      align-items: center;
       gap: 8px;
-      align-items: flex-start;
-      padding: 7px 9px;
-      border-radius: 8px;
-      background: #f8faf9;
-      border: 1px solid var(--border);
-      font-size: 0.75rem;
+      padding: 10px 12px;
+      background: #f0f2f5;
+      border-top: 1px solid #d5e4da;
     }
-    .lu-dot {
-      width: 20px;
-      height: 20px;
+    .ticket-chat-composer input {
+      flex: 1;
+      padding: 9px 14px;
+      border-radius: 10px;
+      border: 1px solid #c3d9cb;
+      background: #ffffff;
+      font-size: 0.85rem;
+    }
+    .ticket-chat-composer input:focus {
+      outline: none;
+      border-color: var(--forest-main);
+    }
+
+    /* HISTORIAL ORDENADO COMO LINEA DE TIEMPO LIMPIA Y ESTETICA */
+    .traceability-box {
+      border: 1px solid #d6e7dc;
+      border-radius: 14px;
+      background: #fafdfb;
+      padding: 12px 16px;
+    }
+    .history-timeline {
+      list-style: none;
+      margin: 6px 0 0 0;
+      padding: 4px 0 4px 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+    .history-step {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding-left: 14px;
+      border-left: 2px solid #cbe4d3;
+    }
+    .history-step:last-child {
+      border-left-color: transparent;
+    }
+    .history-step-num {
+      position: absolute;
+      left: -12px;
+      top: 4px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
-      background: #dcfce7;
-      color: var(--forest-dark);
+      background: var(--forest-main);
+      color: #ffffff;
+      font-size: 0.7rem;
+      font-weight: 800;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
-      flex-shrink: 0;
+      box-shadow: 0 0 0 3px #fafdfb;
     }
-    .lu-content { flex: 1; }
-    .lu-meta {
+    .history-step-card {
+      flex: 1;
+      background: #ffffff;
+      border: 1px solid #dceae1;
+      border-radius: 10px;
+      padding: 8px 12px;
       display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .history-step-top {
+      display: flex;
+      align-items: center;
       justify-content: space-between;
-      font-size: 0.68rem;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.74rem;
+    }
+    .history-type-pill {
+      background: #e6f7ed;
+      color: var(--forest-dark);
+      font-weight: 800;
+      font-size: 0.69rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .history-step-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       color: var(--muted);
-      margin-bottom: 2px;
+      font-weight: 600;
+    }
+    .history-step-detail {
+      font-size: 0.81rem;
+      color: var(--text);
+      font-weight: 500;
     }
 
     /* ================= CHAT ESTILO WHATSAPP WEB (SERIO Y CON MENU FIJO) ================= */
@@ -1206,8 +1428,8 @@
       overflow: hidden;
       display: grid;
       grid-template-columns: 310px 1fr;
-      height: calc(100vh - 125px);
-      min-height: 540px;
+      height: calc(100vh - 50px);
+      min-height: 560px;
     }
     @media (max-width: 960px) {
       .wa-workspace-modal {
@@ -1632,7 +1854,8 @@
         </button>
       </div>
 
-      <div style="border-top:1px solid rgba(255,255,255,0.12); padding-top:10px;">
+      <div class="sidebar-bottom-stack">
+        <div id="badgeUsuarioActivo" class="sidebar-user-card hidden"></div>
         <button type="button" class="side-nav-btn" id="sideBtnLogout">
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           <span class="nav-label">Cerrar Sesión</span>
@@ -1640,7 +1863,7 @@
       </div>
     </aside>
 
-    <!-- AREA PRINCIPAL CON LOS MISMOS TRAZOS CURVOS DEL LOGIN EN EL FONDO -->
+    <!-- AREA PRINCIPAL CON LOS MISMOS TRAZOS CURVOS DEL LOGIN EN EL FONDO (SIN HEADER REPETITIVO) -->
     <div class="app-main-area">
       <svg class="workspace-bg-decor" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
         <path d="M 210,-50 C 260,220 430,225 495,-50" fill="none" stroke="var(--lime-pill)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" opacity="0.68" />
@@ -1651,27 +1874,144 @@
         <path d="M 980,940 C 1020,760 1190,710 1310,790 C 1390,845 1450,780 1520,720" fill="none" stroke="var(--lime-bright)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" opacity="0.48" />
       </svg>
 
-      <!-- TOPBAR SUPERIOR FLOTANTE (SIN BOTON SALIR) -->
-      <header id="mainHeader" class="topbar">
-        <div class="topbar-left">
-          <span class="workspace-title" id="topbarWorkspaceTitle">COLA PRIORIZADA DE TICKETS</span>
-          <span id="vistaActualBadge" class="badge rol-usuario hidden"></span>
-        </div>
-
-        <div id="headerSessionArea" class="topbar-right hidden">
-          <button type="button" class="btn-open-ai" id="btnFocoNuevaSolicitud">
-            <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-            <span id="labelBtnNuevaSolicitud">Abrir Chat IA</span>
-          </button>
-          <div class="user-pill" id="badgeUsuarioActivo"></div>
-        </div>
-      </header>
-
       <div class="workspace-container">
-        <!-- SECCION 1: DASHBOARD Y COLA -->
+        <!-- SECCION 1: COLA DE TICKETS PRIMERO Y DASHBOARD DEBAJO -->
         <div id="seccionPrincipalTickets" style="display:flex; flex-direction:column; gap:18px;">
 
-          <!-- MODAL FLOTANTE DE DASHBOARD (4 GRAFICAS CON MISMO FONDO, CENTRADAS Y SIMPLES) -->
+          <!-- 1° EN EL PANEL: COLA Y ORDEN DE TICKETS POR COLUMNAS -->
+          <section class="queue-workspace-card" id="bloqueColaTickets">
+            <div class="queue-window-topbar">
+              <div class="queue-title-wrap">
+                <h2 class="queue-title-main" id="tituloTablaTickets">Cola y Orden <em>de Tickets</em></h2>
+                <span id="contadorTablaTickets" style="font-size:0.8rem; color:var(--muted);"></span>
+              </div>
+
+              <div class="view-toggle-group">
+                <button type="button" class="view-toggle-btn active" id="btnVistaTarjetas">
+                  <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+                  <span>Columnas</span>
+                </button>
+                <button type="button" class="view-toggle-btn" id="btnVistaTabla">
+                  <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  <span>Tabla</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- BUSCADOR GRANDE Y VISIBLE + UN UNICO FILTRO FUNCIONAL Y ATRACTIVO (SIN BOTON ACTUALIZAR REPETIDO) -->
+            <div class="queue-toolbar">
+              <div class="search-box-styled">
+                <div class="search-icon-badge">
+                  <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <input type="text" id="filtroAreaInput" placeholder="Buscar ticket por #ID, asunto, área, categoría, solicitante o técnico..." />
+              </div>
+
+              <div class="single-filter-pill">
+                <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span>Filtro:</span>
+                <select id="filtroVistaUnico"></select>
+              </div>
+            </div>
+
+            <!-- ESPACIO DEDICADO PARA FILTRAR UNICAMENTE TICKETS FINALIZADOS / CERRADOS (ETIQUETA VERDE MANZANA) -->
+            <div class="closed-filter-strip">
+              <div class="closed-filter-left">
+                <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <span>Archivo de tickets:</span>
+                <button type="button" id="btnFiltroSoloCerrados" class="lime-closed-chip" title="Filtrar únicamente tickets Finalizados o Cerrados">
+                  <span>Finalizados / Cerrados</span>
+                  <span id="badgeCountCerrados" class="lime-closed-count">0</span>
+                </button>
+              </div>
+              <span id="textoEstadoFiltroCerrados" class="closed-filter-hint">Mostrando todos según filtro general</span>
+            </div>
+
+            <!-- TABLERO DE COLUMNAS Y TABLA -->
+            <div id="mainQueueLayout" class="main-queue-layout">
+              <div id="contenedorTarjetasTickets" class="tickets-columns-board"></div>
+
+              <div id="contenedorTablaTickets" class="table-wrap hidden">
+                <table>
+                  <thead id="theadTickets"></thead>
+                  <tbody id="tbodyTickets"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- MODAL GRANDE Y ESTETICO DE GESTION (SOBRE TODA LA PAGINA MENOS EL MENU) -->
+            <div id="panelDetalleTicket" class="ticket-modal-backdrop hidden">
+              <div class="ticket-modal-card">
+                <button type="button" class="modal-close-corner" id="btnCerrarDetalleTicket" title="Cerrar">✕</button>
+
+                <div class="modal-header-simple">
+                  <div id="detalleBadgesCabecera" style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;"></div>
+                  <h3 class="modal-title-simple" id="detalleTituloCabecera">Detalle del Ticket</h3>
+                  <div class="modal-meta-row" id="detalleSubtituloMeta"></div>
+                </div>
+
+                <div id="alertaOperacionTicket" class="alert-box hidden" style="margin:0;"></div>
+
+                <div class="modal-desc-box" id="detalleCamposGrid"></div>
+
+                <div id="controlesSoporteTicket" class="support-actions-panel hidden">
+                  <div class="action-group">
+                    <label for="selectNuevaPrioridad">Prioridad</label>
+                    <div class="action-row-inline">
+                      <select id="selectNuevaPrioridad"></select>
+                      <button type="button" class="btn-soporte" id="btnAplicarPrioridad">Guardar</button>
+                    </div>
+                  </div>
+
+                  <div class="action-group">
+                    <label for="selectNuevoEstado">Estado</label>
+                    <div class="action-row-inline">
+                      <select id="selectNuevoEstado"></select>
+                      <button type="button" class="btn-soporte" id="btnAplicarEstado">Cambiar</button>
+                    </div>
+                  </div>
+
+                  <div class="action-group">
+                    <label for="selectNuevoResponsable">Especialista</label>
+                    <div class="action-row-inline">
+                      <select id="selectNuevoResponsable"></select>
+                      <button type="button" class="btn-soporte" id="btnAplicarResponsable">Asignar</button>
+                      <button type="button" class="btn-secondary btn-sm" id="btnAsignarmeAMi">Yo</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- COMENTARIOS CON DISEÑO DE BURBUJAS DE CHAT -->
+                <div>
+                  <div class="modal-section-heading">
+                    <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>Comentarios y Respuestas</span>
+                  </div>
+                  <div class="ticket-comments-shell">
+                    <div id="listaComentariosTicket" class="ticket-bubbles-list"></div>
+                    <form id="formAgregarComentario" class="ticket-chat-composer">
+                      <input type="text" id="inputNuevoComentario" maxlength="1500" placeholder="Escribir comentario o respuesta al ticket..." required />
+                      <button type="submit" class="btn-primary btn-sm" style="display:inline-flex; align-items:center; gap:5px; padding:9px 15px;">
+                        <span>Enviar</span>
+                        <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- HISTORIAL ORDENADO CON LINEA DE TIEMPO ESTILIZADA -->
+                <div class="traceability-box">
+                  <div class="modal-section-heading" style="margin-bottom:4px;">
+                    <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="resumenTrazabilidad">Historial de cambios del ticket</span>
+                  </div>
+                  <ul id="listaHistorialEventos" class="history-timeline"></ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2° EN EL PANEL: MODAL FLOTANTE DE DASHBOARD (4 GRAFICAS 2x2) -->
           <section id="soporteResumenSection" class="floating-dashboard-modal hidden">
             <div class="dashboard-top-row" id="btnToggleDashboardBody" style="cursor:pointer;">
               <h3>
@@ -1689,181 +2029,22 @@
                 <div id="chartPrioridadDonut" class="donut-wrap"></div>
               </div>
 
-              <!-- Gráfica 2 (mismo fondo claro y centrado) -->
+              <!-- Gráfica 2 -->
               <div class="chart-bento-card">
                 <h4>Por Estado</h4>
                 <div id="chartEstadoDonut" class="donut-wrap"></div>
               </div>
 
-              <!-- Gráfica 3 (barras limpias y fáciles de leer) -->
+              <!-- Gráfica 3 -->
               <div class="chart-bento-card">
                 <h4>Por Área de la Empresa</h4>
                 <div id="kpiPorArea" class="clean-bars-container"></div>
               </div>
 
-              <!-- Gráfica 4 (barras limpias y fáciles de leer) -->
+              <!-- Gráfica 4 -->
               <div class="chart-bento-card">
                 <h4>Por Categoría Técnica</h4>
                 <div id="kpiPorCategoria" class="clean-bars-container"></div>
-              </div>
-            </div>
-          </section>
-
-          <!-- MODAL FLOTANTE UNICO: FILTROS + COLA Y ORDEN POR COLUMNAS -->
-          <section class="queue-workspace-card" id="bloqueColaTickets">
-            <div class="toolbar" style="margin-bottom:14px;">
-              <div>
-                <h2 id="tituloTablaTickets" style="margin:0; font-size:1.15rem; font-weight:800; color:var(--forest-dark);">Cola y Orden de Tickets por Columnas</h2>
-                <span id="contadorTablaTickets" style="font-size:0.8rem; color:var(--muted);"></span>
-              </div>
-
-              <div class="toolbar">
-                <div class="filter-pill-select" id="wrapAgruparColumnas">
-                  <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
-                  <span>Columnas:</span>
-                  <select id="agruparColumnasSelect">
-                    <option value="prioridad">Por Prioridad (Crítica → Baja)</option>
-                    <option value="estado">Por Etapa de Estado</option>
-                  </select>
-                </div>
-
-                <div class="filter-pill-select">
-                  <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><line x1="4" y1="6" x2="16" y2="6"/><line x1="4" y1="12" x2="12" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/><polyline points="15 15 18 18 21 15"/><line x1="18" y1="10" x2="18" y2="18"/></svg>
-                  <span>Orden:</span>
-                  <select id="ordenarSelect">
-                    <option value="prioridad_desc">Prioridad (Crítica a Baja)</option>
-                    <option value="sin_asignar">Sin técnico asignado primero</option>
-                    <option value="recientes">Más recientes primero</option>
-                    <option value="estado_flujo">Estado de atención</option>
-                  </select>
-                </div>
-
-                <div class="view-toggle-group">
-                  <button type="button" class="view-toggle-btn active" id="btnVistaTarjetas">
-                    <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
-                    <span>Columnas</span>
-                  </button>
-                  <button type="button" class="view-toggle-btn" id="btnVistaTabla">
-                    <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                    <span>Tabla</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- PESTAÑAS RAPIDAS Y FILTROS DENTRO DEL MISMO MODAL DE COLA -->
-            <div class="invgate-work-tabs" id="kpiTabsContainer"></div>
-
-            <div class="queue-toolbar">
-              <div class="filter-pills-group">
-                <div class="search-box-styled">
-                  <svg class="svg-icon svg-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <input type="text" id="filtroAreaInput" placeholder="Buscar por #ID, asunto, área o solicitante..." />
-                </div>
-
-                <div class="filter-pill-select">
-                  <span>Estado:</span>
-                  <select id="filtroEstado">
-                    <option value="">Todos</option>
-                  </select>
-                </div>
-
-                <div class="filter-pill-select hidden" id="wrapFiltroResponsable">
-                  <span>Técnico:</span>
-                  <select id="filtroResponsable">
-                    <option value="">Todos</option>
-                  </select>
-                </div>
-
-                <div class="filter-pill-select hidden" id="wrapFiltroPrioridad">
-                  <span>Prioridad:</span>
-                  <select id="filtroPrioridad">
-                    <option value="">Todas</option>
-                  </select>
-                </div>
-
-                <div class="filter-pill-select hidden" id="wrapFiltroCategoria">
-                  <span>Categoría:</span>
-                  <select id="filtroCategoria">
-                    <option value="">Todas</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="toolbar">
-                <button type="button" class="btn-secondary btn-sm" id="btnLimpiarFiltros">Limpiar filtros</button>
-                <button type="button" class="btn-secondary btn-sm" id="btnRefrescarTodo">Actualizar</button>
-              </div>
-            </div>
-
-            <!-- TABLERO DE COLUMNAS + PANEL DETALLE -->
-            <div id="mainQueueLayout" class="main-queue-layout">
-              <div>
-                <div id="contenedorTarjetasTickets" class="tickets-columns-board"></div>
-
-                <div id="contenedorTablaTickets" class="table-wrap hidden">
-                  <table>
-                    <thead id="theadTickets"></thead>
-                    <tbody id="tbodyTickets"></tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div id="panelDetalleTicket" class="ticket-detail-panel hidden">
-                <div class="toolbar" style="margin-bottom:10px;">
-                  <h3 style="margin:0; font-size:0.96rem; font-weight:800; color:var(--forest-dark);" id="detalleTituloCabecera">Detalle del Ticket</h3>
-                  <div style="display:flex; align-items:center; gap:6px;">
-                    <span id="detalleBadgesCabecera"></span>
-                    <button type="button" class="btn-secondary btn-sm" id="btnCerrarDetalleTicket" title="Cerrar panel">✕</button>
-                  </div>
-                </div>
-
-                <div id="alertaOperacionTicket" class="alert-box hidden"></div>
-
-                <div id="controlesSoporteTicket" class="support-actions-panel hidden">
-                  <div class="action-group">
-                    <label for="selectNuevaPrioridad">Prioridad del Ticket</label>
-                    <div style="display:flex; gap:6px;">
-                      <select id="selectNuevaPrioridad"></select>
-                      <button type="button" class="btn-soporte" id="btnAplicarPrioridad">Priorizar</button>
-                    </div>
-                  </div>
-
-                  <div class="action-group">
-                    <label for="selectNuevoEstado">Transición de Estado</label>
-                    <div style="display:flex; gap:6px;">
-                      <select id="selectNuevoEstado"></select>
-                      <button type="button" class="btn-soporte" id="btnAplicarEstado">Cambiar</button>
-                    </div>
-                  </div>
-
-                  <div class="action-group">
-                    <label for="selectNuevoResponsable">Especialista Asignado</label>
-                    <div style="display:flex; gap:6px;">
-                      <select id="selectNuevoResponsable"></select>
-                      <button type="button" class="btn-soporte" id="btnAplicarResponsable">Asignar</button>
-                      <button type="button" class="btn-secondary btn-sm" id="btnAsignarmeAMi">Tomar yo</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="detail-grid" id="detalleCamposGrid"></div>
-
-                <div style="margin-bottom:12px;">
-                  <strong style="font-size:0.72rem; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:6px;">
-                    Respuestas de Soporte y Comentarios
-                  </strong>
-                  <div id="listaComentariosTicket" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
-                  <form id="formAgregarComentario" style="display:flex; gap:8px;">
-                    <input type="text" id="inputNuevoComentario" maxlength="1500" placeholder="Escribir respuesta o comentario..." style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--border-strong);" required />
-                    <button type="submit" class="btn-primary btn-sm">Enviar</button>
-                  </form>
-                </div>
-
-                <strong style="font-size:0.72rem; color:var(--muted); text-transform:uppercase; display:block;">
-                  Trazabilidad del Ticket
-                </strong>
-                <ul id="listaHistorialEventos" class="live-updates-list"></ul>
               </div>
             </div>
           </section>
@@ -1982,10 +2163,8 @@
     };
     let ticketsCargados = [];
     let ticketSeleccionadoId = null;
-    let tabRapidaActiva = "todos";
+    let filtrarSoloCerrados = false;
 
-    const vistaActualBadge = document.getElementById("vistaActualBadge");
-    const headerSessionArea = document.getElementById("headerSessionArea");
     const badgeUsuarioActivo = document.getElementById("badgeUsuarioActivo");
     const loginView = document.getElementById("loginView");
     const appView = document.getElementById("appView");
@@ -2008,7 +2187,6 @@
     const contenedorTarjetasTickets = document.getElementById("contenedorTarjetasTickets");
     const contenedorTablaTickets = document.getElementById("contenedorTablaTickets");
     const panelDetalleTicket = document.getElementById("panelDetalleTicket");
-    const mainQueueLayout = document.getElementById("mainQueueLayout");
     const aiDrawerBackdrop = document.getElementById("aiDrawerBackdrop");
 
     function headersAutenticados() {
@@ -2028,17 +2206,27 @@
       return d.toTimeString().slice(0, 5);
     }
 
-    function obtenerIniciales(nombre) {
-      const partes = String(nombre || "U").trim().split(/\s+/);
-      if (partes.length >= 2) return (partes[0][0] + partes[1][0]).toUpperCase();
-      return partes[0].slice(0, 2).toUpperCase();
-    }
-
     function crearBadge(texto, claseExtra) {
       const span = document.createElement("span");
       span.className = `badge ${claseExtra}`;
       span.textContent = texto;
       return span;
+    }
+
+    function crearSvgIconoUsuario(claseExtra = "svg-icon svg-sm") {
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("class", claseExtra);
+      svg.setAttribute("viewBox", "0 0 24 24");
+      const p = document.createElementNS(ns, "path");
+      p.setAttribute("d", "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2");
+      const c = document.createElementNS(ns, "circle");
+      c.setAttribute("cx", "12");
+      c.setAttribute("cy", "7");
+      c.setAttribute("r", "4");
+      svg.appendChild(p);
+      svg.appendChild(c);
+      return svg;
     }
 
     function crearSvgFlechaServicio() {
@@ -2164,63 +2352,42 @@
     async function cargarCatalogos() {
       const r = await fetch("/catalogos");
       catalogos = await r.json();
+    }
 
-      const fEst = document.getElementById("filtroEstado");
-      fEst.innerHTML = '<option value="">Todos</option>';
-      for (const e of catalogos.estados || []) {
-        const opt = document.createElement("option");
-        opt.value = e;
-        opt.textContent = e;
-        fEst.appendChild(opt);
-      }
+    function poblarFiltroVistaUnico(esSoporte) {
+      const sel = document.getElementById("filtroVistaUnico");
+      if (!sel) return;
+      const valorPrevio = sel.value || "todos";
+      sel.innerHTML = "";
+      const opciones = esSoporte
+        ? [
+            ["todos", "Todos en cola (Por Prioridad)"],
+            ["criticos", "Solo Críticos y Altos"],
+            ["sin_asignar", "Sin técnico asignado"],
+            ["mios", "Asignados a mí"],
+            ["abiertos", "En curso (Abiertos / En progreso)"],
+            ["pendientes", "Pendientes"],
+            ["recientes", "Ordenar por más recientes"]
+          ]
+        : [
+            ["todos", "Todas mis solicitudes"],
+            ["abiertos", "En atención"],
+            ["pendientes", "Pendientes"]
+          ];
 
-      const fPrio = document.getElementById("filtroPrioridad");
-      fPrio.innerHTML = '<option value="">Todas</option>';
-      for (const p of catalogos.prioridades || []) {
-        const opt = document.createElement("option");
-        opt.value = p;
-        opt.textContent = p;
-        fPrio.appendChild(opt);
-      }
-
-      const fCat = document.getElementById("filtroCategoria");
-      fCat.innerHTML = '<option value="">Todas</option>';
-      for (const c of catalogos.categorias || []) {
-        const opt = document.createElement("option");
-        opt.value = c;
-        opt.textContent = c;
-        fCat.appendChild(opt);
-      }
-
-      const fResp = document.getElementById("filtroResponsable");
-      fResp.innerHTML = "";
-      const opcionesBaseResp = [
-        ["", "Todos"],
-        ["__sin_asignar__", "Sin asignar"],
-        ["__mios__", "Asignados a mí"]
-      ];
-      for (const [val, txt] of opcionesBaseResp) {
+      for (const [val, txt] of opciones) {
         const opt = document.createElement("option");
         opt.value = val;
         opt.textContent = txt;
-        fResp.appendChild(opt);
-      }
-      for (const s of catalogos.equipo_soporte || []) {
-        const opt = document.createElement("option");
-        opt.value = s.id;
-        opt.textContent = s.nombre;
-        fResp.appendChild(opt);
+        if (val === valorPrevio) opt.selected = true;
+        sel.appendChild(opt);
       }
     }
 
     function configurarVistaPorRol() {
       if (!usuarioActivo) return;
       const esSoporte = usuarioActivo.rol === "soporte";
-      tabRapidaActiva = "todos";
-
-      document.getElementById("topbarWorkspaceTitle").textContent = esSoporte
-        ? "CONSOLA DE SOPORTE — COLA Y ORDEN DE TICKETS"
-        : "PORTAL DE AUTOGESTIÓN — MIS SOLICITUDES";
+      filtrarSoloCerrados = false;
 
       document.getElementById("navLabelTickets").textContent = esSoporte
         ? "Cola y Orden"
@@ -2228,34 +2395,32 @@
       document.getElementById("navLabelChat").textContent = esSoporte
         ? "Copiloto IA (Chat)"
         : "Reportar con IA (Chat)";
-      document.getElementById("labelBtnNuevaSolicitud").textContent = esSoporte
-        ? "Abrir Copiloto IA"
-        : "Reportar con IA";
 
-      vistaActualBadge.textContent = esSoporte ? "VISTA CONSOLA SOPORTE TI" : "VISTA PORTAL USUARIO";
-      vistaActualBadge.className = `badge rol-${usuarioActivo.rol}`;
-      vistaActualBadge.classList.remove("hidden");
-      headerSessionArea.classList.remove("hidden");
-
+      /* Perfil unificado en el menú lateral con icono de usuario (sin iniciales) */
       badgeUsuarioActivo.innerHTML = "";
-      const av = document.createElement("div");
-      av.className = "avatar-circle";
-      av.textContent = obtenerIniciales(usuarioActivo.nombre);
-      const txtUser = document.createElement("span");
-      txtUser.style.fontWeight = "700";
-      txtUser.textContent = `${usuarioActivo.nombre} · ${usuarioActivo.area}`;
-      badgeUsuarioActivo.appendChild(av);
-      badgeUsuarioActivo.appendChild(txtUser);
+      badgeUsuarioActivo.classList.remove("hidden");
+      const iconBox = document.createElement("div");
+      iconBox.className = "sidebar-user-icon";
+      iconBox.appendChild(crearSvgIconoUsuario("svg-icon"));
+
+      const userInfo = document.createElement("div");
+      userInfo.className = "sidebar-user-info";
+      const userName = document.createElement("span");
+      userName.className = "sidebar-user-name";
+      userName.textContent = usuarioActivo.nombre;
+      const userRole = document.createElement("span");
+      userRole.className = "sidebar-user-role";
+      userRole.textContent = usuarioActivo.area;
+      userInfo.appendChild(userName);
+      userInfo.appendChild(userRole);
+
+      badgeUsuarioActivo.appendChild(iconBox);
+      badgeUsuarioActivo.appendChild(userInfo);
 
       soporteResumenSection.classList.toggle("hidden", !esSoporte);
       document.getElementById("sideBtnDashboard").classList.toggle("hidden", !esSoporte);
-      document.getElementById("wrapFiltroResponsable").classList.toggle("hidden", !esSoporte);
-      document.getElementById("wrapFiltroPrioridad").classList.toggle("hidden", !esSoporte);
-      document.getElementById("wrapFiltroCategoria").classList.toggle("hidden", !esSoporte);
-      document.getElementById("wrapAgruparColumnas").classList.toggle("hidden", !esSoporte);
 
-      document.getElementById("agruparColumnasSelect").value = esSoporte ? "prioridad" : "estado";
-      document.getElementById("ordenarSelect").value = esSoporte ? "prioridad_desc" : "recientes";
+      poblarFiltroVistaUnico(esSoporte);
 
       const thead = document.getElementById("theadTickets");
       thead.innerHTML = "";
@@ -2273,9 +2438,20 @@
       document.getElementById("tituloChatCard").textContent = esSoporte
         ? "Copiloto IA de Soporte TI"
         : "Asistente de Soporte Técnico";
-      document.getElementById("tituloTablaTickets").textContent = esSoporte
-        ? "Cola y Orden de Tickets por Columnas"
-        : "Estado y Seguimiento de Mis Solicitudes";
+
+      const titCola = document.getElementById("tituloTablaTickets");
+      titCola.textContent = "";
+      if (esSoporte) {
+        titCola.appendChild(document.createTextNode("Cola y Orden "));
+        const em = document.createElement("em");
+        em.textContent = "de Tickets";
+        titCola.appendChild(em);
+      } else {
+        titCola.appendChild(document.createTextNode("Seguimiento "));
+        const em = document.createElement("em");
+        em.textContent = "de Mis Solicitudes";
+        titCola.appendChild(em);
+      }
 
       actualizarChipArchivoPrecargado("");
 
@@ -2324,66 +2500,6 @@
           mensajeInput.focus();
         });
         qp.appendChild(item);
-      }
-    }
-
-    function renderizarPestanasSuperiores(todosLosTickets) {
-      const esSoporte = usuarioActivo && usuarioActivo.rol === "soporte";
-      const cont = document.getElementById("kpiTabsContainer");
-      cont.innerHTML = "";
-
-      const abiertosEnCurso = todosLosTickets.filter((t) =>
-        ["Abierto", "En revision", "En progreso"].includes(t.estado)
-      ).length;
-      const pendientes = todosLosTickets.filter((t) => t.estado === "Pendiente").length;
-      const resueltos = todosLosTickets.filter((t) =>
-        ["Resuelto", "Cerrado"].includes(t.estado)
-      ).length;
-      const sinAsignar = todosLosTickets.filter((t) => !t.responsable).length;
-      const asignadosAMi = todosLosTickets.filter(
-        (t) => usuarioActivo && t.responsable === usuarioActivo.id
-      ).length;
-      const criticosAltos = todosLosTickets.filter(
-        (t) => ["Critica", "Alta"].includes(t.prioridad) && t.estado !== "Cerrado"
-      ).length;
-
-      const pestanas = esSoporte
-        ? [
-            { id: "todos", label: "Todos en Cola", count: todosLosTickets.length, cls: "wtab-green" },
-            { id: "criticos", label: "Críticos y Altos", count: criticosAltos, cls: "wtab-red" },
-            { id: "sin_asignar", label: "Sin Asignar", count: sinAsignar, cls: "wtab-orange" },
-            { id: "mios", label: "Asignados a Mí", count: asignadosAMi, cls: "wtab-blue" },
-            { id: "abiertos", label: "En Curso", count: abiertosEnCurso, cls: "wtab-green" },
-            { id: "resueltos", label: "Resueltos / Cerrados", count: resueltos, cls: "wtab-slate" }
-          ]
-        : [
-            { id: "todos", label: "Mis Tickets", count: todosLosTickets.length, cls: "wtab-green" },
-            { id: "abiertos", label: "En Atención", count: abiertosEnCurso, cls: "wtab-blue" },
-            { id: "pendientes", label: "Pendientes", count: pendientes, cls: "wtab-orange" },
-            { id: "resueltos", label: "Resueltos", count: resueltos, cls: "wtab-slate" }
-          ];
-
-      for (const p of pestanas) {
-        const card = document.createElement("div");
-        card.className = `work-tab-card ${tabRapidaActiva === p.id ? "active-tab" : ""}`;
-
-        const title = document.createElement("div");
-        title.className = "work-tab-title";
-        title.textContent = p.label;
-
-        const badge = document.createElement("div");
-        badge.className = `work-tab-badge ${p.cls}`;
-        badge.textContent = String(p.count);
-
-        card.appendChild(title);
-        card.appendChild(badge);
-
-        card.addEventListener("click", () => {
-          tabRapidaActiva = p.id;
-          cargarTickets();
-        });
-
-        cont.appendChild(card);
       }
     }
 
@@ -2538,132 +2654,79 @@
       renderizarBarrasLimpias("kpiPorCategoria", data.por_categoria, total);
     }
 
-    function ordenarListaTickets(lista) {
-      const criterio = document.getElementById("ordenarSelect").value;
+    function ordenarListaTickets(lista, filtroValor) {
       const copia = [...lista];
       copia.sort((a, b) => {
-        if (criterio === "prioridad_desc") {
-          const pa = PESO_PRIORIDAD[a.prioridad] || 0;
-          const pb = PESO_PRIORIDAD[b.prioridad] || 0;
-          if (pb !== pa) return pb - pa;
+        if (filtroValor === "recientes") {
           return b.id - a.id;
         }
-        if (criterio === "sin_asignar") {
-          if ((a.responsable ? 1 : 0) !== (b.responsable ? 1 : 0)) {
-            return (a.responsable ? 1 : 0) - (b.responsable ? 1 : 0);
-          }
-          return (PESO_PRIORIDAD[b.prioridad] || 0) - (PESO_PRIORIDAD[a.prioridad] || 0);
-        }
-        if (criterio === "estado_flujo") {
-          const ea = PESO_ESTADO[a.estado] || 99;
-          const eb = PESO_ESTADO[b.estado] || 99;
-          if (ea !== eb) return ea - eb;
-          return (PESO_PRIORIDAD[b.prioridad] || 0) - (PESO_PRIORIDAD[a.prioridad] || 0);
-        }
+        const pa = PESO_PRIORIDAD[a.prioridad] || 0;
+        const pb = PESO_PRIORIDAD[b.prioridad] || 0;
+        if (pb !== pa) return pb - pa;
         return b.id - a.id;
       });
       return copia;
     }
 
-    function crearTarjetaTicket(t, esSoporte, posicionGlobal) {
+    function crearTarjetaTicket(t, esSoporte) {
       const card = document.createElement("div");
-      card.className = `ticket-card-item card-prio-border-${t.prioridad} ${t.id === ticketSeleccionadoId ? "selected-card" : ""}`;
+      card.className = `ticket-card-item ${t.id === ticketSeleccionadoId ? "selected-card" : ""}`;
       card.addEventListener("click", () => verDetalle(t.id));
 
       const top = document.createElement("div");
       top.className = "tcard-top";
 
-      const rankPill = document.createElement("span");
-      rankPill.className = "queue-rank-pill";
-      rankPill.textContent = `Orden #${posicionGlobal}`;
-      top.appendChild(rankPill);
+      const idPill = document.createElement("span");
+      idPill.className = "tcard-id-pill";
+      idPill.textContent = `#TK-${t.id}`;
+      top.appendChild(idPill);
 
       top.appendChild(crearBadge(t.estado, `est-${t.estado.replace(/\s+/g, "-")}`));
 
-      if (esSoporte) {
-        top.appendChild(crearBadge(t.prioridad, `prio-${t.prioridad}`));
-      }
+      const mainRow = document.createElement("div");
+      mainRow.className = "tcard-main-row";
 
-      const serviceBody = document.createElement("div");
-      serviceBody.className = "tcard-service-body";
+      const iconBox = document.createElement("div");
+      iconBox.className = "tcard-icon-badge";
+      iconBox.appendChild(crearSvgFlechaServicio());
 
       const textCol = document.createElement("div");
+      textCol.className = "tcard-text-col";
       const title = document.createElement("div");
       title.className = "tcard-title";
       title.textContent = t.titulo;
       const bread = document.createElement("div");
       bread.className = "tcard-breadcrumb";
       bread.textContent = esSoporte
-        ? `${t.area || "General"} » ${t.categoria}`
-        : `Solicitud #TK-${t.id}`;
+        ? `${t.area || "General"} · ${t.categoria}`
+        : `${t.categoria}`;
       textCol.appendChild(title);
       textCol.appendChild(bread);
 
-      const iconCol = document.createElement("div");
-      iconCol.className = "tcard-service-icon-box";
-      iconCol.appendChild(crearSvgFlechaServicio());
-
-      serviceBody.appendChild(textCol);
-      serviceBody.appendChild(iconCol);
-
-      const bars = document.createElement("div");
-      bars.className = "tcard-bars";
-      const nivelAvance = PESO_ESTADO[t.estado] || 1;
-      for (let i = 1; i <= 3; i++) {
-        const seg = document.createElement("div");
-        let cls = "tcard-bar-seg";
-        if (nivelAvance >= 5) cls += " done-complete";
-        else if (i <= Math.min(3, nivelAvance)) cls += " done-step";
-        seg.className = cls;
-        bars.appendChild(seg);
-      }
-
-      card.appendChild(top);
-      card.appendChild(serviceBody);
-      card.appendChild(bars);
-
-      const comMostrar = t.ultimo_comentario_soporte || t.ultimo_comentario;
-      if (comMostrar) {
-        const comBox = document.createElement("div");
-        comBox.className = "tcard-comment-preview";
-        comBox.textContent = comMostrar.rol === "soporte"
-          ? `Soporte (${comMostrar.usuario_nombre}): "${comMostrar.texto}"`
-          : `${comMostrar.usuario_nombre}: "${comMostrar.texto}"`;
-        card.appendChild(comBox);
-      }
+      mainRow.appendChild(iconBox);
+      mainRow.appendChild(textCol);
 
       const footer = document.createElement("div");
       footer.className = "tcard-footer";
 
-      const agentInfo = document.createElement("div");
-      agentInfo.className = "tcard-agent-info";
-
-      const av = document.createElement("div");
-      av.className = "avatar-circle";
-      av.style.background = t.responsable ? "var(--forest-main)" : "#94a3b8";
-      av.textContent = t.responsable_nombre ? obtenerIniciales(t.responsable_nombre) : "--";
-
-      const nameWrap = document.createElement("div");
+      const agentWrap = document.createElement("span");
+      agentWrap.className = "user-name-inline";
+      agentWrap.appendChild(crearSvgIconoUsuario("svg-icon"));
       const nameSpan = document.createElement("span");
       nameSpan.className = "tcard-agent-name";
-      nameSpan.textContent = t.responsable_nombre || "Sin técnico asignado aún";
-      const roleSpan = document.createElement("span");
-      roleSpan.className = "tcard-agent-role";
-      roleSpan.textContent = esSoporte
-        ? `Solicitante: ${t.solicitante_nombre || t.solicitante}`
-        : "Técnico de soporte asignado";
-      nameWrap.appendChild(nameSpan);
-      nameWrap.appendChild(roleSpan);
+      nameSpan.textContent = t.responsable_nombre || "Sin técnico asignado";
+      agentWrap.appendChild(nameSpan);
 
-      agentInfo.appendChild(av);
-      agentInfo.appendChild(nameWrap);
+      const solSpan = document.createElement("span");
+      solSpan.textContent = esSoporte
+        ? (t.solicitante_nombre || t.solicitante)
+        : (t.ultimo_comentario_soporte ? "Con respuesta" : "");
 
-      const idPill = document.createElement("span");
-      idPill.className = "tcard-id-pill";
-      idPill.textContent = `#TK-${t.id}`;
+      footer.appendChild(agentWrap);
+      footer.appendChild(solSpan);
 
-      footer.appendChild(agentInfo);
-      footer.appendChild(idPill);
+      card.appendChild(top);
+      card.appendChild(mainRow);
       card.appendChild(footer);
 
       return card;
@@ -2671,26 +2734,20 @@
 
     function renderizarTableroColumnas(ticketsOrdenados, esSoporte) {
       contenedorTarjetasTickets.innerHTML = "";
-      const modoAgrupacion = esSoporte
-        ? document.getElementById("agruparColumnasSelect").value
-        : "estado";
 
-      const definicionColumnas = modoAgrupacion === "prioridad"
+      const definicionColumnas = esSoporte
         ? [
-            { id: "Critica", orden: "COLUMNA 1 · INMEDIATA", titulo: "Prioridad Crítica", cls: "qcol-prio-Critica", fn: (t) => t.prioridad === "Critica" },
-            { id: "Alta", orden: "COLUMNA 2 · URGENTE", titulo: "Prioridad Alta", cls: "qcol-prio-Alta", fn: (t) => t.prioridad === "Alta" },
-            { id: "Media", orden: "COLUMNA 3 · ESTÁNDAR", titulo: "Prioridad Media", cls: "qcol-prio-Media", fn: (t) => t.prioridad === "Media" },
-            { id: "Baja", orden: "COLUMNA 4 · PLANIFICADA", titulo: "Prioridad Baja", cls: "qcol-prio-Baja", fn: (t) => t.prioridad === "Baja" }
+            { id: "Critica", titulo: "Crítica", cls: "qcol-prio-Critica", fn: (t) => t.prioridad === "Critica" },
+            { id: "Alta", titulo: "Alta", cls: "qcol-prio-Alta", fn: (t) => t.prioridad === "Alta" },
+            { id: "Media", titulo: "Media", cls: "qcol-prio-Media", fn: (t) => t.prioridad === "Media" },
+            { id: "Baja", titulo: "Baja", cls: "qcol-prio-Baja", fn: (t) => t.prioridad === "Baja" }
           ]
         : [
-            { id: "abiertos", orden: "ETAPA 1 · INGRESO", titulo: "Abiertos / En Revisión", cls: "qcol-prio-Baja", fn: (t) => ["Abierto", "En revision"].includes(t.estado) },
-            { id: "progreso", orden: "ETAPA 2 · EN CURSO", titulo: "En Progreso", cls: "qcol-prio-Baja", fn: (t) => t.estado === "En progreso" },
-            { id: "pendientes", orden: "ETAPA 3 · ESPERA", titulo: "Pendientes", cls: "qcol-prio-Media", fn: (t) => t.estado === "Pendiente" },
-            { id: "resueltos", orden: "ETAPA 4 · FINALIZADOS", titulo: "Resueltos / Cerrados", cls: "qcol-prio-Baja", fn: (t) => ["Resuelto", "Cerrado"].includes(t.estado) }
+            { id: "abiertos", titulo: "Abiertos / Revisión", cls: "qcol-prio-Baja", fn: (t) => ["Abierto", "En revision"].includes(t.estado) },
+            { id: "progreso", titulo: "En Progreso", cls: "qcol-prio-Alta", fn: (t) => t.estado === "En progreso" },
+            { id: "pendientes", titulo: "Pendientes", cls: "qcol-prio-Media", fn: (t) => t.estado === "Pendiente" },
+            { id: "resueltos", titulo: "Resueltos / Cerrados", cls: "qcol-prio-Baja", fn: (t) => ["Resuelto", "Cerrado"].includes(t.estado) }
           ];
-
-      const mapaPosicionGlobal = new Map();
-      ticketsOrdenados.forEach((t, idx) => mapaPosicionGlobal.set(t.id, idx + 1));
 
       for (const col of definicionColumnas) {
         const itemsCol = ticketsOrdenados.filter(col.fn);
@@ -2700,23 +2757,22 @@
         const header = document.createElement("div");
         header.className = `queue-column-header ${col.cls}`;
 
-        const headLeft = document.createElement("div");
-        headLeft.className = "qcol-head-left";
-        const tag = document.createElement("span");
-        tag.className = "qcol-order-tag";
-        tag.textContent = col.orden;
+        const barPill = document.createElement("div");
+        barPill.className = "qcol-bar-pill";
+
+        const headRow = document.createElement("div");
+        headRow.className = "qcol-head-row";
         const tit = document.createElement("span");
         tit.className = "qcol-title";
         tit.textContent = col.titulo;
-        headLeft.appendChild(tag);
-        headLeft.appendChild(tit);
-
         const countBadge = document.createElement("span");
         countBadge.className = "qcol-count";
         countBadge.textContent = String(itemsCol.length);
 
-        header.appendChild(headLeft);
-        header.appendChild(countBadge);
+        headRow.appendChild(tit);
+        headRow.appendChild(countBadge);
+        header.appendChild(barPill);
+        header.appendChild(headRow);
         colBox.appendChild(header);
 
         const body = document.createElement("div");
@@ -2725,11 +2781,11 @@
         if (itemsCol.length === 0) {
           const empty = document.createElement("div");
           empty.className = "queue-empty-slot";
-          empty.textContent = "Sin tickets en esta columna";
+          empty.textContent = "Sin tickets";
           body.appendChild(empty);
         } else {
           for (const t of itemsCol) {
-            body.appendChild(crearTarjetaTicket(t, esSoporte, mapaPosicionGlobal.get(t.id)));
+            body.appendChild(crearTarjetaTicket(t, esSoporte));
           }
         }
 
@@ -2741,44 +2797,49 @@
     async function cargarTickets() {
       if (!usuarioActivo) return;
       const esSoporte = usuarioActivo.rol === "soporte";
-      const params = new URLSearchParams();
-      const est = document.getElementById("filtroEstado").value;
-      const prio = document.getElementById("filtroPrioridad").value;
-      const cat = document.getElementById("filtroCategoria").value;
-      if (est) params.set("estado", est);
-      if (prio) params.set("prioridad", prio);
-      if (cat) params.set("categoria", cat);
 
-      const r = await fetch(`/tickets?${params.toString()}`, {
+      const r = await fetch("/tickets", {
         headers: headersAutenticados()
       });
       if (!r.ok) return;
       const data = await r.json();
       const baseTickets = data.tickets || [];
 
-      renderizarPestanasSuperiores(baseTickets);
+      const totalCerrados = baseTickets.filter((t) =>
+        ["Resuelto", "Cerrado"].includes(t.estado)
+      ).length;
+      const badgeCerrados = document.getElementById("badgeCountCerrados");
+      const btnSoloCerrados = document.getElementById("btnFiltroSoloCerrados");
+      const hintCerrados = document.getElementById("textoEstadoFiltroCerrados");
+      if (badgeCerrados) badgeCerrados.textContent = String(totalCerrados);
+      if (btnSoloCerrados) btnSoloCerrados.classList.toggle("active-closed-filter", filtrarSoloCerrados);
+      if (hintCerrados) {
+        hintCerrados.textContent = filtrarSoloCerrados
+          ? "Mostrando únicamente tickets Finalizados / Cerrados (clic nuevamente para volver)"
+          : "Clic en Finalizados / Cerrados para ver solo tickets terminados";
+      }
 
       const textoFiltro = document.getElementById("filtroAreaInput").value.trim().toLowerCase();
-      const respFiltro = esSoporte ? document.getElementById("filtroResponsable").value : "";
+      const filtroUnico = document.getElementById("filtroVistaUnico").value || "todos";
 
       const filtrados = baseTickets.filter((t) => {
-        if (tabRapidaActiva === "criticos" && !(["Critica", "Alta"].includes(t.prioridad) && t.estado !== "Cerrado")) return false;
-        if (tabRapidaActiva === "sin_asignar" && t.responsable) return false;
-        if (tabRapidaActiva === "mios" && t.responsable !== usuarioActivo.id) return false;
-        if (tabRapidaActiva === "abiertos" && !["Abierto", "En revision", "En progreso"].includes(t.estado)) return false;
-        if (tabRapidaActiva === "pendientes" && t.estado !== "Pendiente") return false;
-        if (tabRapidaActiva === "resueltos" && !["Resuelto", "Cerrado"].includes(t.estado)) return false;
+        if (filtrarSoloCerrados) {
+          if (!["Resuelto", "Cerrado"].includes(t.estado)) return false;
+        } else {
+          if (filtroUnico === "criticos" && !(["Critica", "Alta"].includes(t.prioridad) && t.estado !== "Cerrado")) return false;
+          if (filtroUnico === "sin_asignar" && t.responsable) return false;
+          if (filtroUnico === "mios" && t.responsable !== usuarioActivo.id) return false;
+          if (filtroUnico === "abiertos" && !["Abierto", "En revision", "En progreso"].includes(t.estado)) return false;
+          if (filtroUnico === "pendientes" && t.estado !== "Pendiente") return false;
+        }
 
-        if (respFiltro === "__sin_asignar__" && t.responsable) return false;
-        if (respFiltro === "__mios__" && t.responsable !== usuarioActivo.id) return false;
-        if (respFiltro && !respFiltro.startsWith("__") && t.responsable !== respFiltro) return false;
         if (!textoFiltro) return true;
-        const buscable = `${t.id} ${t.titulo} ${t.area || ""} ${t.solicitante_nombre || ""} ${t.solicitante} ${t.responsable_nombre || ""}`.toLowerCase();
+        const buscable = `${t.id} ${t.titulo} ${t.area || ""} ${t.categoria || ""} ${t.solicitante_nombre || ""} ${t.solicitante} ${t.responsable_nombre || ""}`.toLowerCase();
         return buscable.includes(textoFiltro);
       });
 
-      ticketsCargados = ordenarListaTickets(filtrados);
-      document.getElementById("contadorTablaTickets").textContent = `Mostrando ${ticketsCargados.length} de ${baseTickets.length} tickets ordenados`;
+      ticketsCargados = ordenarListaTickets(filtrados, filtroUnico);
+      document.getElementById("contadorTablaTickets").textContent = `${ticketsCargados.length} de ${baseTickets.length} tickets en cola`;
 
       renderizarTableroColumnas(ticketsCargados, esSoporte);
 
@@ -2789,7 +2850,7 @@
 
         const tdOrden = document.createElement("td");
         const pillOrd = document.createElement("span");
-        pillOrd.className = "queue-rank-pill";
+        pillOrd.className = "tcard-id-pill";
         pillOrd.textContent = `#${index + 1}`;
         tdOrden.appendChild(pillOrd);
 
@@ -2803,32 +2864,24 @@
         divTit.style.fontWeight = "700";
         divTit.textContent = t.titulo;
         tdTitulo.appendChild(divTit);
-        const comMostrar = t.ultimo_comentario_soporte || t.ultimo_comentario;
-        if (comMostrar) {
-          const divCom = document.createElement("div");
-          divCom.style.marginTop = "4px";
-          divCom.style.padding = "3px 8px";
-          divCom.style.borderRadius = "5px";
-          divCom.style.fontSize = "0.74rem";
-          divCom.style.background = "#f0fdf4";
-          divCom.style.color = "#14532d";
-          divCom.textContent = comMostrar.rol === "soporte"
-            ? `Soporte (${comMostrar.usuario_nombre}): "${comMostrar.texto}"`
-            : `${comMostrar.usuario_nombre}: "${comMostrar.texto}"`;
-          tdTitulo.appendChild(divCom);
-        }
 
         const tdEst = document.createElement("td");
         tdEst.appendChild(crearBadge(t.estado, `est-${t.estado.replace(/\s+/g, "-")}`));
 
         const tdResp = document.createElement("td");
-        tdResp.textContent = t.responsable_nombre || "Sin técnico asignado aún";
+        const respWrap = document.createElement("span");
+        respWrap.className = "user-name-inline";
+        respWrap.appendChild(crearSvgIconoUsuario("svg-icon"));
+        const respTxt = document.createElement("span");
+        respTxt.textContent = t.responsable_nombre || "Sin técnico asignado";
+        respWrap.appendChild(respTxt);
+        tdResp.appendChild(respWrap);
 
         const tdAccion = document.createElement("td");
         const btnVer = document.createElement("button");
         btnVer.type = "button";
         btnVer.className = "btn-secondary btn-sm";
-        btnVer.textContent = esSoporte ? "Gestionar" : "Ver detalle";
+        btnVer.textContent = esSoporte ? "Gestionar" : "Ver";
         btnVer.addEventListener("click", () => verDetalle(t.id));
         tdAccion.appendChild(btnVer);
 
@@ -2876,53 +2929,57 @@
 
       const t = data.ticket;
       panelDetalleTicket.classList.remove("hidden");
-      mainQueueLayout.classList.add("with-detail-open");
-      document.getElementById("detalleTituloCabecera").textContent = `#TK-${t.id} — ${t.titulo}`;
+      document.getElementById("detalleTituloCabecera").textContent = t.titulo;
 
       const badgesCab = document.getElementById("detalleBadgesCabecera");
       badgesCab.innerHTML = "";
+      const idBadge = document.createElement("span");
+      idBadge.className = "tcard-id-pill";
+      idBadge.textContent = `#TK-${t.id}`;
+      badgesCab.appendChild(idBadge);
       if (esSoporte) {
         badgesCab.appendChild(crearBadge(t.prioridad, `prio-${t.prioridad}`));
-        badgesCab.appendChild(document.createTextNode(" "));
       }
       badgesCab.appendChild(crearBadge(t.estado, `est-${t.estado.replace(/\s+/g, "-")}`));
 
+      const textoTecnico = t.responsable_nombre || "Sin técnico asignado";
+      const subMeta = document.getElementById("detalleSubtituloMeta");
+      subMeta.innerHTML = "";
+
+      if (esSoporte) {
+        const chSol = document.createElement("span");
+        chSol.className = "modal-meta-chip";
+        chSol.appendChild(crearSvgIconoUsuario("svg-icon"));
+        chSol.appendChild(document.createTextNode(`${t.solicitante_nombre || t.solicitante} · ${t.area || "General"}`));
+        subMeta.appendChild(chSol);
+      }
+
+      const chCat = document.createElement("span");
+      chCat.textContent = `${t.categoria} · ${t.creado}`;
+      subMeta.appendChild(chCat);
+
+      const chTec = document.createElement("span");
+      chTec.className = "modal-meta-chip";
+      chTec.appendChild(crearSvgIconoUsuario("svg-icon"));
+      chTec.appendChild(document.createTextNode(`Técnico: ${textoTecnico}`));
+      subMeta.appendChild(chTec);
+
       const grid = document.getElementById("detalleCamposGrid");
       grid.innerHTML = "";
-      const textoTecnico = t.responsable_nombre || "Sin técnico asignado aún";
+      const pDesc = document.createElement("div");
+      pDesc.textContent = t.descripcion;
+      grid.appendChild(pDesc);
 
-      const campos = esSoporte
-        ? [
-            ["Ticket", `#TK-${t.id} (${t.creado})`],
-            ["Solicitante / Área", `${t.solicitante_nombre || t.solicitante} · ${t.area || "General"}`],
-            ["Estado Actual", t.estado],
-            ["Técnico Asignado", textoTecnico],
-            ["Categoría", t.categoria],
-            ["Prioridad", t.prioridad],
-            ["Adjuntos", (t.adjuntos && t.adjuntos.length) ? t.adjuntos.join(", ") : "Ninguno"],
-            ["Descripción del Problema", t.descripcion]
-          ]
-        : [
-            ["Ticket", `#TK-${t.id} (${t.creado})`],
-            ["Estado Actual", t.estado],
-            ["Técnico Asignado", textoTecnico],
-            ["Adjuntos", (t.adjuntos && t.adjuntos.length) ? t.adjuntos.join(", ") : "Ninguno"],
-            ["Descripción del Problema", t.descripcion]
-          ];
-
-      for (const [etiqueta, valor] of campos) {
-        const item = document.createElement("div");
-        item.className = "detail-item";
-        if (etiqueta === "Descripción del Problema") {
-          item.style.gridColumn = "1 / -1";
-        }
-        const st = document.createElement("strong");
-        st.textContent = etiqueta;
-        const val = document.createElement("span");
-        val.textContent = valor;
-        item.appendChild(st);
-        item.appendChild(val);
-        grid.appendChild(item);
+      if (t.adjuntos && t.adjuntos.length > 0) {
+        const adjRow = document.createElement("div");
+        adjRow.style.marginTop = "10px";
+        adjRow.style.paddingTop = "8px";
+        adjRow.style.borderTop = "1px solid #d4ebdc";
+        adjRow.style.fontSize = "0.78rem";
+        adjRow.style.fontWeight = "700";
+        adjRow.style.color = "var(--forest-dark)";
+        adjRow.textContent = `Archivos adjuntos: ${t.adjuntos.join(", ")}`;
+        grid.appendChild(adjRow);
       }
 
       const panelSoporte = document.getElementById("controlesSoporteTicket");
@@ -2979,89 +3036,120 @@
         panelSoporte.classList.add("hidden");
       }
 
+      /* COMENTARIOS CON DISEÑO DE BURBUJA DE CHAT (WHATSAPP WEB) */
       const contCom = document.getElementById("listaComentariosTicket");
       contCom.innerHTML = "";
       const listaCom = t.comentarios || [];
       if (listaCom.length === 0) {
         const vacio = document.createElement("div");
-        vacio.style.fontSize = "0.78rem";
-        vacio.style.color = "var(--muted)";
-        vacio.style.padding = "6px 8px";
-        vacio.style.background = "#f8faf9";
-        vacio.style.borderRadius = "6px";
-        vacio.textContent = "Sin comentarios registrados en este ticket.";
+        vacio.className = "ticket-chat-empty";
+        vacio.textContent = "Aún no hay comentarios en este ticket.";
         contCom.appendChild(vacio);
       } else {
         for (const c of listaCom) {
-          const cardCom = document.createElement("div");
-          cardCom.style.padding = "8px 10px";
-          cardCom.style.borderRadius = "8px";
-          cardCom.style.fontSize = "0.81rem";
-          cardCom.style.background = c.rol === "soporte" ? "#f0fdf4" : "#f8fafc";
-          cardCom.style.border = c.rol === "soporte" ? "1px solid #86efac" : "1px solid #cbd5e1";
+          const esSaliente = esSoporte
+            ? (c.rol === "soporte")
+            : (usuarioActivo && c.usuario === usuarioActivo.id);
 
-          const headCom = document.createElement("div");
-          headCom.style.display = "flex";
-          headCom.style.justifyContent = "space-between";
-          headCom.style.marginBottom = "3px";
-          headCom.style.fontSize = "0.71rem";
+          const bubble = document.createElement("div");
+          bubble.className = `ticket-bubble ${esSaliente ? "ticket-bubble-out" : "ticket-bubble-in"}`;
 
-          const stAutor = document.createElement("strong");
-          stAutor.textContent = `${c.usuario_nombre || c.usuario} (${c.rol === "soporte" ? "Soporte TI" : "Solicitante"})`;
+          const autor = document.createElement("div");
+          autor.className = "ticket-bubble-author";
+          autor.textContent = `${c.usuario_nombre || c.usuario} · ${c.rol === "soporte" ? "Soporte TI" : "Solicitante"}`;
 
-          const spFecha = document.createElement("span");
-          spFecha.style.color = "var(--muted)";
-          spFecha.textContent = c.fecha;
+          const cuerpo = document.createElement("div");
+          cuerpo.textContent = c.texto;
 
-          headCom.appendChild(stAutor);
-          headCom.appendChild(spFecha);
+          const hora = document.createElement("div");
+          hora.className = "ticket-bubble-time";
+          hora.textContent = `${c.fecha}${esSaliente ? " ✓✓" : ""}`;
 
-          const bodyCom = document.createElement("div");
-          bodyCom.textContent = c.texto;
-
-          cardCom.appendChild(headCom);
-          cardCom.appendChild(bodyCom);
-          contCom.appendChild(cardCom);
+          bubble.appendChild(autor);
+          bubble.appendChild(cuerpo);
+          bubble.appendChild(hora);
+          contCom.appendChild(bubble);
         }
+        contCom.scrollTop = contCom.scrollHeight;
       }
 
+      /* HISTORIAL ORDENADO CRONOLOGICAMENTE CON LINEA DE TIEMPO */
       const ul = document.getElementById("listaHistorialEventos");
       ul.innerHTML = "";
-      const eventos = [...(t.historial || [])].reverse();
-      for (const ev of eventos) {
+      const eventos = [...(t.historial || [])];
+      document.getElementById("resumenTrazabilidad").textContent = `Historial ordenado del ticket (${eventos.length} eventos)`;
+      eventos.forEach((ev, idx) => {
         const li = document.createElement("li");
-        li.className = "live-update-item";
+        li.className = "history-step";
 
-        const dot = document.createElement("div");
-        dot.className = "lu-dot";
-        dot.textContent = "•";
+        const num = document.createElement("div");
+        num.className = "history-step-num";
+        num.textContent = String(idx + 1);
 
-        const content = document.createElement("div");
-        content.className = "lu-content";
+        const cardEv = document.createElement("div");
+        cardEv.className = "history-step-card";
 
-        const meta = document.createElement("div");
-        meta.className = "lu-meta";
-        const spanTipo = document.createElement("strong");
-        spanTipo.style.color = "var(--text)";
-        spanTipo.textContent = `${ev.tipo} · ${ev.usuario_nombre || ev.usuario}`;
-        const spanFecha = document.createElement("span");
-        spanFecha.textContent = ev.fecha;
-        meta.appendChild(spanTipo);
-        meta.appendChild(spanFecha);
+        const topEv = document.createElement("div");
+        topEv.className = "history-step-top";
 
-        const det = document.createElement("div");
-        det.textContent = ev.detalle;
+        const tipoPill = document.createElement("span");
+        tipoPill.className = "history-type-pill";
+        tipoPill.textContent = ev.tipo;
 
-        content.appendChild(meta);
-        content.appendChild(det);
+        const metaEv = document.createElement("span");
+        metaEv.className = "history-step-meta";
+        metaEv.appendChild(crearSvgIconoUsuario("svg-icon"));
+        metaEv.appendChild(document.createTextNode(`${ev.usuario_nombre || ev.usuario} · ${ev.fecha}`));
 
-        li.appendChild(dot);
-        li.appendChild(content);
+        topEv.appendChild(tipoPill);
+        topEv.appendChild(metaEv);
+
+        const detEv = document.createElement("div");
+        detEv.className = "history-step-detail";
+        detEv.textContent = String(ev.detalle || "").replace(/->/g, "→");
+
+        cardEv.appendChild(topEv);
+        cardEv.appendChild(detEv);
+
+        li.appendChild(num);
+        li.appendChild(cardEv);
         ul.appendChild(li);
+      });
+    }
+
+    function cerrarModalDetalleTicket() {
+      ticketSeleccionadoId = null;
+      panelDetalleTicket.classList.add("hidden");
+    }
+
+    function actualizarMenuSegunScroll() {
+      if (!usuarioActivo) return;
+      if (!aiDrawerBackdrop.classList.contains("hidden")) {
+        marcarMenuActivo("sideBtnChat");
+        return;
+      }
+      if (usuarioActivo.rol !== "soporte" || soporteResumenSection.classList.contains("hidden")) {
+        marcarMenuActivo("sideBtnTickets");
+        return;
+      }
+      const rectDash = soporteResumenSection.getBoundingClientRect();
+      const umbral = window.innerHeight * 0.45;
+      if (rectDash.top <= umbral) {
+        marcarMenuActivo("sideBtnDashboard");
+      } else {
+        marcarMenuActivo("sideBtnTickets");
       }
     }
 
+    window.addEventListener("scroll", actualizarMenuSegunScroll, { passive: true });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !panelDetalleTicket.classList.contains("hidden")) {
+        cerrarModalDetalleTicket();
+      }
+    });
+
     function mostrarSeccionCola() {
+      cerrarModalDetalleTicket();
       aiDrawerBackdrop.classList.add("hidden");
       seccionPrincipalTickets.classList.remove("hidden");
       marcarMenuActivo("sideBtnTickets");
@@ -3069,6 +3157,7 @@
     }
 
     function mostrarSeccionDashboard() {
+      cerrarModalDetalleTicket();
       aiDrawerBackdrop.classList.add("hidden");
       seccionPrincipalTickets.classList.remove("hidden");
       dashboardCollapsibleBody.classList.remove("hidden");
@@ -3078,6 +3167,7 @@
     }
 
     function abrirVistaChatWhatsApp() {
+      cerrarModalDetalleTicket();
       seccionPrincipalTickets.classList.add("hidden");
       aiDrawerBackdrop.classList.remove("hidden");
       marcarMenuActivo("sideBtnChat");
@@ -3095,13 +3185,11 @@
     document.getElementById("sideBtnTickets").addEventListener("click", mostrarSeccionCola);
     document.getElementById("sideBtnDashboard").addEventListener("click", mostrarSeccionDashboard);
     document.getElementById("sideBtnChat").addEventListener("click", abrirVistaChatWhatsApp);
-    document.getElementById("btnFocoNuevaSolicitud").addEventListener("click", abrirVistaChatWhatsApp);
     document.getElementById("btnCerrarAiDrawer").addEventListener("click", mostrarSeccionCola);
 
-    document.getElementById("btnCerrarDetalleTicket").addEventListener("click", () => {
-      ticketSeleccionadoId = null;
-      panelDetalleTicket.classList.add("hidden");
-      mainQueueLayout.classList.remove("with-detail-open");
+    document.getElementById("btnCerrarDetalleTicket").addEventListener("click", cerrarModalDetalleTicket);
+    panelDetalleTicket.addEventListener("click", (e) => {
+      if (e.target === panelDetalleTicket) cerrarModalDetalleTicket();
     });
 
     document.getElementById("btnVistaTarjetas").addEventListener("click", () => {
@@ -3118,18 +3206,12 @@
       contenedorTarjetasTickets.classList.add("hidden");
     });
 
-    document.getElementById("btnLimpiarFiltros").addEventListener("click", () => {
-      tabRapidaActiva = "todos";
-      document.getElementById("filtroEstado").value = "";
-      document.getElementById("filtroResponsable").value = "";
-      document.getElementById("filtroPrioridad").value = "";
-      document.getElementById("filtroCategoria").value = "";
-      document.getElementById("filtroAreaInput").value = "";
+    document.getElementById("sideBtnRefresh").addEventListener("click", cargarTickets);
+
+    document.getElementById("btnFiltroSoloCerrados").addEventListener("click", () => {
+      filtrarSoloCerrados = !filtrarSoloCerrados;
       cargarTickets();
     });
-
-    document.getElementById("sideBtnRefresh").addEventListener("click", cargarTickets);
-    document.getElementById("agruparColumnasSelect").addEventListener("change", cargarTickets);
 
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -3159,7 +3241,6 @@
       seccionPrincipalTickets.classList.remove("hidden");
       marcarMenuActivo("sideBtnTickets");
       panelDetalleTicket.classList.add("hidden");
-      mainQueueLayout.classList.remove("with-detail-open");
       ticketSeleccionadoId = null;
       chatLog.innerHTML = "";
 
@@ -3183,11 +3264,12 @@
       await fetch("/auth/logout", { method: "POST", headers: headersAutenticados() });
       tokenSesion = "";
       usuarioActivo = null;
+      filtrarSoloCerrados = false;
       sessionStorage.removeItem("ts_token");
+      cerrarModalDetalleTicket();
       aiDrawerBackdrop.classList.add("hidden");
       appView.classList.add("hidden");
-      headerSessionArea.classList.add("hidden");
-      vistaActualBadge.classList.add("hidden");
+      badgeUsuarioActivo.classList.add("hidden");
       loginView.classList.remove("hidden");
       document.getElementById("loginPassword").value = "";
     }
@@ -3297,13 +3379,11 @@
       await cargarTickets();
     });
 
-    document.getElementById("ordenarSelect").addEventListener("change", cargarTickets);
-    document.getElementById("filtroEstado").addEventListener("change", cargarTickets);
-    document.getElementById("filtroResponsable").addEventListener("change", cargarTickets);
-    document.getElementById("filtroPrioridad").addEventListener("change", cargarTickets);
-    document.getElementById("filtroCategoria").addEventListener("change", cargarTickets);
+    document.getElementById("filtroVistaUnico").addEventListener("change", () => {
+      filtrarSoloCerrados = false;
+      cargarTickets();
+    });
     document.getElementById("filtroAreaInput").addEventListener("input", cargarTickets);
-    document.getElementById("btnRefrescarTodo").addEventListener("click", cargarTickets);
 
     document.getElementById("btnNuevaSesion").addEventListener("click", async () => {
       await fetch("/reset-sesion", { method: "POST", headers: headersAutenticados() });
