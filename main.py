@@ -13,6 +13,7 @@ from agent.data import (
     ESTADOS,
     ORGANIZACIONES,
     PRIORIDADES,
+    TICKETS,
     TRANSICIONES_PERMITIDAS,
     USUARIOS,
     autenticar_credenciales,
@@ -34,11 +35,11 @@ from agent.tools.tools import (
     cambiar_prioridad,
     consultar_ticket,
     detectar_prompt_injection,
-    encapsular_mensaje_usuario_seguro,
-    fijar_usuario_sesion,
+    enriquecer_ticket_ui,
     generar_resumen,
     limpiar_usuario_sesion,
     listar_archivos,
+    preprocesar_contexto_seguro,
     sanitizar_identificador,
     sanitizar_texto,
 )
@@ -76,7 +77,7 @@ async def _obtener_sesion(usuario_id: str) -> str:
     session_id = _sesiones_por_usuario.get(usuario_id)
     if not session_id:
         s = await runner.session_service.create_session(
-            app_name="techsupport_app", user_id=usuario_id
+            app_name="techsupport_app", user_id="sesion_aislada"
         )
         session_id = s.id
         _sesiones_por_usuario[usuario_id] = session_id
@@ -223,7 +224,12 @@ def listar_tickets_visibles(
     )
     if not res.get("ok"):
         raise HTTPException(status_code=400, detail=res.get("error", "Error al buscar tickets."))
-    return res
+    tickets_ui = [
+        enriquecer_ticket_ui(TICKETS[t["id"]])
+        for t in res.get("tickets", [])
+        if t["id"] in TICKETS
+    ]
+    return {**res, "tickets": tickets_ui}
 
 
 @app.get("/tickets/{ticket_id}")
@@ -237,7 +243,7 @@ def detalle_ticket(
     if not res.get("ok"):
         codigo = 403 if "autorizacion" in res.get("error", "").lower() else 404
         raise HTTPException(status_code=codigo, detail=res.get("error", "No se pudo consultar el ticket."))
-    return res
+    return {"ok": True, "ticket": enriquecer_ticket_ui(TICKETS[ticket_id])}
 
 
 @app.get("/resumen")
@@ -264,7 +270,7 @@ def endpoint_cambiar_estado(
     if not res.get("ok"):
         codigo = 403 if "permiso" in res.get("error", "").lower() else 400
         raise HTTPException(status_code=codigo, detail=res.get("error"))
-    return res
+    return {"ok": True, "ticket": enriquecer_ticket_ui(TICKETS[ticket_id])}
 
 
 @app.post("/tickets/{ticket_id}/prioridad")
@@ -279,7 +285,7 @@ def endpoint_cambiar_prioridad(
     if not res.get("ok"):
         codigo = 403 if "permiso" in res.get("error", "").lower() else 400
         raise HTTPException(status_code=codigo, detail=res.get("error"))
-    return res
+    return {"ok": True, "ticket": enriquecer_ticket_ui(TICKETS[ticket_id])}
 
 
 @app.post("/tickets/{ticket_id}/asignar")
@@ -294,7 +300,7 @@ def endpoint_asignar_responsable(
     if not res.get("ok"):
         codigo = 403 if "permiso" in res.get("error", "").lower() else 400
         raise HTTPException(status_code=codigo, detail=res.get("error"))
-    return res
+    return {"ok": True, "ticket": enriquecer_ticket_ui(TICKETS[ticket_id])}
 
 
 @app.post("/tickets/{ticket_id}/comentario")
@@ -350,7 +356,6 @@ async def chat_con_agente(
             "respuesta": "Falta ingresar un mensaje o adjuntar un archivo (.png, .jpg, .webp, .txt, .log) para procesar la consulta.",
         }
 
-    info_usuario = usuario_publico(uid)
     partes: list[types.Part] = []
     nota_archivo = ""
 
@@ -446,10 +451,10 @@ async def chat_con_agente(
             partes.append(
                 types.Part(inline_data=types.Blob(data=contenido_bytes, mime_type=mime))
             )
-            nota_archivo = f" [Imagen adjunta en el chat: '{nombre_limpio}']"
+            nota_archivo = f"[Imagen adjunta en el chat: '{nombre_limpio}']"
         else:
             nota_archivo = (
-                f" [Archivo subido y guardado en 'archivos/{nombre_limpio}': "
+                f"[Archivo subido y guardado en 'archivos/{nombre_limpio}': "
                 f"analizalo con leer_archivo('{nombre_limpio}')]"
             )
     elif tiene_archivo_srv:
@@ -478,23 +483,28 @@ async def chat_con_agente(
             partes.append(
                 types.Part(inline_data=types.Blob(data=contenido_bytes, mime_type=mime))
             )
-            nota_archivo = f" [Imagen adjunta en el chat: '{nombre_limpio}']"
+            nota_archivo = f"[Imagen adjunta en el chat: '{nombre_limpio}']"
         else:
             nota_archivo = (
-                f" [Archivo adjunto desde 'archivos/{nombre_limpio}': "
+                f"[Archivo adjunto desde 'archivos/{nombre_limpio}': "
                 f"analizalo con leer_archivo('{nombre_limpio}')]"
             )
 
-    bloque_usuario = encapsular_mensaje_usuario_seguro(
-        mensaje_limpio or "Analiza el archivo adjunto."
+    ctx_seguro, err_ctx = preprocesar_contexto_seguro(
+        usuario_id_autenticado=uid,
+        mensaje=mensaje_limpio,
+        nota_archivo=nota_archivo,
     )
-    texto_final = (
-        f"[Contexto de sesion verificada -> usuario_id: {uid} | "
-        f"nombre: {info_usuario['nombre']} | rol: {info_usuario['rol']} | "
-        f"area: {info_usuario['area']} | organizacion: {info_usuario['organizacion']}]{nota_archivo}\n"
-        f"{bloque_usuario}"
-    )
-    partes.append(types.Part(text=texto_final))
+    if err_ctx or not ctx_seguro:
+        return {
+            "ok": False,
+            "usuario_id": uid,
+            "tools_usadas": [],
+            "respuesta": (err_ctx or {}).get("error", "Error en pre-validacion de sesion."),
+        }
+
+    token_ctx = ctx_seguro["token_ctx"]
+    partes.append(types.Part(text=ctx_seguro["texto_para_agente"]))
 
     session_id = await _obtener_sesion(uid)
     msg = types.Content(role="user", parts=partes)
@@ -502,10 +512,9 @@ async def chat_con_agente(
     respuestas: list[str] = []
     tools_usadas: list[dict] = []
 
-    token_ctx = fijar_usuario_sesion(uid)
     try:
         async for ev in runner.run_async(
-            user_id=uid, session_id=session_id, new_message=msg
+            user_id="sesion_aislada", session_id=session_id, new_message=msg
         ):
             if ev.content and ev.content.parts:
                 for p in ev.content.parts:
