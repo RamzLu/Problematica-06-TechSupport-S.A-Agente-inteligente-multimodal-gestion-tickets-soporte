@@ -1,16 +1,21 @@
 import copy
+import csv
 import hashlib
 import hmac
 import json
 import secrets
 from pathlib import Path
 
-DATASET_PATH = Path(__file__).resolve().parent.parent / "dataset" / "datos_iniciales.json"
+DATASET_DIR = Path(__file__).resolve().parent.parent / "dataset"
+DATASET_PATH = DATASET_DIR / "datos_iniciales.json"
+TICKETS_CSV_PATH = DATASET_DIR / "tickets_iniciales.csv"
+USUARIOS_PRIVADOS_PATH = DATASET_DIR / "usuarios_privados.json"
 
 CATEGORIAS: list[str] = []
 PRIORIDADES: list[str] = []
 ESTADOS: list[str] = []
 TRANSICIONES_PERMITIDAS: dict[str, list[str]] = {}
+REGLAS_CLASIFICACION: dict[str, dict] = {}
 PERMISOS_POR_ROL: dict[str, set[str]] = {}
 ORGANIZACIONES: dict[str, dict] = {}
 USUARIOS: dict[str, dict] = {}
@@ -85,7 +90,59 @@ def autenticar_credenciales(identificador: str, password: str) -> dict | None:
     return usuario_publico(uid_encontrado)
 
 
-def cargar_dataset(ruta: Path | str = DATASET_PATH) -> None:
+def cargar_usuarios_privados(ruta_usuarios: Path | str = USUARIOS_PRIVADOS_PATH) -> None:
+    ruta_path = Path(ruta_usuarios)
+    if not ruta_path.exists():
+        return
+    raw_priv = json.loads(ruta_path.read_text(encoding="utf-8"))
+
+    PERMISOS_POR_ROL.clear()
+    for rol, perms in raw_priv.get("permisos_por_rol", {}).items():
+        PERMISOS_POR_ROL[rol] = set(perms)
+
+    ORGANIZACIONES.clear()
+    for oid, odata in raw_priv.get("organizaciones", {}).items():
+        ORGANIZACIONES[oid] = copy.deepcopy(odata)
+
+    USUARIOS.clear()
+    for uid, udata in raw_priv.get("usuarios", {}).items():
+        USUARIOS[uid] = copy.deepcopy(udata)
+
+
+def cargar_tickets_csv(ruta_csv: Path | str = TICKETS_CSV_PATH) -> None:
+    ruta_path = Path(ruta_csv)
+    TICKETS.clear()
+    if not ruta_path.exists():
+        return
+    with ruta_path.open(mode="r", encoding="utf-8", newline="") as f:
+        lector = csv.DictReader(f)
+        for fila in lector:
+            tid = int(fila["id"])
+            responsable_val = (fila.get("responsable") or "").strip() or None
+            adjuntos_raw = (fila.get("adjuntos") or "[]").strip()
+            historial_raw = (fila.get("historial") or "[]").strip()
+            TICKETS[tid] = {
+                "id": tid,
+                "creado": fila["creado"],
+                "solicitante": fila["solicitante"],
+                "organizacion_id": fila.get("organizacion_id", "org_central"),
+                "area": fila.get("area", "General"),
+                "titulo": fila["titulo"],
+                "descripcion": fila["descripcion"],
+                "categoria": fila["categoria"],
+                "prioridad": fila["prioridad"],
+                "adjuntos": json.loads(adjuntos_raw),
+                "estado": fila["estado"],
+                "responsable": responsable_val,
+                "historial": json.loads(historial_raw),
+            }
+
+
+def cargar_dataset(
+    ruta: Path | str = DATASET_PATH,
+    ruta_csv: Path | str = TICKETS_CSV_PATH,
+    ruta_usuarios: Path | str = USUARIOS_PRIVADOS_PATH,
+) -> None:
     ruta_path = Path(ruta)
     raw = json.loads(ruta_path.read_text(encoding="utf-8"))
     cfg = raw.get("configuracion", {})
@@ -103,24 +160,15 @@ def cargar_dataset(ruta: Path | str = DATASET_PATH) -> None:
     for est, dests in cfg.get("transiciones_permitidas", {}).items():
         TRANSICIONES_PERMITIDAS[est] = list(dests)
 
-    PERMISOS_POR_ROL.clear()
-    for rol, perms in cfg.get("permisos_por_rol", {}).items():
-        PERMISOS_POR_ROL[rol] = set(perms)
+    REGLAS_CLASIFICACION.clear()
+    for clave, valor in cfg.get("reglas_clasificacion", {}).items():
+        REGLAS_CLASIFICACION[clave] = copy.deepcopy(valor)
 
-    ORGANIZACIONES.clear()
-    for oid, odata in raw.get("organizaciones", {}).items():
-        ORGANIZACIONES[oid] = copy.deepcopy(odata)
+    cargar_usuarios_privados(ruta_usuarios)
 
-    USUARIOS.clear()
-    for uid, udata in raw.get("usuarios", {}).items():
-        USUARIOS[uid] = copy.deepcopy(udata)
-
-    TICKETS.clear()
-    for t in raw.get("tickets", []):
-        tid = int(t["id"])
-        copia = copy.deepcopy(t)
-        copia["id"] = tid
-        TICKETS[tid] = copia
+    nombre_csv = cfg.get("archivo_tickets_csv")
+    csv_efectivo = ruta_path.parent / nombre_csv if nombre_csv else Path(ruta_csv)
+    cargar_tickets_csv(csv_efectivo)
 
 
 cargar_dataset()
