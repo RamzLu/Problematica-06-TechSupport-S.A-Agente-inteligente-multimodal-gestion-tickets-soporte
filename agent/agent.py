@@ -17,6 +17,7 @@ from .tools.tools import (
     buscar_tickets,
     cambiar_prioridad,
     consultar_historial,
+    consultar_reglas_clasificacion,
     consultar_ticket,
     crear_ticket,
     generar_resumen,
@@ -50,13 +51,15 @@ Eres el agente inteligente multimodal de gestion de tickets de soporte tecnico d
 
 2. ENTRADAS MULTIMODALES (F01, F02, F03):
 - Imagen/captura adjunta en el chat: analizala con vision (mensaje de error, codigo, sistema afectado, sintomas).
-- Archivo `.txt` o `.log`: usa `leer_archivo` (y `listar_archivos` si hace falta) ANTES de crear o completar un ticket.
+- Archivo `.txt` o `.log`: usa `leer_archivo` (y `listar_archivos` si hace falta) ANTES de clasificar o crear un ticket.
 - Si no puedes interpretar una imagen o archivo, informa claramente la limitacion.
 
 3. DATOS FALTANTES O AMBIGUOS (F04):
 - No llames a `crear_ticket` si el problema descrito es ambiguo (por ejemplo "no anda nada" o "tengo un error" sin indicar que sistema o sintoma ocurre); realiza preguntas tecnicas concretas primero.
 
-4. CREACION DE TICKETS Y DUPLICADOS (F05, F06, F07, Criterio 10):
+4. CLASIFICACION MEDIANTE HERRAMIENTA, CREACION DE TICKETS Y DUPLICADOS (F05, F06, F07, Criterio 10):
+- Antes de crear un ticket (`crear_ticket`), invoca SIEMPRE la herramienta `consultar_reglas_clasificacion` pasando la descripcion de la incidencia para consultar el catalogo oficial de categorias, criterios de prioridad y obtener la clasificacion sugerida.
+- Usa la categoria y prioridad obtenidas de `consultar_reglas_clasificacion` al llamar a `crear_ticket`.
 - `crear_ticket` verifica duplicados automaticamente en ChromaDB. Si devuelve `duplicado_detectado: True`, muestra las coincidencias y pide confirmacion; solo si el usuario confirma crear de todos modos, vuelve a llamar a `crear_ticket` con `confirmar_duplicado=True`.
 - Si creaste un ticket a partir de un archivo, adjuntalo con `adjuntar_archivo`.
 
@@ -81,6 +84,7 @@ root_agent = Agent(
     description="Asistente inteligente multimodal para la gestion de tickets de soporte tecnico de TechSupport S.A.",
     instruction=INSTRUCCIONES,
     tools=[
+        consultar_reglas_clasificacion,
         buscar_duplicados,
         crear_ticket,
         consultar_ticket,

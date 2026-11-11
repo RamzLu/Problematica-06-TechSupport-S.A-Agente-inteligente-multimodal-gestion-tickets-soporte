@@ -15,6 +15,7 @@ from ..data import (
     ORGANIZACIONES,
     PERMISOS_POR_ROL,
     PRIORIDADES,
+    REGLAS_CLASIFICACION,
     TICKETS,
     TRANSICIONES_PERMITIDAS,
     USUARIOS,
@@ -504,6 +505,70 @@ def _buscar_similares(
             }
         )
     return coincidencias
+
+
+def consultar_reglas_clasificacion(descripcion_incidencia: str = "") -> dict:
+    """
+    Consulta el catalogo oficial de categorias, prioridades y reglas de clasificacion
+    de TechSupport S.A., y sugiere la categoria y prioridad adecuadas para una incidencia.
+    Debes invocar esta herramienta ANTES de llamar a crear_ticket para clasificar el problema.
+
+    Args:
+        descripcion_incidencia: texto con el sintoma, error o problema tecnico reportado.
+    """
+    desc_limpia, err = sanitizar_texto(
+        descripcion_incidencia or "", campo="descripcion_incidencia", max_largo=2000
+    )
+    if err:
+        return err
+
+    texto_norm = _sin_tildes(desc_limpia)
+    criterios_cat = REGLAS_CLASIFICACION.get("criterios_categoria", {})
+    criterios_prio = REGLAS_CLASIFICACION.get("criterios_prioridad", {})
+
+    mejor_categoria = "Otros"
+    max_puntos_cat = 0
+    coincidencias_cat = []
+    especialidad_sugerida = "Soporte TI General"
+
+    for cat, info in criterios_cat.items():
+        kws = info.get("palabras_clave", [])
+        hits = [kw for kw in kws if _sin_tildes(kw) in texto_norm]
+        if len(hits) > max_puntos_cat:
+            max_puntos_cat = len(hits)
+            mejor_categoria = cat
+            coincidencias_cat = hits
+            especialidad_sugerida = info.get("especialidad_sugerida", "Soporte TI General")
+
+    prioridad_sugerida = "Media"
+    coincidencias_prio = []
+    sla_sugerido = "Menos de 4 horas"
+
+    for prio in ("Critica", "Alta", "Media", "Baja"):
+        info_p = criterios_prio.get(prio, {})
+        inds = info_p.get("indicadores", [])
+        hits_p = [ind for ind in inds if _sin_tildes(ind) in texto_norm]
+        if hits_p:
+            prioridad_sugerida = prio
+            coincidencias_prio = hits_p
+            sla_sugerido = info_p.get("sla_respuesta", "")
+            break
+
+    return {
+        "ok": True,
+        "categorias_oficiales": list(CATEGORIAS),
+        "prioridades_oficiales": list(PRIORIDADES),
+        "sugerencia_automatica": {
+            "categoria_sugerida": mejor_categoria,
+            "palabras_clave_detectadas": coincidencias_cat,
+            "especialidad_sugerida": especialidad_sugerida,
+            "prioridad_sugerida": prioridad_sugerida,
+            "indicadores_prioridad_detectados": coincidencias_prio,
+            "sla_respuesta": sla_sugerido,
+        },
+        "criterios_categoria": criterios_cat,
+        "criterios_prioridad": criterios_prio,
+    }
 
 
 def buscar_duplicados(consulta: str) -> dict:
