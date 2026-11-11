@@ -334,6 +334,19 @@ def _enriquecer_ticket(t: dict) -> dict:
                 }
             )
 
+    if not comentarios and t.get("comentarios"):
+        for c in t.get("comentarios", []):
+            uid_c = c.get("usuario", "")
+            rol_c = c.get("rol") or USUARIOS.get(uid_c, {}).get("rol", "usuario")
+            comentarios.append(
+                {
+                    "fecha": c.get("fecha", ""),
+                    "usuario": uid_c,
+                    "rol": rol_c,
+                    "texto": c.get("texto", ""),
+                }
+            )
+
     comentarios_soporte = [c for c in comentarios if c["rol"] == "soporte"]
     return {
         "id": t["id"],
@@ -341,12 +354,12 @@ def _enriquecer_ticket(t: dict) -> dict:
         "solicitante": t.get("solicitante", ""),
         "organizacion_id": t.get("organizacion_id", "org_central"),
         "area": t.get("area", "General"),
-        "titulo": t["titulo"],
-        "descripcion": t["descripcion"],
-        "categoria": t["categoria"],
-        "prioridad": t["prioridad"],
+        "titulo": t.get("titulo", ""),
+        "descripcion": t.get("descripcion", ""),
+        "categoria": t.get("categoria", ""),
+        "prioridad": t.get("prioridad", ""),
         "adjuntos": list(t.get("adjuntos", [])),
-        "estado": t["estado"],
+        "estado": t.get("estado", ""),
         "responsable": t.get("responsable"),
         "historial": historial_limpio,
         "comentarios": comentarios,
