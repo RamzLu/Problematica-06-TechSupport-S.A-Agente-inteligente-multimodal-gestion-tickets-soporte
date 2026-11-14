@@ -1,7 +1,6 @@
 import contextvars
 import re
 import unicodedata
-from datetime import datetime
 from pathlib import Path
 
 import chromadb
@@ -12,14 +11,13 @@ from langchain_ollama import OllamaEmbeddings
 from ..data import (
     CATEGORIAS,
     ESTADOS,
-    ORGANIZACIONES,
     PERMISOS_POR_ROL,
     PRIORIDADES,
     REGLAS_CLASIFICACION,
-    TICKETS,
     TRANSICIONES_PERMITIDAS,
     USUARIOS,
 )
+from ..repo import RepoError, get_repo
 
 _usuario_sesion_actual: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "usuario_sesion_actual", default=None
@@ -65,12 +63,10 @@ def _resolver_usuario_efectivo(usuario_id_param: str = "") -> tuple[str, dict | 
         return fijado, None
 
     if not param_limpio or param_norm in _ALIASES_SESION_ACTUAL:
-        return "u001", None
+        return "", _error(
+            "Operacion bloqueada: no hay una sesion autenticada. Inicie sesion para continuar."
+        )
     return param_limpio, None
-
-
-def _ahora() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
 def _sin_tildes(texto: str) -> str:
@@ -85,15 +81,21 @@ def _normalizar(valor: str, catalogo: list):
     return None
 
 
-def _registrar(ticket: dict, usuario_id: str, tipo: str, detalle: str) -> None:
-    ticket["historial"].append(
-        {
-            "fecha": _ahora(),
-            "usuario": usuario_id,
-            "tipo": tipo,
-            "detalle": detalle,
-        }
-    )
+def _persistir(
+    ticket: dict, usuario_id: str, tipo: str, detalle: str, campos: dict | None = None
+) -> dict | None:
+    """Guarda el cambio del ticket y su evento de historial en una sola transaccion.
+
+    Devuelve None si todo salio bien o un dict de error si la base de datos fallo.
+    """
+    try:
+        evento = get_repo().aplicar_cambio(ticket["id"], campos or {}, usuario_id, tipo, detalle)
+    except RepoError:
+        return _error(
+            "No se pudo guardar el cambio en la base de datos. Intente nuevamente en unos instantes."
+        )
+    ticket["historial"].append(evento)
+    return None
 
 
 def _error(mensaje: str) -> dict:
@@ -133,12 +135,26 @@ _PATRONES_PROMPT_INJECTION = re.compile(
     r"(<\s*/?\s*mensaje_usuario_no_confiable\s*>)|"
     r"(\b(jailbreak|modo\s+desarrollador|developer\s+mode|dan\s+mode)\b)|"
     r"(\b(cambia(r)?\s+mi\s+rol\s+a\s+soporte|asume\s+que\s+soy\s+soporte|actua\s+como\s+administrador)\b)|"
-    r"(\b(suplanta(r)?\s+a(l)?\s+usuario|ejecuta\s+en\s+nombre\s+de\s+s00\d)\b)"
+    r"(\b(suplanta(r)?\s+a(l)?\s+usuario|ejecuta\s+en\s+nombre\s+de\s+s00\d)\b)|"
+    r"(\ba\s+partir\s+de\s+ahora\s+(eres|sos|seras|actuas|actua|te\s+comportas|vas\s+a\s+actuar))|"
+    r"(\b(eres|sos|you\s+are)\s+(ahora\s+|now\s+)?(dan|root|administrador|admin|soporte\s+con\s+permisos))|"
+    r"(\b(responde|actua|comportate|contesta)\w*\s+(sin|without)\s+(ninguna\s+)?(restricciones|limites|reglas|filtros)\b)|"
+    r"(\bno\s+tienes\s+(ninguna\s+)?(restricciones|limites|reglas)\b)|"
+    r"(\b(pretend|act)\s+(to\s+be|as)\s+(an?\s+)?(admin|root|support|system))|"
+    r"(\b(cambia|pasa|sube|eleva|asigna|convierte)\w*\s+(mi\s+)?(sesion|rol|permisos|cuenta)\s+(a|de|en)\s+(rol\s+)?(soporte|admin\w*))|"
+    r"(\brepite\w*\s+(tus|las|todas\s+tus)\s+(instrucciones|reglas)\b)"
     r")",
     re.IGNORECASE | re.DOTALL,
 )
 
 _PATRON_EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+_PATRON_DOCUMENTO = re.compile(
+    r"\b(dni|cuil|cuit|documento|cedula)\b[\s:#.\u00ba\u00b0no]*\d[\d.\-\s]{5,14}\d", re.IGNORECASE
+)
+_PATRON_CREDENCIAL = re.compile(
+    r"\b(contrase[n\u00f1]a|clave|password|passwd|pin)\b\s*(?:es|era|:|=)\s*\S+", re.IGNORECASE
+)
+_PATRON_TARJETA = re.compile(r"\b(?:\d[ -]?){13,16}\b")
 _PATRON_ID_SEGURO = re.compile(r"^[a-zA-Z0-9_-]{1,30}$")
 _PATRON_ARCHIVO_SEGURO = re.compile(r"^[a-zA-Z0-9._-]{1,120}$")
 
@@ -168,6 +184,9 @@ def redactar_datos_sensibles(texto: str) -> str:
     if not texto:
         return ""
     resultado = _PATRON_EMAIL.sub("[EMAIL_PROTEGIDO]", str(texto))
+    resultado = _PATRON_DOCUMENTO.sub(lambda m: f"{m.group(1)} [DOCUMENTO_PROTEGIDO]", resultado)
+    resultado = _PATRON_CREDENCIAL.sub(lambda m: f"{m.group(1)} [CREDENCIAL_PROTEGIDA]", resultado)
+    resultado = _PATRON_TARJETA.sub("[TARJETA_PROTEGIDA]", resultado)
     for udata in USUARIOS.values():
         nombre = udata.get("nombre", "").strip()
         if nombre and len(nombre) > 3:
@@ -304,7 +323,10 @@ def _obtener_ticket(ticket_id: int):
         ticket_id = int(ticket_id)
     except (TypeError, ValueError):
         return None, _error(f"El identificador '{ticket_id}' no es un numero valido.")
-    ticket = TICKETS.get(ticket_id)
+    try:
+        ticket = get_repo().ticket(ticket_id)
+    except RepoError:
+        return None, _error("No se pudo consultar la base de datos. Intente nuevamente.")
     if ticket is None:
         return None, _error(f"No existe el ticket {ticket_id}.")
     return ticket, None
@@ -429,12 +451,11 @@ def enriquecer_ticket_ui(t: dict) -> dict:
 
 
 def _tickets_visibles(usuario_id: str) -> list:
+    todos = get_repo().tickets_todos()
     if _tiene_permiso(usuario_id, "consultar_todos"):
-        return [t for t in TICKETS.values() if _misma_organizacion(usuario_id, t)]
+        return [t for t in todos if _misma_organizacion(usuario_id, t)]
     return [
-        t
-        for t in TICKETS.values()
-        if t["solicitante"] == usuario_id and _misma_organizacion(usuario_id, t)
+        t for t in todos if t["solicitante"] == usuario_id and _misma_organizacion(usuario_id, t)
     ]
 
 
@@ -470,12 +491,12 @@ def _obtener_vector_store() -> Chroma:
         )
         _ids_indexados = set()
 
-    ids_actuales = set(TICKETS.keys())
-    if not _ids_indexados.issubset(ids_actuales):
+    tickets_actuales = {t["id"]: t for t in get_repo().tickets_todos()}
+    if not _ids_indexados.issubset(tickets_actuales.keys()):
         _vector_store = None
         return _obtener_vector_store()
 
-    faltantes = [t for tid, t in TICKETS.items() if tid not in _ids_indexados]
+    faltantes = [t for tid, t in tickets_actuales.items() if tid not in _ids_indexados]
     if faltantes:
         docs = [
             Document(
@@ -498,25 +519,32 @@ def _buscar_similares(
     coincidencias = []
     for doc, score in resultados:
         tid = int(doc.metadata["ticket_id"])
-        ticket = TICKETS.get(tid)
+        ticket = get_repo().ticket(tid)
         if not ticket or score < umbral:
             continue
         if usuario_id and not _misma_organizacion(usuario_id, ticket):
             continue
-        resumen = _resumen_corto(ticket)
         es_soporte = usuario_id and _tiene_permiso(usuario_id, "consultar_todos")
         es_propio = usuario_id and ticket["solicitante"] == usuario_id
-        coincidencias.append(
-            {
-                **resumen,
-                "descripcion": (
-                    ticket["descripcion"]
-                    if (not usuario_id or es_soporte or es_propio)
-                    else "Incidencia similar reportada en la organizacion."
-                ),
-                "similitud": round(float(score), 4),
-            }
-        )
+        if not usuario_id or es_soporte or es_propio:
+            coincidencias.append(
+                {
+                    **_resumen_corto(ticket),
+                    "descripcion": ticket["descripcion"],
+                    "similitud": round(float(score), 4),
+                }
+            )
+        else:
+            coincidencias.append(
+                {
+                    "id": ticket["id"],
+                    "estado": ticket["estado"],
+                    "categoria": ticket["categoria"],
+                    "ticket_ajeno": True,
+                    "descripcion": "Incidencia similar reportada por otro usuario de la organizacion.",
+                    "similitud": round(float(score), 4),
+                }
+            )
     return coincidencias
 
 
@@ -680,11 +708,7 @@ def crear_ticket(
 
     if not es_confirmado:
         try:
-            similares = [
-                c
-                for c in _buscar_similares(f"{titulo_limpio}. {desc_limpia}", usuario_id=uid)
-                if c["estado"] != "Cerrado"
-            ]
+            similares = _buscar_similares(f"{titulo_limpio}. {desc_limpia}", usuario_id=uid)
         except Exception:
             similares = []
         if similares:
@@ -694,31 +718,30 @@ def crear_ticket(
                 "coincidencias": similares,
                 "error": (
                     "Se detectaron tickets similares ya registrados. NO se creo el ticket. "
-                    "Informa al usuario sobre estas coincidencias y preguntale si desea "
+                    "Informa al usuario sobre estas coincidencias (indicando su estado; si alguna "
+                    "esta Cerrada o Resuelta, aclara que ya tuvo solucion) y preguntale si desea "
                     "crear el ticket igualmente (en ese caso vuelve a llamar a crear_ticket "
                     "con confirmar_duplicado=True) o si prefiere consultar/actualizar el existente."
                 ),
             }
 
     info_usr = USUARIOS[uid]
-    nuevo_id = max(TICKETS) + 1 if TICKETS else 1001
-    ticket = {
-        "id": nuevo_id,
-        "creado": _ahora(),
-        "solicitante": uid,
-        "organizacion_id": info_usr.get("organizacion_id", "org_central"),
-        "area": info_usr.get("area", "General"),
-        "titulo": titulo_limpio,
-        "descripcion": desc_limpia,
-        "categoria": categoria_ok,
-        "prioridad": prioridad_ok,
-        "adjuntos": [],
-        "estado": "Abierto",
-        "responsable": None,
-        "historial": [],
-    }
-    _registrar(ticket, uid, "Creacion", "Ticket creado")
-    TICKETS[nuevo_id] = ticket
+    try:
+        ticket = get_repo().crear_ticket(
+            {
+                "organizacion_id": info_usr.get("organizacion_id", "org_central"),
+                "area": info_usr.get("area", "General"),
+                "titulo": titulo_limpio,
+                "descripcion": desc_limpia,
+                "categoria": categoria_ok,
+                "prioridad": prioridad_ok,
+            },
+            uid,
+        )
+    except RepoError:
+        return _error(
+            "No se pudo guardar el ticket en la base de datos. Intente nuevamente en unos instantes."
+        )
     if _vector_store is not None:
         try:
             _obtener_vector_store()
@@ -848,7 +871,11 @@ def actualizar_estado(ticket_id: int, nuevo_estado: str, usuario_id: str = "") -
         )
 
     ticket["estado"] = estado_ok
-    _registrar(ticket, uid, "Cambio de estado", f"{anterior} -> {estado_ok}")
+    error = _persistir(
+        ticket, uid, "Cambio de estado", f"{anterior} -> {estado_ok}", {"estado": estado_ok}
+    )
+    if error:
+        return error
     return {"ok": True, "ticket": _resumen_corto(ticket)}
 
 
@@ -881,8 +908,19 @@ def cambiar_prioridad(ticket_id: int, nueva_prioridad: str, usuario_id: str = ""
     if prioridad_ok == anterior:
         return _error(f"El ticket {ticket['id']} ya tiene prioridad '{prioridad_ok}'.")
     ticket["prioridad"] = prioridad_ok
-    _registrar(ticket, uid, "Cambio de prioridad", f"{anterior} -> {prioridad_ok}")
+    error = _persistir(
+        ticket,
+        uid,
+        "Cambio de prioridad",
+        f"{anterior} -> {prioridad_ok}",
+        {"prioridad": prioridad_ok},
+    )
+    if error:
+        return error
     return {"ok": True, "ticket": _resumen_corto(ticket)}
+
+
+_AUTO_ASIGNACION = {"yo", "me", "mi", "mismo", "propio", "self"}
 
 
 def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "") -> dict:
@@ -891,7 +929,9 @@ def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "
 
     Args:
         ticket_id: numero del ticket.
-        responsable_id: codigo tecnico del integrante de soporte asignado (ej. "s001", "s002", "s003").
+        responsable_id: codigo tecnico del integrante de soporte asignado (ej. "s001"). Para que el
+            usuario de la sesion se asigne el ticket a si mismo ("asignamelo", "yo", "me lo quedo")
+            usar "yo".
         usuario_id: opcional, se resuelve automaticamente de la sesion activa.
     """
     uid, error = _validar_usuario(usuario_id)
@@ -907,11 +947,17 @@ def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "
         return _error(f"La sesion actual no pertenece a la organizacion del ticket {ticket['id']}.")
     if ticket["estado"] == "Cerrado":
         return _error(f"Operacion no permitida: el ticket {ticket['id']} se encuentra en estado final 'Cerrado'.")
+    if (responsable_id or "").strip().lower() in _AUTO_ASIGNACION:
+        responsable_id = uid
     resp_ok, err = sanitizar_identificador(responsable_id, campo="responsable_id")
     if err:
         return err
     if resp_ok not in USUARIOS:
-        return _error(f"Codigo '{resp_ok}' no existe en el registro.")
+        validos = ", ".join(sorted(c for c, u in USUARIOS.items() if u["rol"] == "soporte"))
+        return _error(
+            f"Codigo '{resp_ok}' no existe en el registro. "
+            f"Codigos de soporte validos: {validos}. Para asignarte el ticket a vos mismo usa responsable_id='yo'."
+        )
     if USUARIOS[resp_ok]["rol"] != "soporte":
         return _error(f"El codigo '{resp_ok}' no pertenece al personal de soporte.")
     anterior = ticket["responsable"]
@@ -919,7 +965,11 @@ def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "
         return _error(f"El ticket {ticket['id']} ya esta asignado a {resp_ok}.")
     ticket["responsable"] = resp_ok
     tipo = "Asignacion" if anterior is None else "Reasignacion"
-    _registrar(ticket, uid, tipo, f"{anterior or 'sin asignar'} -> {resp_ok}")
+    error = _persistir(
+        ticket, uid, tipo, f"{anterior or 'sin asignar'} -> {resp_ok}", {"responsable": resp_ok}
+    )
+    if error:
+        return error
     return {"ok": True, "ticket": _resumen_corto(ticket)}
 
 
@@ -946,15 +996,34 @@ def agregar_comentario(ticket_id: int, comentario: str, usuario_id: str = "") ->
     comentario_limpio, err = sanitizar_texto(comentario, campo="comentario", max_largo=1500)
     if err:
         return err
-    _registrar(ticket, uid, "Comentario", comentario_limpio)
+    error = _persistir(ticket, uid, "Comentario", comentario_limpio)
+    if error:
+        return error
     return {"ok": True, "ticket_id": ticket["id"], "mensaje": "Comentario agregado."}
 
 
-ARCHIVOS_DIR = Path(__file__).resolve().parent.parent.parent / "archivos"
+CARPETA_COMPARTIDA = "compartidos"
 EXTENSIONES_TEXTO = {".txt", ".log"}
 EXTENSIONES_IMAGEN = {".png", ".jpg", ".jpeg", ".webp"}
 EXTENSIONES_PERMITIDAS = EXTENSIONES_TEXTO | EXTENSIONES_IMAGEN
-ARCHIVOS_PROTEGIDOS = {"captura_error_vpn.png", "error_facturacion.log", "reporte_red.txt"}
+
+
+def _carpetas_de_lectura(uid: str, ticket: dict | None = None) -> list[str]:
+    """Carpetas del bucket donde 'uid' puede buscar un archivo, por orden de prioridad."""
+    carpetas = [uid]
+    if ticket and USUARIOS.get(uid, {}).get("rol") == "soporte":
+        carpetas.append(ticket.get("solicitante"))
+    carpetas.append(CARPETA_COMPARTIDA)
+    return [c for c in dict.fromkeys(carpetas) if c]
+
+
+def _leer_archivo_bytes(uid: str, nombre: str, ticket: dict | None = None) -> bytes | None:
+    repo = get_repo()
+    for carpeta in _carpetas_de_lectura(uid, ticket):
+        datos = repo.archivo_leer(carpeta, nombre)
+        if datos is not None:
+            return datos
+    return None
 MAX_TAMANO_ARCHIVO = 5 * 1024 * 1024
 MAX_TAMANO_TEXTO_BYTES = 100 * 1024
 MAX_CARACTERES_ARCHIVO_TEXTO = 8000
@@ -991,13 +1060,20 @@ def adjuntar_archivo(ticket_id: int, nombre_archivo: str, usuario_id: str = "") 
         return _error(
             f"Extension de archivo '{ext}' no permitida. Solo se admiten: {sorted(EXTENSIONES_PERMITIDAS)}"
         )
-    ruta_real = (ARCHIVOS_DIR / nombre).resolve()
-    if ruta_real.parent != ARCHIVOS_DIR.resolve() or not ruta_real.is_file():
-        return _error(f"El archivo '{nombre}' no existe en el repositorio seguro 'archivos/'.")
+    try:
+        existe = _leer_archivo_bytes(uid, nombre, ticket) is not None
+    except RepoError as exc:
+        return _error(str(exc))
+    if not existe:
+        return _error(f"El archivo '{nombre}' no existe en el repositorio seguro de archivos.")
     if nombre in ticket["adjuntos"]:
         return _error(f"El archivo '{nombre}' ya esta adjunto al ticket {ticket['id']}.")
     ticket["adjuntos"].append(nombre)
-    _registrar(ticket, uid, "Archivo", f"Adjunto {nombre}")
+    error = _persistir(
+        ticket, uid, "Archivo", f"Adjunto {nombre}", {"adjuntos": ticket["adjuntos"]}
+    )
+    if error:
+        return error
     return {"ok": True, "ticket_id": ticket["id"], "adjuntos": ticket["adjuntos"]}
 
 
@@ -1064,27 +1140,44 @@ def generar_resumen(usuario_id: str = "") -> dict:
     return resumen
 
 
-def listar_archivos() -> dict:
+def listar_archivos(usuario_id: str = "") -> dict:
     """
-    Lista los archivos disponibles en la carpeta 'archivos/' del proyecto.
+    Lista los archivos disponibles para el usuario de la sesion: los que subio el mismo
+    y los archivos de ejemplo compartidos.
+
+    Args:
+        usuario_id: opcional, se resuelve automaticamente de la sesion activa.
     """
-    if not ARCHIVOS_DIR.exists():
-        return {"ok": True, "archivos": [], "mensaje": "La carpeta 'archivos/' no existe."}
-    nombres = sorted(
-        p.name
-        for p in ARCHIVOS_DIR.iterdir()
-        if p.is_file() and p.suffix.lower() in EXTENSIONES_PERMITIDAS
-    )
+    uid, error = _validar_usuario(usuario_id)
+    if error:
+        return error
+    try:
+        repo = get_repo()
+        nombres = sorted(
+            {
+                n
+                for carpeta in _carpetas_de_lectura(uid)
+                for n in repo.archivo_listar(carpeta)
+                if Path(n).suffix.lower() in EXTENSIONES_PERMITIDAS
+            }
+        )
+    except RepoError as exc:
+        return _error(str(exc))
     return {"ok": True, "cantidad": len(nombres), "archivos": nombres}
 
 
-def leer_archivo(nombre_archivo: str) -> dict:
+def leer_archivo(nombre_archivo: str, usuario_id: str = "") -> dict:
     """
-    Lee y devuelve el contenido de un archivo .txt o .log ubicado en 'archivos/'.
+    Lee y devuelve el contenido de un archivo .txt o .log del usuario de la sesion
+    (o de los archivos de ejemplo compartidos).
 
     Args:
-        nombre_archivo: nombre del archivo dentro de 'archivos/'.
+        nombre_archivo: nombre del archivo.
+        usuario_id: opcional, se resuelve automaticamente de la sesion activa.
     """
+    uid, error = _validar_usuario(usuario_id)
+    if error:
+        return error
     if not nombre_archivo or not nombre_archivo.strip():
         return _error("Falta indicar el nombre del archivo.")
     nombre_san, err = sanitizar_texto(nombre_archivo, campo="nombre_archivo", max_largo=120)
@@ -1093,28 +1186,25 @@ def leer_archivo(nombre_archivo: str) -> dict:
     limpio = Path(nombre_san).name
     if not _PATRON_ARCHIVO_SEGURO.match(limpio):
         return _error("Nombre de archivo invalido: contiene caracteres no permitidos.")
-    ruta = (ARCHIVOS_DIR / limpio).resolve()
-    if ruta.parent != ARCHIVOS_DIR.resolve():
-        return _error("Acceso denegado: ruta fuera del directorio permitido.")
-    if not ruta.exists() or not ruta.is_file():
-        return _error(f"El archivo '{limpio}' no existe en la carpeta 'archivos/'.")
-
-    ext = ruta.suffix.lower()
+    ext = Path(limpio).suffix.lower()
     if ext not in EXTENSIONES_TEXTO:
         return _error(
             f"Limitacion: la herramienta leer_archivo solo interpreta archivos .txt y .log "
             f"(recibio '{ext}'). Si es una imagen o captura de pantalla, el usuario debe "
             f"adjuntarla directamente en el mensaje del chat para analizarla con vision."
         )
-
     try:
-        contenido = ruta.read_text(encoding="utf-8")
+        datos = _leer_archivo_bytes(uid, limpio)
+    except RepoError as exc:
+        return _error(str(exc))
+    if datos is None:
+        return _error(f"El archivo '{limpio}' no existe en tus archivos.")
+    try:
+        contenido = datos.decode("utf-8")
     except UnicodeDecodeError:
         return _error(
             f"Limitacion: no se pudo interpretar '{limpio}' porque no es texto UTF-8 valido."
         )
-    except OSError as e:
-        return _error(f"No se pudo leer '{limpio}': {e}")
 
     if not contenido.strip():
         return _error(f"Limitacion: el archivo '{limpio}' esta vacio.")

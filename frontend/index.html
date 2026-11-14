@@ -2152,6 +2152,51 @@
     };
 
     let tokenSesion = sessionStorage.getItem("ts_token") || "";
+    let refreshTokenSesion = sessionStorage.getItem("ts_refresh") || "";
+
+    // Renovacion automatica de la sesion (Supabase Auth): si un pedido devuelve 401 y hay
+    // token de renovacion, se pide un token nuevo y se reintenta una sola vez.
+    const fetchNativo = window.fetch.bind(window);
+    let renovandoSesion = null;
+    function guardarSesion(data) {
+      tokenSesion = data.token;
+      refreshTokenSesion = data.refresh_token || "";
+      sessionStorage.setItem("ts_token", tokenSesion);
+      sessionStorage.setItem("ts_refresh", refreshTokenSesion);
+    }
+    function renovarSesion() {
+      if (!refreshTokenSesion) return Promise.resolve(false);
+      if (!renovandoSesion) {
+        renovandoSesion = (async () => {
+          try {
+            const fd = new FormData();
+            fd.append("refresh_token", refreshTokenSesion);
+            const r = await fetchNativo("/auth/refresh", { method: "POST", body: fd });
+            if (!r.ok) return false;
+            guardarSesion(await r.json());
+            return true;
+          } catch (_) {
+            return false;
+          }
+        })().finally(() => { renovandoSesion = null; });
+      }
+      return renovandoSesion;
+    }
+    window.fetch = async function (url, opts = {}) {
+      const resp = await fetchNativo(url, opts);
+      const ruta = typeof url === "string" ? url : "";
+      const esLoginORefresh = ruta === "/auth/login" || ruta === "/auth/refresh";
+      if (resp.status !== 401 || esLoginORefresh || !tokenSesion) return resp;
+      if (await renovarSesion()) {
+        const headers = new Headers(opts.headers || {});
+        headers.set("Authorization", `Bearer ${tokenSesion}`);
+        return fetchNativo(url, { ...opts, headers });
+      }
+      sessionStorage.removeItem("ts_token");
+      sessionStorage.removeItem("ts_refresh");
+      location.reload();
+      return resp;
+    };
     let usuarioActivo = null;
     let catalogos = {
       categorias: [],
@@ -2350,7 +2395,7 @@
     }
 
     async function cargarCatalogos() {
-      const r = await fetch("/catalogos");
+      const r = await fetch("/catalogos", { headers: headersAutenticados() });
       catalogos = await r.json();
     }
 
@@ -3231,8 +3276,7 @@
         return;
       }
 
-      tokenSesion = data.token;
-      sessionStorage.setItem("ts_token", tokenSesion);
+      guardarSesion(data);
       usuarioActivo = data.usuario;
 
       loginView.classList.add("hidden");
@@ -3263,9 +3307,11 @@
     async function cerrarSesionActual() {
       await fetch("/auth/logout", { method: "POST", headers: headersAutenticados() });
       tokenSesion = "";
+      refreshTokenSesion = "";
       usuarioActivo = null;
       filtrarSoloCerrados = false;
       sessionStorage.removeItem("ts_token");
+      sessionStorage.removeItem("ts_refresh");
       cerrarModalDetalleTicket();
       aiDrawerBackdrop.classList.add("hidden");
       appView.classList.add("hidden");

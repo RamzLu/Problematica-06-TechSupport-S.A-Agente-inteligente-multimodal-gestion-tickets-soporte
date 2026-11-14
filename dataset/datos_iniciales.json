@@ -1,7 +1,6 @@
 {
   "configuracion": {
     "proveedor_soporte": "TechSupport S.A.",
-    "archivo_tickets_csv": "tickets_iniciales.csv",
     "categorias": [
       "Hardware",
       "Software",
@@ -26,73 +25,189 @@
       "Cerrado"
     ],
     "transiciones_permitidas": {
-      "Abierto": ["En revision"],
-      "En revision": ["En progreso", "Pendiente"],
-      "En progreso": ["Pendiente", "Resuelto"],
-      "Pendiente": ["En revision", "En progreso"],
-      "Resuelto": ["Cerrado", "En progreso"],
+      "Abierto": [
+        "En revision"
+      ],
+      "En revision": [
+        "En progreso",
+        "Pendiente"
+      ],
+      "En progreso": [
+        "Pendiente",
+        "Resuelto"
+      ],
+      "Pendiente": [
+        "En revision",
+        "En progreso"
+      ],
+      "Resuelto": [
+        "Cerrado",
+        "En progreso"
+      ],
       "Cerrado": []
     },
     "reglas_clasificacion": {
       "criterios_categoria": {
         "Hardware": {
           "descripcion": "Fallas fisicas en equipos de usuario o perifericos.",
-          "palabras_clave": ["impresora", "monitor", "teclado", "mouse", "notebook", "bateria", "disco fisico", "luz roja", "no enciende"],
+          "palabras_clave": [
+            "impresora",
+            "monitor",
+            "teclado",
+            "mouse",
+            "notebook",
+            "bateria",
+            "disco fisico",
+            "luz roja",
+            "no enciende"
+          ],
           "especialidad_sugerida": "Soporte TI - Infraestructura y Hardware (N2)"
         },
         "Software": {
           "descripcion": "Instalacion, actualizacion o fallos de programas de escritorio y ofimatica.",
-          "palabras_clave": ["office", "excel", "word", "navegador", "licencia", "actualizacion", "antivirus", "instalacion"],
+          "palabras_clave": [
+            "office",
+            "excel",
+            "word",
+            "navegador",
+            "licencia",
+            "actualizacion",
+            "antivirus",
+            "instalacion"
+          ],
           "especialidad_sugerida": "Soporte TI - Sistemas y Bases de Datos (N3)"
         },
         "Redes y conectividad": {
           "descripcion": "Problemas de red local, Wi-Fi, VPN, DNS o acceso a internet.",
-          "palabras_clave": ["vpn", "error 691", "wifi", "internet", "red", "latencia", "packet loss", "dns", "conectividad", "ip"],
+          "palabras_clave": [
+            "vpn",
+            "error 691",
+            "wifi",
+            "internet",
+            "red",
+            "latencia",
+            "packet loss",
+            "dns",
+            "conectividad",
+            "ip"
+          ],
           "especialidad_sugerida": "Soporte TI - Redes y Ciberseguridad (N2)"
         },
         "Sistemas y aplicaciones": {
           "descripcion": "Errores en sistemas corporativos internos, ERP, CRM, facturacion o bases de datos.",
-          "palabras_clave": ["facturacion", "erp", "crm", "error 500", "base de datos", "postgresql", "timeout", "sistema caido"],
+          "palabras_clave": [
+            "facturacion",
+            "erp",
+            "crm",
+            "error 500",
+            "base de datos",
+            "postgresql",
+            "timeout",
+            "sistema caido"
+          ],
           "especialidad_sugerida": "Soporte TI - Sistemas y Bases de Datos (N3)"
         },
         "Accesos y permisos": {
           "descripcion": "Restablecimiento de contrasenas, bloqueo de cuentas, permisos de carpetas o altas de usuario.",
-          "palabras_clave": ["contrasena", "clave", "correo", "login", "acceso", "permiso", "cuenta bloqueada", "autenticacion"],
+          "palabras_clave": [
+            "contrasena",
+            "clave",
+            "correo",
+            "login",
+            "acceso",
+            "permiso",
+            "cuenta bloqueada",
+            "autenticacion"
+          ],
           "especialidad_sugerida": "Soporte TI - Redes y Ciberseguridad (N2)"
         },
         "Infraestructura": {
           "descripcion": "Servidores centrales, almacenamiento compartido, virtualizacion, backups o energia en datacenter.",
-          "palabras_clave": ["servidor", "espacio en disco", "datacenter", "backup", "almacenamiento", "carpeta compartida", "virtualizacion"],
+          "palabras_clave": [
+            "servidor",
+            "espacio en disco",
+            "datacenter",
+            "backup",
+            "almacenamiento",
+            "carpeta compartida",
+            "virtualizacion"
+          ],
           "especialidad_sugerida": "Soporte TI - Infraestructura y Hardware (N2)"
         },
         "Otros": {
           "descripcion": "Consultas generales o requerimientos que no encajan en las categorias anteriores.",
-          "palabras_clave": ["consulta", "duda", "informacion"],
+          "palabras_clave": [
+            "consulta",
+            "duda",
+            "informacion"
+          ],
           "especialidad_sugerida": "Soporte TI General"
         }
       },
       "criterios_prioridad": {
         "Critica": {
           "descripcion": "Interrupcion total de un sistema critico, multiples usuarios o un area completa sin poder operar.",
-          "indicadores": ["sistema caido", "error 500", "nadie puede", "toda el area", "produccion detenida", "base de datos caida"],
+          "indicadores": [
+            "sistema caido",
+            "error 500",
+            "nadie puede",
+            "toda el area",
+            "produccion detenida",
+            "base de datos caida"
+          ],
           "sla_respuesta": "Inmediata (15 min)"
         },
         "Alta": {
           "descripcion": "Falla grave que bloquea el trabajo de un usuario clave o degrada severamente un servidor o enlace de red/VPN.",
-          "indicadores": ["no puedo conectarme a la vpn", "error 691", "98% de uso de disco", "sin espacio", "bloqueo operativo", "urgente"],
+          "indicadores": [
+            "no puedo conectarme a la vpn",
+            "error 691",
+            "98% de uso de disco",
+            "sin espacio",
+            "bloqueo operativo",
+            "urgente"
+          ],
           "sla_respuesta": "Menos de 1 hora"
         },
         "Media": {
           "descripcion": "Incidencia que afecta una funcionalidad especifica pero existe alternativa temporal o impacto moderado.",
-          "indicadores": ["olvide mi contrasena", "restablecer clave", "lentitud parcial", "permiso de carpeta"],
+          "indicadores": [
+            "olvide mi contrasena",
+            "restablecer clave",
+            "lentitud parcial",
+            "permiso de carpeta"
+          ],
           "sla_respuesta": "Menos de 4 horas"
         },
         "Baja": {
           "descripcion": "Problema menor, periferico secundario con alternativa disponible o solicitud programable.",
-          "indicadores": ["impresora", "piso 2", "consulta", "instalacion no urgente", "estetico"],
+          "indicadores": [
+            "impresora",
+            "piso 2",
+            "consulta",
+            "instalacion no urgente",
+            "estetico"
+          ],
           "sla_respuesta": "Menos de 24 horas"
         }
       }
+    },
+    "permisos_por_rol": {
+      "usuario": [
+        "consultar_propios",
+        "comentar_propios",
+        "adjuntar_propios",
+        "crear"
+      ],
+      "soporte": [
+        "consultar_todos",
+        "comentar_todos",
+        "adjuntar_todos",
+        "crear",
+        "cambiar_estado",
+        "cambiar_prioridad",
+        "asignar"
+      ]
     }
   }
 }

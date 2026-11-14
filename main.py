@@ -1,4 +1,3 @@
-import secrets
 from pathlib import Path
 from typing import Optional
 
@@ -13,21 +12,19 @@ from agent.data import (
     ESTADOS,
     ORGANIZACIONES,
     PRIORIDADES,
-    TICKETS,
     TRANSICIONES_PERMITIDAS,
     USUARIOS,
-    autenticar_credenciales,
     usuario_publico,
 )
+from agent.repo import RepoError, get_repo
 from agent.tools.tools import (
-    ARCHIVOS_DIR,
-    ARCHIVOS_PROTEGIDOS,
     EXTENSIONES_IMAGEN,
     EXTENSIONES_PERMITIDAS,
     EXTENSIONES_TEXTO,
     MAX_TAMANO_ARCHIVO,
     MAX_TAMANO_TEXTO_BYTES,
     _PATRON_ARCHIVO_SEGURO,
+    _leer_archivo_bytes,
     actualizar_estado,
     agregar_comentario,
     asignar_responsable,
@@ -46,12 +43,21 @@ from agent.tools.tools import (
 
 app = FastAPI(title="TechSupport S.A. - Agente Multimodal de Tickets")
 
+get_repo()
+
+
+@app.exception_handler(RepoError)
+async def _error_de_base_de_datos(request: Request, exc: RepoError):
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "El servicio de datos no esta disponible en este momento. Intente nuevamente."},
+    )
+
+
 FRONTEND_FILE = Path(__file__).resolve().parent / "frontend" / "index.html"
-ARCHIVOS_DIR.mkdir(exist_ok=True)
 
 runner = InMemoryRunner(agent=root_agent, app_name="techsupport_app")
 _sesiones_por_usuario: dict[str, str] = {}
-_tokens_activos: dict[str, str] = {}
 
 
 @app.middleware("http")
@@ -97,31 +103,28 @@ def _resolver_usuario_request(
     authorization: Optional[str] = Header(None),
     usuario_id_param: Optional[str] = None,
 ) -> str:
+    """Identifica al usuario SOLO a partir del token de Supabase Auth (Bearer).
+
+    `usuario_id_param` ya no identifica a nadie: si llega, debe coincidir con el
+    usuario del token; de lo contrario se rechaza.
+    """
     if not isinstance(usuario_id_param, str):
         usuario_id_param = None
     token = _extraer_token(authorization)
-    if token:
-        uid_token = _tokens_activos.get(token)
-        if not uid_token or uid_token not in USUARIOS:
-            raise HTTPException(status_code=401, detail="Sesion invalida o expirada. Inicie sesion nuevamente.")
-        if usuario_id_param and usuario_id_param.strip().lower() != uid_token.lower():
-            raise HTTPException(
-                status_code=403,
-                detail="No tiene permiso para operar en nombre de otro usuario.",
-            )
-        return uid_token
-
-    if not usuario_id_param:
+    if not token:
         raise HTTPException(
             status_code=401,
             detail="Autenticacion requerida: debe iniciar sesion con sus credenciales corporativas.",
         )
-    uid_limpio, err = sanitizar_identificador(usuario_id_param, campo="usuario_id")
-    if err:
-        raise HTTPException(status_code=400, detail=err["error"])
-    if uid_limpio not in USUARIOS:
-        raise HTTPException(status_code=401, detail=f"Usuario '{uid_limpio}' invalido.")
-    return uid_limpio
+    uid = get_repo().usuario_desde_token(token)
+    if not uid or uid not in USUARIOS:
+        raise HTTPException(status_code=401, detail="Sesion invalida o expirada. Inicie sesion nuevamente.")
+    if usuario_id_param and usuario_id_param.strip().lower() != uid.lower():
+        raise HTTPException(
+            status_code=403,
+            detail="No tiene permiso para operar en nombre de otro usuario.",
+        )
+    return uid
 
 
 def _validar_magic_bytes_imagen(ext: str, data: bytes) -> bool:
@@ -143,7 +146,9 @@ def servir_frontend():
 
 @app.get("/usuarios")
 def listar_usuarios(authorization: Optional[str] = Header(None)):
-    _resolver_usuario_request(authorization, None)
+    uid = _resolver_usuario_request(authorization, None)
+    if USUARIOS[uid].get("rol") != "soporte":
+        raise HTTPException(status_code=403, detail="Solo el personal de soporte puede ver el directorio.")
     return {
         "usuarios": [usuario_publico(uid) for uid in USUARIOS],
         "organizaciones": list(ORGANIZACIONES.values()),
@@ -151,9 +156,12 @@ def listar_usuarios(authorization: Optional[str] = Header(None)):
 
 
 @app.get("/catalogos")
-def obtener_catalogos():
+def obtener_catalogos(authorization: Optional[str] = Header(None)):
+    uid_cat = _resolver_usuario_request(authorization, None)
     soportes = [
-        usuario_publico(uid) for uid, u in USUARIOS.items() if u.get("rol") == "soporte"
+        {k: v for k, v in usuario_publico(uid).items() if k != "email"}
+        for uid, u in USUARIOS.items()
+        if u.get("rol") == "soporte" and u.get("activo", True)
     ]
     return {
         "categorias": CATEGORIAS,
@@ -162,7 +170,17 @@ def obtener_catalogos():
         "transiciones_permitidas": TRANSICIONES_PERMITIDAS,
         "organizaciones": list(ORGANIZACIONES.values()),
         "equipo_soporte": soportes,
-        "archivos_disponibles": listar_archivos().get("archivos", []),
+        "archivos_disponibles": listar_archivos(usuario_id=uid_cat).get("archivos", []),
+    }
+
+
+def _respuesta_sesion(sesion: dict) -> dict:
+    return {
+        "ok": True,
+        "token": sesion["access_token"],
+        "refresh_token": sesion["refresh_token"],
+        "expires_in": sesion["expires_in"],
+        "usuario": usuario_publico(sesion["codigo"]),
     }
 
 
@@ -177,23 +195,30 @@ def iniciar_sesion(
     if not password or len(password) > 128:
         raise HTTPException(status_code=400, detail="Credencial invalida.")
 
-    info = autenticar_credenciales(ident_limpio, password)
-    if not info:
+    sesion = get_repo().autenticar(ident_limpio, password)
+    if not sesion:
         raise HTTPException(
             status_code=401,
             detail="Credenciales incorrectas. Verifique su ID/correo corporativo y contraseña asignada por la empresa.",
         )
+    return _respuesta_sesion(sesion)
 
-    token = secrets.token_urlsafe(32)
-    _tokens_activos[token] = info["id"]
-    return {"ok": True, "token": token, "usuario": info}
+
+@app.post("/auth/refresh")
+def renovar_sesion(refresh_token: str = Form(...)):
+    if not refresh_token or len(refresh_token) > 512:
+        raise HTTPException(status_code=400, detail="Token de renovacion invalido.")
+    sesion = get_repo().renovar_sesion(refresh_token)
+    if not sesion:
+        raise HTTPException(status_code=401, detail="Sesion expirada. Inicie sesion nuevamente.")
+    return _respuesta_sesion(sesion)
 
 
 @app.post("/auth/logout")
 def cerrar_sesion(authorization: Optional[str] = Header(None)):
     token = _extraer_token(authorization)
     if token:
-        _tokens_activos.pop(token, None)
+        get_repo().cerrar_sesion(token)
     return {"ok": True}
 
 
@@ -224,10 +249,11 @@ def listar_tickets_visibles(
     )
     if not res.get("ok"):
         raise HTTPException(status_code=400, detail=res.get("error", "Error al buscar tickets."))
+    completos = {t["id"]: t for t in get_repo().tickets_todos()}
     tickets_ui = [
-        enriquecer_ticket_ui(TICKETS[t["id"]])
+        enriquecer_ticket_ui(completos[t["id"]])
         for t in res.get("tickets", [])
-        if t["id"] in TICKETS
+        if t["id"] in completos
     ]
     return {**res, "tickets": tickets_ui}
 
@@ -243,7 +269,7 @@ def detalle_ticket(
     if not res.get("ok"):
         codigo = 403 if "autorizacion" in res.get("error", "").lower() else 404
         raise HTTPException(status_code=codigo, detail=res.get("error", "No se pudo consultar el ticket."))
-    return {"ok": True, "ticket": enriquecer_ticket_ui(TICKETS[ticket_id])}
+    return {"ok": True, "ticket": enriquecer_ticket_ui(get_repo().ticket(ticket_id))}
 
 
 @app.get("/resumen")
@@ -270,7 +296,7 @@ def endpoint_cambiar_estado(
     if not res.get("ok"):
         codigo = 403 if "permiso" in res.get("error", "").lower() else 400
         raise HTTPException(status_code=codigo, detail=res.get("error"))
-    return {"ok": True, "ticket": enriquecer_ticket_ui(TICKETS[ticket_id])}
+    return {"ok": True, "ticket": enriquecer_ticket_ui(get_repo().ticket(ticket_id))}
 
 
 @app.post("/tickets/{ticket_id}/prioridad")
@@ -285,7 +311,7 @@ def endpoint_cambiar_prioridad(
     if not res.get("ok"):
         codigo = 403 if "permiso" in res.get("error", "").lower() else 400
         raise HTTPException(status_code=codigo, detail=res.get("error"))
-    return {"ok": True, "ticket": enriquecer_ticket_ui(TICKETS[ticket_id])}
+    return {"ok": True, "ticket": enriquecer_ticket_ui(get_repo().ticket(ticket_id))}
 
 
 @app.post("/tickets/{ticket_id}/asignar")
@@ -300,7 +326,7 @@ def endpoint_asignar_responsable(
     if not res.get("ok"):
         codigo = 403 if "permiso" in res.get("error", "").lower() else 400
         raise HTTPException(status_code=codigo, detail=res.get("error"))
-    return {"ok": True, "ticket": enriquecer_ticket_ui(TICKETS[ticket_id])}
+    return {"ok": True, "ticket": enriquecer_ticket_ui(get_repo().ticket(ticket_id))}
 
 
 @app.post("/tickets/{ticket_id}/comentario")
@@ -436,13 +462,11 @@ async def chat_con_agente(
                     "respuesta": f"Archivo '{nombre_limpio}' bloqueado por seguridad: contiene patrones de inyeccion de prompt o instrucciones maliciosas.",
                 }
 
-        destino = ARCHIVOS_DIR / nombre_limpio
-        if nombre_limpio in ARCHIVOS_PROTEGIDOS and destino.exists():
-            if destino.read_bytes() != contenido_bytes:
-                nombre_limpio = f"{uid}_{nombre_limpio}"
-                destino = ARCHIVOS_DIR / nombre_limpio
-        with open(destino, "wb") as f:
-            f.write(contenido_bytes)
+        mime_guardado = (
+            "image/jpeg" if ext in (".jpg", ".jpeg") else
+            f"image/{ext.lstrip('.')}" if ext in EXTENSIONES_IMAGEN else "text/plain"
+        )
+        get_repo().archivo_guardar(uid, nombre_limpio, contenido_bytes, mime_guardado)
 
         if ext in EXTENSIONES_IMAGEN:
             mime = f"image/{ext.lstrip('.')}"
@@ -454,7 +478,7 @@ async def chat_con_agente(
             nota_archivo = f"[Imagen adjunta en el chat: '{nombre_limpio}']"
         else:
             nota_archivo = (
-                f"[Archivo subido y guardado en 'archivos/{nombre_limpio}': "
+                f"[Archivo subido y guardado como '{nombre_limpio}': "
                 f"analizalo con leer_archivo('{nombre_limpio}')]"
             )
     elif tiene_archivo_srv:
@@ -462,21 +486,23 @@ async def chat_con_agente(
         if err:
             return {"ok": False, "usuario_id": uid, "tools_usadas": [], "respuesta": err["error"]}
         nombre_limpio = Path(nom_srv).name
-        ruta_srv = (ARCHIVOS_DIR / nombre_limpio).resolve()
-        if (
-            not _PATRON_ARCHIVO_SEGURO.match(nombre_limpio)
-            or ruta_srv.parent != ARCHIVOS_DIR.resolve()
-            or not ruta_srv.is_file()
-        ):
+        ext = Path(nombre_limpio).suffix.lower()
+        if not _PATRON_ARCHIVO_SEGURO.match(nombre_limpio) or ext not in EXTENSIONES_PERMITIDAS:
             return {
                 "ok": False,
                 "usuario_id": uid,
                 "tools_usadas": [],
-                "respuesta": f"El archivo de prueba '{nombre_limpio}' no existe en 'archivos/'.",
+                "respuesta": f"El archivo de prueba '{nombre_limpio}' no es valido.",
             }
-        ext = ruta_srv.suffix.lower()
+        contenido_bytes = _leer_archivo_bytes(uid, nombre_limpio)
+        if contenido_bytes is None:
+            return {
+                "ok": False,
+                "usuario_id": uid,
+                "tools_usadas": [],
+                "respuesta": f"El archivo de prueba '{nombre_limpio}' no existe en tus archivos.",
+            }
         if ext in EXTENSIONES_IMAGEN:
-            contenido_bytes = ruta_srv.read_bytes()
             mime = f"image/{ext.lstrip('.')}"
             if mime == "image/jpg":
                 mime = "image/jpeg"
@@ -486,7 +512,7 @@ async def chat_con_agente(
             nota_archivo = f"[Imagen adjunta en el chat: '{nombre_limpio}']"
         else:
             nota_archivo = (
-                f"[Archivo adjunto desde 'archivos/{nombre_limpio}': "
+                f"[Archivo adjunto '{nombre_limpio}': "
                 f"analizalo con leer_archivo('{nombre_limpio}')]"
             )
 
