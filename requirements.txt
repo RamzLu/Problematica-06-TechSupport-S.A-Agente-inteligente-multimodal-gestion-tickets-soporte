@@ -1,4 +1,4 @@
-google-adk==2.14.0
+google-adk[db]==2.14.0
 litellm==1.105.1
 chromadb==1.5.9
 langchain-chroma==1.1.0

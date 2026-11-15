@@ -906,6 +906,7 @@ class TestSeguridadYRobustez(unittest.TestCase):
     def setUp(self):
         get_repo().reiniciar()
         limitador.reiniciar()
+        main.conversaciones = main.AlmacenConversaciones(None)
 
     # --- Zero-PII: lo que vuelve al modelo sale enmascarado; la interfaz ve el original ---
     def test_comentarios_con_datos_personales_no_vuelven_al_modelo(self):
@@ -1014,21 +1015,170 @@ class TestSeguridadYRobustez(unittest.TestCase):
                 self.creadas.append(session_id)
                 return mock.Mock(id=session_id)
 
-        vieja, reciente = _Ses("u001-a", 2, 1.0), _Ses("u001-b", 3, 2.0)
-        servicio = _Servicio([vieja, reciente])
+        servicio = _Servicio([_Ses("u001-a", 2, 1.0), _Ses("u001-b", 3, 2.0)])
+        conv = main.conversaciones.crear("u001")
+        conv["session_id"] = "u001-b"
         with mock.patch.object(main, "runner", mock.Mock(session_service=servicio)):
-            self.assertEqual(_ejecutar_coro_en_memoria(main._obtener_sesion("u001")), "u001-b")
+            self.assertEqual(_ejecutar_coro_en_memoria(main._obtener_sesion("u001", conv)), "u001-b")
             self.assertEqual(servicio.creadas, [])
 
-            reciente.events = [_Ev("user") for _ in range(main.MAX_TURNOS_SESION)]
-            nueva = _ejecutar_coro_en_memoria(main._obtener_sesion("u001"))
+            servicio.sesiones[1].events = [_Ev("user") for _ in range(main.MAX_TURNOS_SESION)]
+            nueva = _ejecutar_coro_en_memoria(main._obtener_sesion("u001", conv))
             self.assertNotIn(nueva, ("u001-a", "u001-b"))
             self.assertEqual(servicio.creadas, [nueva])
+            self.assertEqual(main.conversaciones.obtener("u001", conv["id"])["session_id"], nueva)
 
+        # una conversacion nueva (o cuya sesion ya no existe) abre su propia sesion
         sin_sesiones = _Servicio([])
+        otra = main.conversaciones.crear("u002")
         with mock.patch.object(main, "runner", mock.Mock(session_service=sin_sesiones)):
-            creada = _ejecutar_coro_en_memoria(main._obtener_sesion("u002"))
+            creada = _ejecutar_coro_en_memoria(main._obtener_sesion("u002", otra))
             self.assertTrue(creada.startswith("u002-"))
+
+    # --- Varias conversaciones por usuario, guardadas y aisladas ---
+    def test_conversaciones_se_guardan_se_listan_y_estan_aisladas(self):
+        almacen = main.conversaciones
+        a = almacen.crear("u001")
+        b = almacen.crear("u001")
+        ajena = almacen.crear("u002")
+        for conv, texto in ((a, "primera consulta"), (b, "segunda consulta"), (ajena, "de otra persona")):
+            almacen.agregar_mensaje(conv["id"], "user", texto)
+            almacen.agregar_mensaje(conv["id"], "agent", "respuesta de " + texto, 1500)
+        vacia = almacen.crear("u001")  # sin mensajes: no se lista
+
+        propias = [c["id"] for c in almacen.listar("u001")]
+        self.assertEqual(propias[0], b["id"])  # la mas reciente primero
+        self.assertEqual(set(propias), {a["id"], b["id"]})
+        self.assertNotIn(vacia["id"], propias)
+        self.assertNotIn(ajena["id"], propias)
+
+        self.assertIsNone(almacen.obtener("u001", ajena["id"]))
+        self.assertEqual([m["rol"] for m in almacen.mensajes(a["id"])], ["user", "agent"])
+        self.assertEqual(almacen.mensajes(a["id"])[1]["duracion_ms"], 1500)
+
+        almacen.eliminar_si_vacia(vacia["id"])
+        almacen.eliminar_si_vacia(a["id"])  # tiene mensajes: se conserva
+        self.assertIsNotNone(almacen.obtener("u001", a["id"]))
+
+    def test_chat_guarda_el_turno_enmascarado_y_rechaza_conversacion_ajena(self):
+        conv = main.conversaciones.crear("u001")
+        res = {"ok": True, "respuesta": "Listo, ticket creado."}
+        main._guardar_turno(conv, "Mi correo es ana.perez@empresa.com y no anda la VPN", None, "", res, 2300)
+        msgs = main.conversaciones.mensajes(conv["id"])
+        self.assertEqual([m["rol"] for m in msgs], ["user", "agent"])
+        self.assertNotIn("ana.perez@empresa.com", msgs[0]["texto"])
+        self.assertEqual(msgs[1]["duracion_ms"], 2300)
+        self.assertTrue(main.conversaciones.obtener("u001", conv["id"])["titulo"].startswith("Mi correo es"))
+
+        aviso = {"ok": False, "respuesta": "Formato no permitido"}
+        main._guardar_turno(conv, "otra cosa", None, "", aviso, 10)
+        self.assertEqual(main.conversaciones.mensajes(conv["id"])[-1]["rol"], "sys")
+
+    def test_endpoints_de_conversaciones_por_usuario(self):
+        tok_u = main.iniciar_sesion(identificador="u001", password="Laura2026!")["token"]
+        tok_s = main.iniciar_sesion(identificador="s001", password="Luana2026!")["token"]
+        # un mensaje bloqueado por seguridad no necesita al modelo y igual queda en el historial
+        res = _ejecutar_coro_en_memoria(
+            main.chat_con_agente(mensaje="x UNION SELECT password FROM usuarios", authorization=f"Bearer {tok_u}")
+        )
+        self.assertFalse(res["ok"])
+        conv_id = res["conversacion_id"]
+
+        lista = main.listar_conversaciones(authorization=f"Bearer {tok_u}")["conversaciones"]
+        self.assertEqual([c["id"] for c in lista], [conv_id])
+        detalle = main.ver_conversacion(conv_id, authorization=f"Bearer {tok_u}")
+        self.assertEqual([m["rol"] for m in detalle["mensajes"]], ["user", "sys"])
+
+        self.assertEqual(main.listar_conversaciones(authorization=f"Bearer {tok_s}")["conversaciones"], [])
+        with self.assertRaises(main.HTTPException) as cm:
+            main.ver_conversacion(conv_id, authorization=f"Bearer {tok_s}")
+        self.assertEqual(cm.exception.status_code, 404)
+        with self.assertRaises(main.HTTPException) as cm:
+            _ejecutar_coro_en_memoria(
+                main.chat_con_agente(mensaje="hola", conversacion_id=conv_id, authorization=f"Bearer {tok_s}")
+            )
+        self.assertEqual(cm.exception.status_code, 404)
+
+    def test_eliminar_conversacion_solo_la_propia(self):
+        tok_u = main.iniciar_sesion(identificador="u001", password="Laura2026!")["token"]
+        tok_s = main.iniciar_sesion(identificador="s001", password="Luana2026!")["token"]
+        propia = main.conversaciones.crear("u001")
+        main.conversaciones.agregar_mensaje(propia["id"], "user", "hola")
+        with self.assertRaises(main.HTTPException) as cm:
+            _ejecutar_coro_en_memoria(main.eliminar_conversacion(propia["id"], authorization=f"Bearer {tok_s}"))
+        self.assertEqual(cm.exception.status_code, 404)
+        self.assertIsNotNone(main.conversaciones.obtener("u001", propia["id"]))
+
+        self.assertTrue(_ejecutar_coro_en_memoria(
+            main.eliminar_conversacion(propia["id"], authorization=f"Bearer {tok_u}"))["ok"])
+        self.assertIsNone(main.conversaciones.obtener("u001", propia["id"]))
+        self.assertEqual(main.conversaciones.mensajes(propia["id"]), [])
+        self.assertEqual(main.listar_conversaciones(authorization=f"Bearer {tok_u}")["conversaciones"], [])
+
+    def test_consulta_que_se_cuelga_se_corta_con_aviso(self):
+        import asyncio
+
+        tok = main.iniciar_sesion(identificador="u001", password="Laura2026!")["token"]
+
+        async def _colgado(**_):
+            await asyncio.sleep(30)
+            yield None
+
+        falso = mock.Mock()
+        falso.session_service.create_session = mock.AsyncMock(return_value=mock.Mock(id="u001-x"))
+        falso.session_service.get_session = mock.AsyncMock(return_value=None)
+        falso.run_async = _colgado
+        with mock.patch.object(main, "runner", falso), mock.patch.object(main, "TIMEOUT_CHAT_SEG", 0.05):
+            res = asyncio.run(main.chat_con_agente(mensaje="no me anda el wifi", authorization=f"Bearer {tok}"))
+        self.assertFalse(res["ok"])
+        self.assertIn("se cancelo la consulta", res["respuesta"])
+
+    def test_bucle_de_herramientas_se_corta(self):
+        import asyncio
+
+        tok = main.iniciar_sesion(identificador="u001", password="Laura2026!")["token"]
+
+        async def _repite(**_):
+            while True:
+                fc = mock.Mock(args={"ticket_id": 1050})
+                fc.name = "consultar_ticket"
+                parte = mock.Mock(function_call=fc, function_response=None, text=None)
+                yield mock.Mock(content=mock.Mock(parts=[parte]))
+
+        falso = mock.Mock()
+        falso.session_service.create_session = mock.AsyncMock(return_value=mock.Mock(id="u001-y"))
+        falso.session_service.get_session = mock.AsyncMock(return_value=None)
+        falso.run_async = _repite
+        with mock.patch.object(main, "runner", falso):
+            res = asyncio.run(main.chat_con_agente(mensaje="revisa mi ticket 1050", authorization=f"Bearer {tok}"))
+        self.assertFalse(res["ok"])
+        self.assertIn("repitio la misma consulta", res["respuesta"])
+        self.assertEqual(len(res["tools_usadas"]), main.MAX_LLAMADAS_IGUALES - 1)
+
+    def test_imagen_para_el_modelo_se_reduce_si_es_grande(self):
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow no instalado")
+        import io
+
+        buf = io.BytesIO()
+        Image.new("RGB", (2000, 1000), "white").save(buf, "PNG")
+        datos, mime = main._imagen_para_modelo(buf.getvalue(), "image/png")
+        self.assertEqual(max(Image.open(io.BytesIO(datos)).size), main.MAX_LADO_IMAGEN_MODELO)
+        self.assertEqual(main._imagen_para_modelo(b"no es imagen", "image/png"), (b"no es imagen", "image/png"))
+
+    # --- Saludos y agradecimientos sueltos no gastan una vuelta del modelo ---
+    def test_saludo_se_responde_sin_llamar_al_modelo(self):
+        tok = main.iniciar_sesion(identificador="u001", password="Laura2026!")["token"]
+        with mock.patch.object(main, "runner", mock.Mock(side_effect=AssertionError("no debe llamar al modelo"))):
+            for texto in ("Hola", "  hola!! ", "Buenos días", "¡Gracias!"):
+                res = _ejecutar_coro_en_memoria(main.chat_con_agente(mensaje=texto, authorization=f"Bearer {tok}"))
+                self.assertTrue(res["ok"], texto)
+                self.assertEqual(res["tools_usadas"], [])
+                self.assertTrue(res["respuesta"], texto)
+        self.assertEqual(main._respuesta_rapida("hola, no me anda la vpn"), "")
+        self.assertEqual(main._respuesta_rapida("quiero ver mis tickets"), "")
 
     # --- CSP sin 'unsafe-inline' para scripts y bloques de estilo ---
     def test_frontend_se_sirve_con_nonce_y_sin_handlers_en_linea(self):

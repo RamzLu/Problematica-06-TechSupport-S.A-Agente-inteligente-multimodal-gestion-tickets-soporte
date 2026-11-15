@@ -81,8 +81,8 @@ Variables opcionales (todas tienen un valor por defecto):
 
 | Variable | Para qué sirve | Por defecto |
 |---|---|---|
-| `TS_SESIONES` | `sqlite` guarda las conversaciones del chat en `agent/.adk/sesiones_chat.db`; `memoria` las pierde al reiniciar | `sqlite` |
-| `TS_MAX_TURNOS` | Mensajes por conversación antes de abrir una nueva (acota el historial que recibe el modelo) | `10` |
+| `TS_SESIONES` | `sqlite` guarda el contexto del modelo en `agent/.adk/sesiones_chat.db` y el historial visible en `agent/.adk/conversaciones.db`; `memoria` los pierde al reiniciar | `sqlite` |
+| `TS_MAX_TURNOS` | Mensajes que el modelo recuerda de una conversación antes de seguir con contexto nuevo (la conversación visible no se corta) | `10` |
 | `TS_MAX_CHAT_MIN` | Mensajes de chat por minuto y por usuario | `20` |
 | `TS_EMBED_TIMEOUT` | Segundos de espera al generar embeddings con Ollama | `10` |
 
@@ -116,6 +116,7 @@ Los tests **no usan Supabase real**: corren con un repositorio en memoria (`TS_B
 │   ├── repo.py             # Capa de datos: RepoSupabase (Auth + Postgres) y fábrica
 │   ├── repo_memoria.py     # Repositorio en memoria (solo tests)
 │   ├── limitador.py        # Límite de intentos (login y chat)
+│   ├── conversaciones.py   # Historial de conversaciones por usuario (SQLite)
 │   └── tools/tools.py      # 14 herramientas, preprocesar_contexto_seguro, clasificación y ChromaDB
 ├── archivos/               # Archivos de ejemplo (.log, .txt, .png); se suben a Storage con scripts/subir_archivos_demo.py
 ├── scripts/subir_archivos_demo.py
@@ -152,6 +153,6 @@ Los tests **no usan Supabase real**: corren con un repositorio en memoria (`TS_B
 10. **Límite de intentos**: 5 contraseñas erróneas por usuario y dirección IP en 5 minutos (y 20 por usuario en 15 minutos), 30 pedidos de login por minuto por IP y 20 mensajes de chat por minuto por usuario. Responde `429` con `Retry-After`. Los contadores viven en memoria: se reinician con el servidor y no se comparten entre varios procesos.
 11. **Filtros según el tipo de campo**: en identificadores, títulos y filtros se bloquea cualquier patrón SQL; en texto libre (mensajes, descripciones, comentarios y archivos) solo las formas típicas de ataque, para que un técnico pueda pegar un `SELECT` o un `/* */` en un reporte. Los datos viajan siempre como parámetros, nunca como SQL.
 12. **Edición simultánea**: cada cambio indica qué valor tenía el ticket al leerlo y la base lo rechaza (`409`) si otra persona lo modificó antes.
-13. **Conversaciones acotadas y persistentes**: se guardan en SQLite y se abre una nueva al llegar a `TS_MAX_TURNOS` mensajes.
+13. **Conversaciones persistentes y aisladas**: cada usuario puede tener varias; se guardan en SQLite, sobreviven a recargar la página y reiniciar el servidor, y cada consulta filtra por usuario. El texto del usuario se guarda enmascarado (Zero-PII). El contexto del modelo se acota a `TS_MAX_TURNOS` mensajes.
 14. **CSP con nonce**: los scripts y bloques de estilo solo se ejecutan con el nonce de cada respuesta. Solo se permite `style` en atributos (`style="…"`) del HTML.
 15. **Catálogos sincronizados**: un test compara las categorías, prioridades y estados del JSON con los `CHECK` de `01_esquema.sql` para detectar desfases.

@@ -1617,6 +1617,78 @@
       margin-top: 4px;
     }
 
+    .msg-escribiendo {
+      background: #ffffff;
+      color: var(--forest-main);
+      align-self: flex-start;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px 10px 14px;
+      border-radius: 10px;
+      border-top-left-radius: 2px;
+      white-space: normal;
+    }
+    .msg-escribiendo .escribiendo-texto {
+      font-size: 0.87rem;
+      font-weight: 700;
+      color: var(--forest-main);
+    }
+    .msg-escribiendo .escribiendo-tiempo {
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      min-width: 3.6em;
+      color: var(--muted);
+    }
+
+    .conv-lista-cab {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 6px 2px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .conv-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .conv-item {
+      display: flex;
+      align-items: stretch;
+      gap: 4px;
+    }
+    .conv-item .wa-chat-item {
+      flex: 1;
+      min-width: 0;
+    }
+    .conv-borrar {
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--muted);
+      border-radius: 8px;
+      width: 30px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .conv-borrar:hover {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #fca5a5;
+    }
+    .conv-vacia {
+      font-size: 0.74rem;
+      color: var(--muted);
+      padding: 4px 8px 8px;
+    }
+
     .wa-composer-bar {
       background: #f0f2f5;
       border-top: 1px solid var(--border);
@@ -2075,6 +2147,12 @@
                 </div>
               </div>
 
+              <div class="conv-lista-cab">
+                <span>Mis conversaciones</span>
+                <button type="button" class="btn-secondary btn-sm" id="btnNuevaConversacionLista">＋ Nueva</button>
+              </div>
+              <div id="listaConversaciones" class="conv-lista"></div>
+
               <div style="font-size:0.68rem; font-weight:800; color:var(--muted); text-transform:uppercase; padding:8px 6px 2px;">
                 Consultas sugeridas:
               </div>
@@ -2098,7 +2176,7 @@
 
               <div style="display:flex; align-items:center; gap:8px;">
                 <span id="estadoEnvio" style="font-size:0.76rem; color:var(--lime-bright); font-weight:700;"></span>
-                <button type="button" class="btn-secondary btn-sm" id="btnNuevaSesion">Reiniciar conversación</button>
+                <button type="button" class="btn-secondary btn-sm" id="btnNuevaSesion">Nueva conversación</button>
               </div>
             </div>
 
@@ -2198,6 +2276,8 @@
       return resp;
     };
     let usuarioActivo = null;
+    let conversacionActualId = "";
+    let conversacionesCache = [];
     let catalogos = {
       categorias: [],
       prioridades: [],
@@ -2368,7 +2448,42 @@
       setTimeout(() => box.classList.add("hidden"), 4500);
     }
 
-    function agregarMensaje(tipo, autor, texto) {
+    function formatearDuracion(ms) {
+      const s = ms / 1000;
+      if (s < 60) return s.toFixed(1) + " s";
+      return Math.floor(s / 60) + " min " + Math.round(s % 60) + " s";
+    }
+
+    // Indicador "el agente está trabajando": gif + segundos transcurridos, dentro del chat.
+    function mostrarEscribiendo() {
+      const div = document.createElement("div");
+      div.className = "msg msg-escribiendo";
+      div.setAttribute("role", "status");
+      div.setAttribute("aria-label", "El agente está respondiendo");
+      const texto = document.createElement("span");
+      texto.className = "escribiendo-texto";
+      texto.textContent = "Escribiendo...";
+      const tiempo = document.createElement("span");
+      tiempo.className = "escribiendo-tiempo";
+      tiempo.textContent = "0.0 s";
+      div.appendChild(texto);
+      div.appendChild(tiempo);
+      chatLog.appendChild(div);
+      chatLog.scrollTop = chatLog.scrollHeight;
+      const inicio = performance.now();
+      const timer = setInterval(() => {
+        tiempo.textContent = formatearDuracion(performance.now() - inicio);
+      }, 100);
+      return {
+        detener() {
+          clearInterval(timer);
+          div.remove();
+          return performance.now() - inicio;
+        }
+      };
+    }
+
+    function agregarMensaje(tipo, autor, texto, duracionMs, hora) {
       const div = document.createElement("div");
       div.className = `msg msg-${tipo}`;
 
@@ -2386,12 +2501,147 @@
       if (tipo !== "sys") {
         const timeRow = document.createElement("div");
         timeRow.className = "msg-time";
-        timeRow.textContent = obtenerHoraActual() + (tipo === "user" ? " ✓✓" : "");
+        timeRow.textContent =
+          (duracionMs ? "respondió en " + formatearDuracion(duracionMs) + " · " : "") +
+          (hora || obtenerHoraActual()) + (tipo === "user" ? " ✓✓" : "");
         div.appendChild(timeRow);
       }
 
       chatLog.appendChild(div);
       chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    // ---- Conversaciones guardadas ----
+    function fijarConversacionActual(id) {
+      conversacionActualId = id || "";
+      try { sessionStorage.setItem("ts_conv", id || "nueva"); } catch (e) { /* sin almacenamiento */ }
+      renderizarListaConversaciones();
+    }
+
+    function formatearFechaConversacion(ts) {
+      const d = new Date(ts * 1000);
+      const hora = d.toTimeString().slice(0, 5);
+      if (d.toDateString() === new Date().toDateString()) return "Hoy " + hora;
+      return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }) + " " + hora;
+    }
+
+    function renderizarListaConversaciones() {
+      const cont = document.getElementById("listaConversaciones");
+      cont.innerHTML = "";
+      if (!conversacionesCache.length) {
+        const vacio = document.createElement("div");
+        vacio.className = "conv-vacia";
+        vacio.textContent = "Todavía no hay conversaciones guardadas.";
+        cont.appendChild(vacio);
+        return;
+      }
+      for (const c of conversacionesCache) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "wa-chat-item" + (c.id === conversacionActualId ? " active-thread" : "");
+        const icono = document.createElement("div");
+        icono.className = "wa-chat-avatar";
+        icono.style.width = "32px";
+        icono.style.height = "32px";
+        icono.style.background = "var(--forest-main)";
+        icono.style.color = "#ffffff";
+        icono.textContent = "💬";
+        const meta = document.createElement("div");
+        meta.className = "wa-chat-meta";
+        const titulo = document.createElement("div");
+        titulo.className = "wa-chat-title";
+        titulo.textContent = c.titulo;
+        const sub = document.createElement("div");
+        sub.className = "wa-chat-sub";
+        sub.textContent = formatearFechaConversacion(c.actualizada) + " · " + c.mensajes + " mensajes";
+        meta.appendChild(titulo);
+        meta.appendChild(sub);
+        item.appendChild(icono);
+        item.appendChild(meta);
+        item.addEventListener("click", () => abrirConversacion(c.id));
+
+        const borrar = document.createElement("button");
+        borrar.type = "button";
+        borrar.className = "conv-borrar";
+        borrar.title = "Eliminar conversación";
+        borrar.setAttribute("aria-label", "Eliminar conversación " + c.titulo);
+        borrar.textContent = "✕";
+        borrar.addEventListener("click", () => eliminarConversacion(c));
+
+        const fila = document.createElement("div");
+        fila.className = "conv-item";
+        fila.appendChild(item);
+        fila.appendChild(borrar);
+        cont.appendChild(fila);
+      }
+    }
+
+    async function eliminarConversacion(c) {
+      if (!window.confirm("¿Eliminar la conversación \"" + c.titulo + "\"? No se puede deshacer.")) return;
+      const r = await fetch("/conversaciones/" + encodeURIComponent(c.id), {
+        method: "DELETE",
+        headers: headersAutenticados()
+      });
+      if (!r.ok) {
+        agregarMensaje("sys", "Aviso", "No se pudo eliminar la conversación.");
+        return;
+      }
+      const eraLaActual = c.id === conversacionActualId;
+      await cargarListaConversaciones();
+      if (eraLaActual) empezarConversacionNueva(false);
+    }
+
+    async function cargarListaConversaciones() {
+      try {
+        const r = await fetch("/conversaciones", { headers: headersAutenticados() });
+        if (r.ok) {
+          const data = await r.json();
+          conversacionesCache = data.conversaciones || [];
+        }
+      } catch (e) { /* se conserva la lista anterior */ }
+      renderizarListaConversaciones();
+      return conversacionesCache;
+    }
+
+    async function abrirConversacion(id) {
+      const r = await fetch("/conversaciones/" + encodeURIComponent(id), { headers: headersAutenticados() });
+      if (!r.ok) return false;
+      const data = await r.json();
+      chatLog.innerHTML = "";
+      for (const m of data.mensajes) {
+        const tipo = m.rol === "user" ? "user" : (m.rol === "sys" ? "sys" : "agent");
+        const autor = tipo === "user" ? usuarioActivo.nombre : (tipo === "sys" ? "Aviso" : "Agente Inteligente TechSupport");
+        const hora = new Date(m.ts * 1000).toTimeString().slice(0, 5);
+        agregarMensaje(tipo, autor, m.texto, m.duracion_ms, hora);
+      }
+      fijarConversacionActual(id);
+      mensajeInput.focus();
+      return true;
+    }
+
+    function empezarConversacionNueva(esLogin) {
+      chatLog.innerHTML = "";
+      fijarConversacionActual("");
+      if (esLogin) {
+        agregarMensaje("sys", "Sistema", `Sesión segura iniciada como ${usuarioActivo.nombre}.`);
+      }
+      agregarMensaje(
+        "agent",
+        "Agente Inteligente TechSupport",
+        `Hola **${usuarioActivo.nombre}**. Estoy disponible para registrar incidentes, analizar capturas o logs y consultar el estado de tus tickets.`
+      );
+    }
+
+    // Al entrar o recargar: retoma la conversación que se estaba usando (o la última).
+    async function iniciarChat(esLogin) {
+      let guardada = "";
+      try { guardada = sessionStorage.getItem("ts_conv") || ""; } catch (e) { /* sin almacenamiento */ }
+      const lista = await cargarListaConversaciones();
+      if (guardada !== "nueva") {
+        const elegida = lista.find((c) => c.id === guardada) || lista[0];
+        if (elegida && (await abrirConversacion(elegida.id))) return;
+      }
+      empezarConversacionNueva(esLogin);
     }
 
     async function cargarCatalogos() {
@@ -3291,17 +3541,7 @@
       await cargarCatalogos();
       configurarVistaPorRol();
       await cargarTickets();
-
-      agregarMensaje(
-        "sys",
-        "Sistema",
-        `Sesión segura iniciada como ${usuarioActivo.nombre}.`
-      );
-      agregarMensaje(
-        "agent",
-        "Agente Inteligente TechSupport",
-        `Hola **${usuarioActivo.nombre}**. Estoy disponible para registrar incidentes, analizar capturas o logs y consultar el estado de tus tickets.`
-      );
+      await iniciarChat(true);
     });
 
     async function cerrarSesionActual() {
@@ -3309,6 +3549,9 @@
       tokenSesion = "";
       refreshTokenSesion = "";
       usuarioActivo = null;
+      conversacionActualId = "";
+      conversacionesCache = [];
+      sessionStorage.removeItem("ts_conv");
       filtrarSoloCerrados = false;
       sessionStorage.removeItem("ts_token");
       sessionStorage.removeItem("ts_refresh");
@@ -3431,10 +3674,20 @@
     });
     document.getElementById("filtroAreaInput").addEventListener("input", cargarTickets);
 
-    document.getElementById("btnNuevaSesion").addEventListener("click", async () => {
-      await fetch("/reset-sesion", { method: "POST", headers: headersAutenticados() });
-      chatLog.innerHTML = "";
-      agregarMensaje("sys", "Sistema", "Conversación reiniciada.");
+    // Empieza una conversación en blanco; las anteriores quedan guardadas en la lista.
+    function nuevaConversacion() {
+      empezarConversacionNueva(false);
+      mensajeInput.focus();
+    }
+    document.getElementById("btnNuevaSesion").addEventListener("click", nuevaConversacion);
+    document.getElementById("btnNuevaConversacionLista").addEventListener("click", nuevaConversacion);
+
+    // Enter envía; Shift+Enter inserta un salto de línea.
+    mensajeInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        if (!btnEnviar.disabled) chatForm.requestSubmit();
+      }
     });
 
     chatForm.addEventListener("submit", async (e) => {
@@ -3457,6 +3710,7 @@
 
       const fd = new FormData();
       fd.append("mensaje", msg);
+      fd.append("conversacion_id", conversacionActualId);
       if (file) {
         fd.append("archivo", file);
       } else if (srvFile) {
@@ -3464,19 +3718,38 @@
       }
 
       btnEnviar.disabled = true;
-      estadoEnvio.textContent = "Escribiendo...";
+      // Se vacía el campo apenas se envía (y se recupera si falla la conexión).
+      mensajeInput.value = "";
+      archivoInput.value = "";
+      labelArchivoLocal.textContent = "";
+      actualizarChipArchivoPrecargado("");
+
+      const indicador = mostrarEscribiendo();
+      let duracionMs = 0;
+      // El servidor corta a los 240 s; este límite evita esperar para siempre si el servidor no responde.
+      const controlEspera = new AbortController();
+      const temporizadorEspera = setTimeout(() => controlEspera.abort(), 300000);
       try {
         const r = await fetch("/chat", {
           method: "POST",
           headers: headersAutenticados(),
-          body: fd
+          body: fd,
+          signal: controlEspera.signal
         });
         const data = await r.json();
+        duracionMs = indicador.detener();
+        if (data.conversacion_id) {
+          fijarConversacionActual(data.conversacion_id);
+        } else if (r.status === 404) {
+          fijarConversacionActual("");
+        }
+        cargarListaConversaciones();
         const textoResp = data.respuesta || data.detail || "(sin respuesta de texto)";
         agregarMensaje(
           data.ok === false ? "sys" : "agent",
           data.ok === false ? "Aviso" : "Agente Inteligente TechSupport",
-          textoResp
+          textoResp,
+          data.ok === false ? 0 : duracionMs
         );
         mensajeInput.value = "";
         archivoInput.value = "";
@@ -3484,10 +3757,19 @@
         actualizarChipArchivoPrecargado("");
         await cargarTickets();
       } catch (err) {
-        agregarMensaje("sys", "Error de conexión", String(err));
+        indicador.detener();
+        if (!mensajeInput.value) mensajeInput.value = msg;
+        agregarMensaje(
+          "sys",
+          "Error de conexión",
+          err && err.name === "AbortError"
+            ? "El servidor no respondió en 5 minutos. Revisá que Ollama esté funcionando y volvé a intentar."
+            : String(err)
+        );
       } finally {
+        clearTimeout(temporizadorEspera);
+        indicador.detener();
         btnEnviar.disabled = false;
-        estadoEnvio.textContent = "";
       }
     });
 
@@ -3506,11 +3788,7 @@
       await cargarCatalogos();
       configurarVistaPorRol();
       await cargarTickets();
-      agregarMensaje(
-        "agent",
-        "Agente Inteligente TechSupport",
-        `Hola **${usuarioActivo.nombre}**. Tu sesión sigue activa. ¿En qué puedo ayudarte?`
-      );
+      await iniciarChat(false);
     }
 
     restaurarSesionSiExiste();
