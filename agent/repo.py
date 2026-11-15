@@ -1,9 +1,12 @@
+import logging
 import os
 import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 
@@ -15,6 +18,10 @@ CARPETA_COMPARTIDA = "compartidos"
 
 class RepoError(Exception):
     """Fallo de infraestructura (red, Supabase caido, configuracion)."""
+
+
+class ConflictoError(RepoError):
+    """El ticket cambio en la base entre la lectura y la escritura (edicion simultanea)."""
 
 
 def _zona_horaria():
@@ -266,21 +273,47 @@ class RepoSupabase:
         return creado
 
     def aplicar_cambio(
-        self, ticket_id: int, campos: dict, usuario: str, tipo: str, detalle: str
+        self,
+        ticket_id: int,
+        campos: dict,
+        usuario: str,
+        tipo: str,
+        detalle: str,
+        esperado: Optional[dict] = None,
     ) -> dict:
-        """Aplica el cambio al ticket y registra el evento en una sola transaccion."""
+        """Aplica el cambio al ticket y registra el evento en una sola transaccion.
+
+        `esperado` indica los valores que el ticket debia tener al leerlo (por ejemplo
+        {"estado": "Abierto"}). Si otra persona lo cambio mientras tanto, la base rechaza
+        el cambio y se lanza ConflictoError.
+        """
+        params = {
+            "p_ticket_id": int(ticket_id),
+            "p_campos": campos,
+            "p_usuario": usuario,
+            "p_tipo": tipo,
+            "p_detalle": detalle,
+        }
+        if esperado:
+            params["p_esperado"] = esperado
         try:
-            fila = self.db.rpc(
-                "aplicar_cambio_ticket",
-                {
-                    "p_ticket_id": int(ticket_id),
-                    "p_campos": campos,
-                    "p_usuario": usuario,
-                    "p_tipo": tipo,
-                    "p_detalle": detalle,
-                },
-            ).execute().data
+            try:
+                fila = self.db.rpc("aplicar_cambio_ticket", params).execute().data
+            except Exception as exc:
+                if "p_esperado" in params and "p_esperado" in str(exc):
+                    # La base todavia no tiene supabase/05_concurrencia.sql: se guarda sin la
+                    # comprobacion para no frenar el sistema, y se avisa en el log.
+                    logger.warning(
+                        "La funcion aplicar_cambio_ticket no acepta p_esperado: "
+                        "ejecute supabase/05_concurrencia.sql para evitar ediciones pisadas."
+                    )
+                    params.pop("p_esperado")
+                    fila = self.db.rpc("aplicar_cambio_ticket", params).execute().data
+                else:
+                    raise
         except Exception as exc:
+            if "conflicto_concurrencia" in str(exc):
+                raise ConflictoError("El ticket fue modificado por otra persona.") from exc
             raise RepoError(f"No se pudo guardar el cambio: {exc}") from exc
         return self._evento(fila)
 

@@ -10,6 +10,7 @@ from fastapi import HTTPException
 
 import main
 from agent.agent import INSTRUCCIONES, root_agent
+from agent.limitador import Limitador, limitador
 from agent.data import DATASET_PATH, PERMISOS_POR_ROL, USUARIOS, usuario_publico
 from agent.repo import RepoError, RepoSupabase, formatear_fecha, get_repo
 from agent.repo_memoria import (
@@ -37,6 +38,7 @@ from agent.tools.tools import (
     listar_archivos,
     preprocesar_contexto_seguro,
 )
+from agent.tools import tools as T
 
 
 def _ejecutar_coro_en_memoria(coro):
@@ -50,6 +52,7 @@ def _ejecutar_coro_en_memoria(coro):
 class TestTechSupportFuncionalYSeguridad(unittest.TestCase):
     def setUp(self):
         get_repo().reiniciar()
+        limitador.reiniciar()
 
     def _login(self, identificador: str, password: str) -> tuple[str, dict]:
         res = main.iniciar_sesion(identificador=identificador, password=password)
@@ -775,6 +778,286 @@ class TestRepoSupabaseConClienteSimulado(unittest.TestCase):
             self.assertFalse(res["ok"])
             self.assertIn("No se pudo guardar", res["error"])
         self.assertEqual(get_repo().ticket(1051)["estado"], "Abierto")
+
+    def test_conflicto_de_concurrencia_se_traduce_a_conflicto_error(self):
+        from agent.repo import ConflictoError
+
+        self.db.rpc_error = Exception("conflicto_concurrencia")
+        with self.assertRaises(ConflictoError):
+            self.repo.aplicar_cambio(
+                1050, {"estado": "En revision"}, "s001", "Cambio de estado", "x",
+                esperado={"estado": "Abierto"},
+            )
+
+    def test_base_sin_p_esperado_sigue_guardando_y_avisa(self):
+        evento = {"fecha": "2026-10-20T13:00:00+00:00", "usuario": "s001", "tipo": "Comentario", "detalle": "x"}
+        enviados = []
+
+        def rpc(nombre, params):
+            enviados.append(dict(params))
+            ejecutar = mock.Mock()
+            if "p_esperado" in params:
+                ejecutar.execute.side_effect = Exception("Could not find the function ... p_esperado")
+            else:
+                ejecutar.execute.return_value = mock.Mock(data=evento)
+            return ejecutar
+
+        with mock.patch.object(self.db, "rpc", rpc):
+            res = self.repo.aplicar_cambio(
+                1050, {"estado": "En revision"}, "s001", "Cambio de estado", "x",
+                esperado={"estado": "Abierto"},
+            )
+        self.assertEqual(res["tipo"], "Comentario")
+        self.assertEqual(len(enviados), 2)
+        self.assertNotIn("p_esperado", enviados[1])
+
+
+class TestMejorasClasificacionDuplicadosEIndice(unittest.TestCase):
+    def setUp(self):
+        get_repo().reiniciar()
+        T.resetear_consultas_reglas()
+        T.resetear_indice_vectorial()
+
+    def tearDown(self):
+        T.resetear_indice_vectorial()
+
+    def test_clasificacion_usa_palabras_completas(self):
+        # "ip" esta dentro de "tipo", "descripcion" y "principal": no debe sumar a Redes.
+        texto = "El tipo de descripcion del informe principal queda en blanco"
+        sug = consultar_reglas_clasificacion(texto)["sugerencia_automatica"]
+        self.assertEqual(sug["palabras_clave_detectadas"], [])
+        self.assertEqual(sug["categoria_sugerida"], "Otros")
+        # Con la palabra completa si coincide, y el plural simple tambien.
+        sug_ip = consultar_reglas_clasificacion("Se perdio la ip del equipo y no hay internet")
+        self.assertEqual(sug_ip["sugerencia_automatica"]["categoria_sugerida"], "Redes y conectividad")
+        sug_pl = consultar_reglas_clasificacion("Las impresoras del sector no responden")
+        self.assertEqual(sug_pl["sugerencia_automatica"]["categoria_sugerida"], "Hardware")
+
+    def test_crear_ticket_en_el_chat_exige_consultar_reglas(self):
+        ctx, err = preprocesar_contexto_seguro("u001", mensaje="La VPN no conecta y muestra error 691")
+        self.assertIsNone(err)
+        args = dict(
+            titulo="VPN corporativa muestra error 691",
+            descripcion="Desde esta manana la VPN no conecta y muestra error 691.",
+            categoria="Redes y conectividad",
+            prioridad="Alta",
+        )
+        try:
+            with mock.patch.object(T, "_buscar_similares", return_value=[]):
+                sin_consulta = crear_ticket(**args)
+                self.assertFalse(sin_consulta["ok"])
+                self.assertIn("Clasificacion pendiente", sin_consulta["error"])
+
+                consultar_reglas_clasificacion(args["descripcion"])
+                creado = crear_ticket(**args)
+                self.assertTrue(creado["ok"])
+                self.assertNotIn("verificacion_duplicados", creado)
+
+                # La consulta se consume: un segundo ticket requiere clasificar de nuevo.
+                otro = crear_ticket(**{**args, "titulo": "Otra VPN con error 691 en otro equipo"})
+                self.assertFalse(otro["ok"])
+                self.assertIn("Clasificacion pendiente", otro["error"])
+        finally:
+            limpiar_usuario_sesion(ctx["token_ctx"])
+
+    def test_si_falla_la_verificacion_de_duplicados_se_avisa(self):
+        with mock.patch.object(T, "_buscar_similares", side_effect=RuntimeError("sin ollama")):
+            res = crear_ticket(
+                "Monitor sin senal en recepcion",
+                "El monitor de la recepcion no muestra imagen desde hoy.",
+                "Hardware",
+                "Baja",
+                usuario_id="u001",
+            )
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["verificacion_duplicados"], "no_disponible")
+        self.assertIn("aviso", res)
+
+    def test_indice_vectorial_se_reutiliza_y_quita_obsoletos(self):
+        class _VS:
+            def __init__(self, ids):
+                self.ids = set(ids)
+                self.agregados = []
+                self.borrados = []
+
+            def get(self):
+                return {"ids": list(self.ids)}
+
+            def add_documents(self, docs, ids):
+                self.agregados.extend(ids)
+                self.ids.update(ids)
+
+            def delete(self, ids):
+                self.borrados.extend(ids)
+                self.ids.difference_update(ids)
+
+        ya_guardados = ["1050", "1051", "9999"]
+        vs = _VS(ya_guardados)
+        with mock.patch.object(T, "_abrir_vector_store", return_value=vs) as abrir:
+            T._obtener_vector_store()
+            T._obtener_vector_store()
+        abrir.assert_called_once_with()
+        self.assertEqual(sorted(vs.agregados), ["1052", "1053", "1054"])
+        self.assertEqual(vs.borrados, ["9999"])
+        self.assertEqual(vs.ids, {"1050", "1051", "1052", "1053", "1054"})
+
+
+class TestSeguridadYRobustez(unittest.TestCase):
+    def setUp(self):
+        get_repo().reiniciar()
+        limitador.reiniciar()
+
+    # --- Zero-PII: lo que vuelve al modelo sale enmascarado; la interfaz ve el original ---
+    def test_comentarios_con_datos_personales_no_vuelven_al_modelo(self):
+        texto = "Hablar con Laura Gomez al correo laura.gomez@empresa.com"
+        self.assertTrue(agregar_comentario(1050, texto, usuario_id="u001")["ok"])
+
+        ticket = consultar_ticket(1050, usuario_id="u001")["ticket"]
+        visto_por_el_modelo = json.dumps(ticket, ensure_ascii=False)
+        self.assertNotIn("Laura Gomez", visto_por_el_modelo)
+        self.assertNotIn("laura.gomez@empresa.com", visto_por_el_modelo)
+        self.assertIn("[USUARIO_PROTEGIDO]", ticket["ultimo_comentario"]["texto"])
+
+        en_lista = json.dumps(buscar_tickets(usuario_id="u001"), ensure_ascii=False)
+        self.assertNotIn("laura.gomez@empresa.com", en_lista)
+
+        historial = json.dumps(consultar_historial(1050, usuario_id="u001"), ensure_ascii=False)
+        self.assertNotIn("laura.gomez@empresa.com", historial)
+
+        para_la_ui = enriquecer_ticket_ui(get_repo().ticket(1050))
+        self.assertEqual(para_la_ui["ultimo_comentario"]["texto"], texto)
+
+    # --- Filtros: texto tecnico legitimo pasa, los ataques tipicos siguen bloqueados ---
+    def test_texto_libre_admite_sql_pegado_en_un_reporte(self):
+        from agent.tools import tools as T
+
+        legitimos = [
+            "Al correr SELECT id, estado FROM pedidos el sistema da timeout",
+            "La consulta con /* hint */ se cuelga",
+            "El job hace update facturas set estado = 1 y falla",
+        ]
+        for txt in legitimos:
+            limpio, err = T.sanitizar_texto(txt, texto_libre=True)
+            self.assertIsNone(err, txt)
+            self.assertEqual(limpio, txt)
+            self.assertIsNotNone(T.sanitizar_texto(txt)[1], f"el modo estricto debe seguir bloqueando: {txt}")
+        for ataque in ("x UNION SELECT password FROM usuarios", "' OR '1'='1'; DROP TABLE tickets; --"):
+            self.assertIsNotNone(T.sanitizar_texto(ataque, texto_libre=True)[1], ataque)
+
+        get_repo().archivo_guardar("u001", "consulta.txt", b"SELECT * FROM pedidos WHERE id = 5", "text/plain")
+        res = leer_archivo("consulta.txt", usuario_id="u001")
+        self.assertTrue(res["ok"], res)
+
+    # --- Limite de intentos ---
+    def test_limitador_bloquea_y_libera(self):
+        lim = Limitador()
+        with mock.patch("agent.limitador.time.monotonic", return_value=1000.0):
+            for _ in range(5):
+                lim.registrar("k")
+            self.assertGreater(lim.bloqueado("k", 5, 300), 0)
+            self.assertEqual(lim.bloqueado("otra", 5, 300), 0)
+        with mock.patch("agent.limitador.time.monotonic", return_value=1301.0):
+            self.assertEqual(lim.bloqueado("k", 5, 300), 0)
+
+    def test_login_se_bloquea_tras_cinco_fallos(self):
+        for _ in range(5):
+            with self.assertRaises(HTTPException) as ctx:
+                main.iniciar_sesion(identificador="s001", password="mal")
+            self.assertEqual(ctx.exception.status_code, 401)
+        with self.assertRaises(HTTPException) as ctx:
+            main.iniciar_sesion(identificador="s001", password="Luana2026!")
+        self.assertEqual(ctx.exception.status_code, 429)
+        limitador.reiniciar()
+        self.assertTrue(main.iniciar_sesion(identificador="s001", password="Luana2026!")["ok"])
+
+    # --- Concurrencia ---
+    def test_edicion_simultanea_no_pisa_el_cambio_de_otra_persona(self):
+        from agent.tools import tools as T
+
+        leido = get_repo().ticket(1051)
+        self.assertEqual(leido["estado"], "Abierto")
+        get_repo().aplicar_cambio(
+            1051, {"estado": "En revision"}, "s002", "Cambio de estado", "Abierto -> En revision"
+        )
+        with mock.patch.object(T, "_obtener_ticket", return_value=(leido, None)):
+            res = actualizar_estado(1051, "En revision", usuario_id="s001")
+        self.assertFalse(res["ok"])
+        self.assertIn("otra persona", res["error"])
+        final = get_repo().ticket(1051)
+        self.assertEqual(final["estado"], "En revision")
+        cambios = [e for e in final["historial"] if e["tipo"] == "Cambio de estado"]
+        self.assertEqual([e["usuario"] for e in cambios], ["s002"])
+        self.assertEqual(main._codigo_error_cambio(res), 409)
+
+    # --- Sesiones del chat ---
+    def test_sesion_se_retoma_y_se_renueva_al_llegar_al_tope(self):
+        class _Ev:
+            def __init__(self, autor):
+                self.author = autor
+
+        class _Ses:
+            def __init__(self, sid, turnos, t):
+                self.id, self.last_update_time = sid, t
+                self.events = [_Ev("user") for _ in range(turnos)] + [_Ev("root_agent")]
+
+        class _Servicio:
+            def __init__(self, sesiones):
+                self.sesiones, self.creadas = sesiones, []
+
+            async def list_sessions(self, app_name, user_id):
+                return mock.Mock(sessions=list(self.sesiones))
+
+            async def get_session(self, app_name, user_id, session_id):
+                return next((s for s in self.sesiones if s.id == session_id), None)
+
+            async def create_session(self, app_name, user_id, session_id=None):
+                self.creadas.append(session_id)
+                return mock.Mock(id=session_id)
+
+        vieja, reciente = _Ses("u001-a", 2, 1.0), _Ses("u001-b", 3, 2.0)
+        servicio = _Servicio([vieja, reciente])
+        with mock.patch.object(main, "runner", mock.Mock(session_service=servicio)):
+            self.assertEqual(_ejecutar_coro_en_memoria(main._obtener_sesion("u001")), "u001-b")
+            self.assertEqual(servicio.creadas, [])
+
+            reciente.events = [_Ev("user") for _ in range(main.MAX_TURNOS_SESION)]
+            nueva = _ejecutar_coro_en_memoria(main._obtener_sesion("u001"))
+            self.assertNotIn(nueva, ("u001-a", "u001-b"))
+            self.assertEqual(servicio.creadas, [nueva])
+
+        sin_sesiones = _Servicio([])
+        with mock.patch.object(main, "runner", mock.Mock(session_service=sin_sesiones)):
+            creada = _ejecutar_coro_en_memoria(main._obtener_sesion("u002"))
+            self.assertTrue(creada.startswith("u002-"))
+
+    # --- CSP sin 'unsafe-inline' para scripts y bloques de estilo ---
+    def test_frontend_se_sirve_con_nonce_y_sin_handlers_en_linea(self):
+        import re
+
+        html = Path(main.FRONTEND_FILE).read_text(encoding="utf-8")
+        self.assertIsNone(re.search(r"\son(click|change|submit|input|keydown|keyup|load|error)\s*=", html))
+        marcado = main.renderizar_frontend(html, "abc123")
+        self.assertEqual(marcado.count('<script nonce="abc123">'), html.count("<script>"))
+        self.assertEqual(marcado.count('<style nonce="abc123">'), html.count("<style>"))
+        self.assertNotIn("<script>", marcado)
+
+        respuesta = main.servir_frontend()
+        nonce = respuesta.headers["x-csp-nonce"]
+        self.assertIn(f'nonce="{nonce}"', respuesta.body.decode("utf-8"))
+
+    # --- Los catalogos del JSON y los CHECK de la base no pueden desfasarse ---
+    def test_catalogos_del_json_coinciden_con_la_base(self):
+        import re
+
+        sql = (Path(__file__).resolve().parent.parent / "supabase" / "01_esquema.sql").read_text(encoding="utf-8")
+        cfg = json.loads(Path(DATASET_PATH).read_text(encoding="utf-8"))["configuracion"]
+        en_sql = {
+            campo: set(re.findall(r"'([^']+)'", valores))
+            for campo, valores in re.findall(r"check \((categoria|prioridad|estado) in \(([^)]*)\)\)", sql)
+        }
+        self.assertEqual(en_sql["categoria"], set(cfg["categorias"]))
+        self.assertEqual(en_sql["prioridad"], set(cfg["prioridades"]))
+        self.assertEqual(en_sql["estado"], set(cfg["estados"]))
 
 
 if __name__ == "__main__":

@@ -1,5 +1,9 @@
 import contextvars
+import logging
+import os
 import re
+import threading
+import time
 import unicodedata
 from pathlib import Path
 
@@ -17,7 +21,9 @@ from ..data import (
     TRANSICIONES_PERMITIDAS,
     USUARIOS,
 )
-from ..repo import RepoError, get_repo
+from ..repo import CARPETA_COMPARTIDA, ConflictoError, RepoError, get_repo
+
+logger = logging.getLogger(__name__)
 
 _usuario_sesion_actual: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "usuario_sesion_actual", default=None
@@ -74,6 +80,20 @@ def _sin_tildes(texto: str) -> str:
     return "".join(c for c in texto if unicodedata.category(c) != "Mn")
 
 
+def _contiene_termino(texto_norm: str, termino: str) -> bool:
+    """True si `termino` aparece como palabra (o frase) completa en `texto_norm`.
+
+    `texto_norm` debe venir sin tildes y en minusculas (ver `_sin_tildes`). Evita los
+    falsos positivos de la busqueda por subcadena (por ejemplo "ip" dentro de "tipo" o
+    "red" dentro de "pedido") y admite el plural simple (s/es) al final del termino.
+    """
+    t = _sin_tildes(termino)
+    if not t:
+        return False
+    patron = rf"(?<![a-z0-9]){re.escape(t)}(?:es|s)?(?![a-z0-9])"
+    return re.search(patron, texto_norm) is not None
+
+
 def _normalizar(valor: str, catalogo: list):
     for oficial in catalogo:
         if _sin_tildes(oficial) == _sin_tildes(valor):
@@ -82,14 +102,28 @@ def _normalizar(valor: str, catalogo: list):
 
 
 def _persistir(
-    ticket: dict, usuario_id: str, tipo: str, detalle: str, campos: dict | None = None
+    ticket: dict,
+    usuario_id: str,
+    tipo: str,
+    detalle: str,
+    campos: dict | None = None,
+    esperado: dict | None = None,
 ) -> dict | None:
     """Guarda el cambio del ticket y su evento de historial en una sola transaccion.
 
+    `esperado` son los valores que el ticket tenia cuando se lo leyo: si otra persona lo
+    modifico mientras tanto, el cambio se rechaza en lugar de pisar el suyo.
     Devuelve None si todo salio bien o un dict de error si la base de datos fallo.
     """
     try:
-        evento = get_repo().aplicar_cambio(ticket["id"], campos or {}, usuario_id, tipo, detalle)
+        evento = get_repo().aplicar_cambio(
+            ticket["id"], campos or {}, usuario_id, tipo, detalle, esperado=esperado
+        )
+    except ConflictoError:
+        return _error(
+            f"El ticket {ticket['id']} fue modificado por otra persona mientras lo editabas. "
+            "Consultalo de nuevo y repeti la accion si todavia corresponde."
+        )
     except RepoError:
         return _error(
             "No se pudo guardar el cambio en la base de datos. Intente nuevamente en unos instantes."
@@ -119,6 +153,21 @@ _PATRONES_SQLI = re.compile(
     r"(['\"];\s*--)|"
     r"(/\*.*?\*/)|"
     r"(;\s*(drop|delete|insert|update|alter|truncate)\b)"
+    r")",
+    re.IGNORECASE | re.DOTALL,
+)
+
+# Texto libre (mensajes, descripciones, comentarios, archivos): solo se bloquean las formas
+# tipicas de ataque. Un tecnico puede pegar un SELECT, un UPDATE o un comentario /* */ en un
+# reporte sin que se rechace; los datos igual viajan siempre como parametros, nunca como SQL.
+_PATRONES_SQLI_TEXTO_LIBRE = re.compile(
+    r"("
+    r"(\bunion\s+(all\s+)?select\b)|"
+    r"(\b(drop|truncate)\s+(table|database|view|index)\b)|"
+    r"(\bxp_cmdshell\b)|"
+    r"(['\"]\s*(or|and)\s+['\"]?\d+['\"]?\s*=\s*['\"]?\d+)|"
+    r"(['\"]\s*(or|and)\s+['\"][^'\"]+['\"]\s*=\s*['\"]?[^'\"]+)|"
+    r"(['\"];\s*--)"
     r")",
     re.IGNORECASE | re.DOTALL,
 )
@@ -158,6 +207,13 @@ _PATRON_TARJETA = re.compile(r"\b(?:\d[ -]?){13,16}\b")
 _PATRON_ID_SEGURO = re.compile(r"^[a-zA-Z0-9_-]{1,30}$")
 _PATRON_ARCHIVO_SEGURO = re.compile(r"^[a-zA-Z0-9._-]{1,120}$")
 
+EXTENSIONES_TEXTO = {".txt", ".log"}
+EXTENSIONES_IMAGEN = {".png", ".jpg", ".jpeg", ".webp"}
+EXTENSIONES_PERMITIDAS = EXTENSIONES_TEXTO | EXTENSIONES_IMAGEN
+MAX_TAMANO_ARCHIVO = 5 * 1024 * 1024
+MAX_TAMANO_TEXTO_BYTES = 100 * 1024
+MAX_CARACTERES_ARCHIVO_TEXTO = 8000
+
 _FRASES_AMBIGUAS_TICKET = {
     "no anda",
     "no funciona",
@@ -173,11 +229,12 @@ _FRASES_AMBIGUAS_TICKET = {
 }
 
 
-def detectar_prompt_injection(valor: str) -> bool:
+def detectar_prompt_injection(valor: str, texto_libre: bool = False) -> bool:
     if not valor:
         return False
     texto_norm = _sin_tildes(str(valor))
-    return bool(_PATRONES_SQLI.search(valor) or _PATRONES_PROMPT_INJECTION.search(texto_norm))
+    patron_sqli = _PATRONES_SQLI_TEXTO_LIBRE if texto_libre else _PATRONES_SQLI
+    return bool(patron_sqli.search(valor) or _PATRONES_PROMPT_INJECTION.search(texto_norm))
 
 
 def redactar_datos_sensibles(texto: str) -> str:
@@ -220,7 +277,7 @@ def preprocesar_contexto_seguro(
     if uid not in USUARIOS:
         return None, _error(f"Usuario '{uid}' no existe en el registro privado de autenticacion.")
 
-    mensaje_limpio, err_msg = sanitizar_texto(mensaje, campo="mensaje", max_largo=2000)
+    mensaje_limpio, err_msg = sanitizar_texto(mensaje, campo="mensaje", max_largo=2000, texto_libre=True)
     if err_msg:
         return None, err_msg
 
@@ -240,7 +297,7 @@ def preprocesar_contexto_seguro(
 
 
 def sanitizar_texto(
-    valor: str, campo: str = "texto", max_largo: int = 2000
+    valor: str, campo: str = "texto", max_largo: int = 2000, texto_libre: bool = False
 ) -> tuple[str | None, dict | None]:
     if valor is None:
         return "", None
@@ -249,7 +306,8 @@ def sanitizar_texto(
         return None, _error(
             f"El campo '{campo}' supera el largo maximo permitido ({max_largo} caracteres)."
         )
-    if _PATRONES_SQLI.search(limpio):
+    patron_sqli = _PATRONES_SQLI_TEXTO_LIBRE if texto_libre else _PATRONES_SQLI
+    if patron_sqli.search(limpio):
         return None, _error(
             f"Entrada bloqueada por seguridad: se detecto un patron sospechoso de inyeccion SQL en '{campo}'."
         )
@@ -332,7 +390,14 @@ def _obtener_ticket(ticket_id: int):
     return ticket, None
 
 
-def _enriquecer_ticket(t: dict) -> dict:
+def _enriquecer_ticket(t: dict, redactar: bool = True) -> dict:
+    """Arma el ticket para devolverlo.
+
+    Por defecto enmascara nombres, correos y otros datos personales en los textos (titulo,
+    descripcion, comentarios e historial), porque este resultado vuelve al modelo. Solo la
+    interfaz (`enriquecer_ticket_ui`) pide el texto original con `redactar=False`.
+    """
+    ocultar = redactar_datos_sensibles if redactar else (lambda texto: texto)
     historial_limpio = []
     comentarios = []
     for ev in t.get("historial", []):
@@ -343,7 +408,7 @@ def _enriquecer_ticket(t: dict) -> dict:
             "usuario": uid_ev,
             "usuario_rol": rol_ev,
             "tipo": ev.get("tipo", ""),
-            "detalle": ev.get("detalle", ""),
+            "detalle": ocultar(ev.get("detalle", "")),
         }
         historial_limpio.append(ev_copia)
         if ev.get("tipo") == "Comentario":
@@ -352,7 +417,7 @@ def _enriquecer_ticket(t: dict) -> dict:
                     "fecha": ev.get("fecha", ""),
                     "usuario": uid_ev,
                     "rol": rol_ev,
-                    "texto": ev.get("detalle", ""),
+                    "texto": ocultar(ev.get("detalle", "")),
                 }
             )
 
@@ -365,7 +430,7 @@ def _enriquecer_ticket(t: dict) -> dict:
                     "fecha": c.get("fecha", ""),
                     "usuario": uid_c,
                     "rol": rol_c,
-                    "texto": c.get("texto", ""),
+                    "texto": ocultar(c.get("texto", "")),
                 }
             )
 
@@ -376,8 +441,8 @@ def _enriquecer_ticket(t: dict) -> dict:
         "solicitante": t.get("solicitante", ""),
         "organizacion_id": t.get("organizacion_id", "org_central"),
         "area": t.get("area", "General"),
-        "titulo": t.get("titulo", ""),
-        "descripcion": t.get("descripcion", ""),
+        "titulo": ocultar(t.get("titulo", "")),
+        "descripcion": ocultar(t.get("descripcion", "")),
         "categoria": t.get("categoria", ""),
         "prioridad": t.get("prioridad", ""),
         "adjuntos": list(t.get("adjuntos", [])),
@@ -410,7 +475,7 @@ def _resumen_corto(t: dict) -> dict:
 
 
 def enriquecer_ticket_ui(t: dict) -> dict:
-    base = _enriquecer_ticket(t)
+    base = _enriquecer_ticket(t, redactar=False)
     sol_id = base.get("solicitante", "")
     resp_id = base.get("responsable")
     sol_info = USUARIOS.get(sol_id, {})
@@ -467,48 +532,74 @@ _vector_store = None
 _ids_indexados = set()
 
 
+_lock_vector = threading.RLock()
+TIMEOUT_EMBEDDINGS_SEG = float(os.getenv("TS_EMBED_TIMEOUT", "10"))
+
+
 def resetear_indice_vectorial() -> None:
+    """Olvida el indice en memoria; la proxima consulta lo vuelve a abrir desde disco."""
     global _vector_store, _ids_indexados
-    _vector_store = None
-    _ids_indexados = set()
+    with _lock_vector:
+        _vector_store = None
+        _ids_indexados = set()
 
 
-def _obtener_vector_store() -> Chroma:
-    global _vector_store, _ids_indexados
-    if _vector_store is None:
-        client = chromadb.PersistentClient(path=VECTOR_STORE_DIR)
+def _abrir_vector_store(reiniciar: bool = False) -> Chroma:
+    client = chromadb.PersistentClient(path=VECTOR_STORE_DIR)
+    if reiniciar:
         try:
             client.delete_collection(COLECCION_TICKETS)
         except Exception:
             pass
-        _vector_store = Chroma(
-            client=client,
-            collection_name=COLECCION_TICKETS,
-            embedding_function=OllamaEmbeddings(
-                model="nomic-embed-text",
-                client_kwargs={"timeout": 2.5},
-            ),
-        )
-        _ids_indexados = set()
+    return Chroma(
+        client=client,
+        collection_name=COLECCION_TICKETS,
+        embedding_function=OllamaEmbeddings(
+            model="nomic-embed-text",
+            client_kwargs={"timeout": TIMEOUT_EMBEDDINGS_SEG},
+        ),
+    )
 
-    tickets_actuales = {t["id"]: t for t in get_repo().tickets_todos()}
-    if not _ids_indexados.issubset(tickets_actuales.keys()):
-        _vector_store = None
-        return _obtener_vector_store()
 
-    faltantes = [t for tid, t in tickets_actuales.items() if tid not in _ids_indexados]
-    if faltantes:
-        docs = [
-            Document(
-                page_content=f"{t['titulo']}. {t['descripcion']}",
-                metadata={"ticket_id": t["id"], "categoria": t["categoria"]},
-            )
-            for t in faltantes
-        ]
-        _vector_store.add_documents(docs, ids=[str(t["id"]) for t in faltantes])
-        _ids_indexados.update(t["id"] for t in faltantes)
+def _obtener_vector_store() -> Chroma:
+    """Devuelve el indice de tickets, reutilizando lo ya guardado en disco.
 
-    return _vector_store
+    Solo genera embeddings de los tickets que todavia no estan indexados y quita del
+    indice los que ya no existen en la base.
+    """
+    global _vector_store, _ids_indexados
+    with _lock_vector:
+        if _vector_store is None:
+            try:
+                vs = _abrir_vector_store()
+                ids_guardados = {int(i) for i in vs.get()["ids"]}
+            except Exception:
+                logger.warning("Indice vectorial ilegible; se reconstruye desde cero.", exc_info=True)
+                vs = _abrir_vector_store(reiniciar=True)
+                ids_guardados = set()
+            _vector_store = vs
+            _ids_indexados = ids_guardados
+
+        tickets_actuales = {t["id"]: t for t in get_repo().tickets_todos()}
+
+        obsoletos = _ids_indexados - tickets_actuales.keys()
+        if obsoletos:
+            _vector_store.delete(ids=[str(i) for i in sorted(obsoletos)])
+            _ids_indexados -= obsoletos
+
+        faltantes = [t for tid, t in tickets_actuales.items() if tid not in _ids_indexados]
+        if faltantes:
+            docs = [
+                Document(
+                    page_content=f"{t['titulo']}. {t['descripcion']}",
+                    metadata={"ticket_id": t["id"], "categoria": t["categoria"]},
+                )
+                for t in faltantes
+            ]
+            _vector_store.add_documents(docs, ids=[str(t["id"]) for t in faltantes])
+            _ids_indexados.update(t["id"] for t in faltantes)
+
+        return _vector_store
 
 
 def _buscar_similares(
@@ -530,7 +621,7 @@ def _buscar_similares(
             coincidencias.append(
                 {
                     **_resumen_corto(ticket),
-                    "descripcion": ticket["descripcion"],
+                    "descripcion": redactar_datos_sensibles(ticket["descripcion"]),
                     "similitud": round(float(score), 4),
                 }
             )
@@ -548,6 +639,35 @@ def _buscar_similares(
     return coincidencias
 
 
+_TTL_CONSULTA_REGLAS_SEG = 30 * 60
+_consultas_reglas: dict[str, float] = {}
+_lock_consultas_reglas = threading.Lock()
+
+
+def resetear_consultas_reglas() -> None:
+    with _lock_consultas_reglas:
+        _consultas_reglas.clear()
+
+
+def _registrar_consulta_reglas() -> None:
+    """Marca que la sesion activa ya consulto el catalogo de clasificacion."""
+    uid = _usuario_sesion_actual.get()
+    if uid:
+        with _lock_consultas_reglas:
+            _consultas_reglas[uid] = time.monotonic()
+
+
+def _reglas_consultadas_recientemente(uid: str) -> bool:
+    with _lock_consultas_reglas:
+        momento = _consultas_reglas.get(uid)
+    return momento is not None and time.monotonic() - momento <= _TTL_CONSULTA_REGLAS_SEG
+
+
+def _consumir_consulta_reglas(uid: str) -> None:
+    with _lock_consultas_reglas:
+        _consultas_reglas.pop(uid, None)
+
+
 def consultar_reglas_clasificacion(descripcion_incidencia: str = "") -> dict:
     """
     Consulta el catalogo oficial de categorias, prioridades y reglas de clasificacion
@@ -558,7 +678,7 @@ def consultar_reglas_clasificacion(descripcion_incidencia: str = "") -> dict:
         descripcion_incidencia: texto con el sintoma, error o problema tecnico reportado.
     """
     desc_limpia, err = sanitizar_texto(
-        descripcion_incidencia or "", campo="descripcion_incidencia", max_largo=2000
+        descripcion_incidencia or "", campo="descripcion_incidencia", max_largo=2000, texto_libre=True
     )
     if err:
         return err
@@ -574,7 +694,7 @@ def consultar_reglas_clasificacion(descripcion_incidencia: str = "") -> dict:
 
     for cat, info in criterios_cat.items():
         kws = info.get("palabras_clave", [])
-        hits = [kw for kw in kws if _sin_tildes(kw) in texto_norm]
+        hits = [kw for kw in kws if _contiene_termino(texto_norm, kw)]
         if len(hits) > max_puntos_cat:
             max_puntos_cat = len(hits)
             mejor_categoria = cat
@@ -588,13 +708,14 @@ def consultar_reglas_clasificacion(descripcion_incidencia: str = "") -> dict:
     for prio in ("Critica", "Alta", "Media", "Baja"):
         info_p = criterios_prio.get(prio, {})
         inds = info_p.get("indicadores", [])
-        hits_p = [ind for ind in inds if _sin_tildes(ind) in texto_norm]
+        hits_p = [ind for ind in inds if _contiene_termino(texto_norm, ind)]
         if hits_p:
             prioridad_sugerida = prio
             coincidencias_prio = hits_p
             sla_sugerido = info_p.get("sla_respuesta", "")
             break
 
+    _registrar_consulta_reglas()
     return {
         "ok": True,
         "categorias_oficiales": list(CATEGORIAS),
@@ -607,8 +728,6 @@ def consultar_reglas_clasificacion(descripcion_incidencia: str = "") -> dict:
             "indicadores_prioridad_detectados": coincidencias_prio,
             "sla_respuesta": sla_sugerido,
         },
-        "criterios_categoria": criterios_cat,
-        "criterios_prioridad": criterios_prio,
     }
 
 
@@ -621,7 +740,7 @@ def buscar_duplicados(consulta: str) -> dict:
     """
     if not consulta or not consulta.strip():
         return _error("Falta el texto de la incidencia para buscar duplicados.")
-    consulta_limpia, err = sanitizar_texto(consulta, campo="consulta", max_largo=1500)
+    consulta_limpia, err = sanitizar_texto(consulta, campo="consulta", max_largo=1500, texto_libre=True)
     if err:
         return err
     uid_ctx = _usuario_sesion_actual.get()
@@ -684,7 +803,7 @@ def crear_ticket(
             "Datos insuficientes o ambiguos (F04): el titulo del ticket es demasiado vago. "
             "Solicita al usuario mas precision sobre el sistema o equipo afectado antes de crear el ticket."
         )
-    desc_limpia, err = sanitizar_texto(descripcion, campo="descripcion", max_largo=2000)
+    desc_limpia, err = sanitizar_texto(descripcion, campo="descripcion", max_largo=2000, texto_libre=True)
     if err:
         return err
     if not desc_limpia:
@@ -701,16 +820,30 @@ def crear_ticket(
     if prioridad_ok is None:
         return _error(f"Prioridad invalida '{prioridad}'. Opciones: {PRIORIDADES}")
 
+    # En el chat (sesion pre-autenticada) la clasificacion debe pasar por la herramienta oficial.
+    exige_clasificacion = bool(_usuario_sesion_actual.get())
+    if exige_clasificacion and not _reglas_consultadas_recientemente(uid):
+        return _error(
+            "Clasificacion pendiente: antes de crear el ticket llama a consultar_reglas_clasificacion "
+            "con la descripcion de la incidencia y usa la categoria y prioridad sugeridas."
+        )
+
     es_confirmado = confirmar_duplicado is True or (
         isinstance(confirmar_duplicado, str)
         and confirmar_duplicado.strip().lower() in {"true", "1", "si", "sí", "yes"}
     )
 
+    duplicados_verificados = True
     if not es_confirmado:
         try:
             similares = _buscar_similares(f"{titulo_limpio}. {desc_limpia}", usuario_id=uid)
         except Exception:
+            logger.warning(
+                "No se pudo verificar duplicados al crear un ticket (se crea igual y se avisa).",
+                exc_info=True,
+            )
             similares = []
+            duplicados_verificados = False
         if similares:
             return {
                 "ok": False,
@@ -746,8 +879,17 @@ def crear_ticket(
         try:
             _obtener_vector_store()
         except Exception:
-            pass
-    return {"ok": True, "ticket": _enriquecer_ticket(ticket)}
+            logger.warning("No se pudo actualizar el indice vectorial tras crear el ticket.", exc_info=True)
+    if exige_clasificacion:
+        _consumir_consulta_reglas(uid)
+    resultado = {"ok": True, "ticket": _enriquecer_ticket(ticket)}
+    if not duplicados_verificados:
+        resultado["verificacion_duplicados"] = "no_disponible"
+        resultado["aviso"] = (
+            "No se pudo verificar si ya existian tickets similares (servicio de busqueda "
+            "no disponible). Informa al usuario en una frase que el ticket se creo sin esa verificacion."
+        )
+    return resultado
 
 
 def consultar_ticket(ticket_id: int, usuario_id: str = "") -> dict:
@@ -872,7 +1014,12 @@ def actualizar_estado(ticket_id: int, nuevo_estado: str, usuario_id: str = "") -
 
     ticket["estado"] = estado_ok
     error = _persistir(
-        ticket, uid, "Cambio de estado", f"{anterior} -> {estado_ok}", {"estado": estado_ok}
+        ticket,
+        uid,
+        "Cambio de estado",
+        f"{anterior} -> {estado_ok}",
+        {"estado": estado_ok},
+        esperado={"estado": anterior},
     )
     if error:
         return error
@@ -914,6 +1061,7 @@ def cambiar_prioridad(ticket_id: int, nueva_prioridad: str, usuario_id: str = ""
         "Cambio de prioridad",
         f"{anterior} -> {prioridad_ok}",
         {"prioridad": prioridad_ok},
+        esperado={"prioridad": anterior},
     )
     if error:
         return error
@@ -966,7 +1114,12 @@ def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "
     ticket["responsable"] = resp_ok
     tipo = "Asignacion" if anterior is None else "Reasignacion"
     error = _persistir(
-        ticket, uid, tipo, f"{anterior or 'sin asignar'} -> {resp_ok}", {"responsable": resp_ok}
+        ticket,
+        uid,
+        tipo,
+        f"{anterior or 'sin asignar'} -> {resp_ok}",
+        {"responsable": resp_ok},
+        esperado={"responsable": anterior},
     )
     if error:
         return error
@@ -993,7 +1146,7 @@ def agregar_comentario(ticket_id: int, comentario: str, usuario_id: str = "") ->
         return error
     if not comentario or not comentario.strip():
         return _error("El comentario esta vacio.")
-    comentario_limpio, err = sanitizar_texto(comentario, campo="comentario", max_largo=1500)
+    comentario_limpio, err = sanitizar_texto(comentario, campo="comentario", max_largo=1500, texto_libre=True)
     if err:
         return err
     error = _persistir(ticket, uid, "Comentario", comentario_limpio)
@@ -1002,10 +1155,6 @@ def agregar_comentario(ticket_id: int, comentario: str, usuario_id: str = "") ->
     return {"ok": True, "ticket_id": ticket["id"], "mensaje": "Comentario agregado."}
 
 
-CARPETA_COMPARTIDA = "compartidos"
-EXTENSIONES_TEXTO = {".txt", ".log"}
-EXTENSIONES_IMAGEN = {".png", ".jpg", ".jpeg", ".webp"}
-EXTENSIONES_PERMITIDAS = EXTENSIONES_TEXTO | EXTENSIONES_IMAGEN
 
 
 def _carpetas_de_lectura(uid: str, ticket: dict | None = None) -> list[str]:
@@ -1024,9 +1173,6 @@ def _leer_archivo_bytes(uid: str, nombre: str, ticket: dict | None = None) -> by
         if datos is not None:
             return datos
     return None
-MAX_TAMANO_ARCHIVO = 5 * 1024 * 1024
-MAX_TAMANO_TEXTO_BYTES = 100 * 1024
-MAX_CARACTERES_ARCHIVO_TEXTO = 8000
 
 
 def adjuntar_archivo(ticket_id: int, nombre_archivo: str, usuario_id: str = "") -> dict:
@@ -1068,9 +1214,15 @@ def adjuntar_archivo(ticket_id: int, nombre_archivo: str, usuario_id: str = "") 
         return _error(f"El archivo '{nombre}' no existe en el repositorio seguro de archivos.")
     if nombre in ticket["adjuntos"]:
         return _error(f"El archivo '{nombre}' ya esta adjunto al ticket {ticket['id']}.")
+    adjuntos_previos = list(ticket["adjuntos"])
     ticket["adjuntos"].append(nombre)
     error = _persistir(
-        ticket, uid, "Archivo", f"Adjunto {nombre}", {"adjuntos": ticket["adjuntos"]}
+        ticket,
+        uid,
+        "Archivo",
+        f"Adjunto {nombre}",
+        {"adjuntos": ticket["adjuntos"]},
+        esperado={"adjuntos": adjuntos_previos},
     )
     if error:
         return error
@@ -1209,7 +1361,7 @@ def leer_archivo(nombre_archivo: str, usuario_id: str = "") -> dict:
     if not contenido.strip():
         return _error(f"Limitacion: el archivo '{limpio}' esta vacio.")
 
-    if detectar_prompt_injection(contenido):
+    if detectar_prompt_injection(contenido, texto_libre=True):
         return _error(
             f"Archivo '{limpio}' bloqueado por seguridad: se detectaron patrones de inyeccion de prompt o comandos maliciosos dentro del archivo."
         )

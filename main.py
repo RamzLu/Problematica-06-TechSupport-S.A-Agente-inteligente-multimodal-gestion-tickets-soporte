@@ -1,8 +1,15 @@
+import contextvars
+import logging
+import os
+import re
+import secrets
+import time
+import uuid
 from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
@@ -16,6 +23,7 @@ from agent.data import (
     USUARIOS,
     usuario_publico,
 )
+from agent.limitador import limitador
 from agent.repo import RepoError, get_repo
 from agent.tools.tools import (
     EXTENSIONES_IMAGEN,
@@ -43,6 +51,8 @@ from agent.tools.tools import (
 
 app = FastAPI(title="TechSupport S.A. - Agente Multimodal de Tickets")
 
+_log = logging.getLogger("uvicorn.error")
+
 get_repo()
 
 
@@ -56,38 +66,136 @@ async def _error_de_base_de_datos(request: Request, exc: RepoError):
 
 FRONTEND_FILE = Path(__file__).resolve().parent / "frontend" / "index.html"
 
-runner = InMemoryRunner(agent=root_agent, app_name="techsupport_app")
-_sesiones_por_usuario: dict[str, str] = {}
+APP_NAME = "techsupport_app"
+MAX_TURNOS_SESION = int(os.getenv("TS_MAX_TURNOS", "10"))
+MAX_CHAT_POR_MINUTO = int(os.getenv("TS_MAX_CHAT_MIN", "20"))
+RUTA_SESIONES_DB = Path(__file__).resolve().parent / "agent" / ".adk" / "sesiones_chat.db"
+
+_ip_cliente: contextvars.ContextVar[str] = contextvars.ContextVar("ip_cliente", default="")
+
+
+def _crear_runner():
+    """Crea el runner del agente.
+
+    Las conversaciones se guardan en SQLite (sobreviven a un reinicio). Si no se puede abrir
+    esa base, o se pide `TS_SESIONES=memoria`, se usan sesiones en memoria. Los tests usan memoria.
+    """
+    modo = os.getenv("TS_SESIONES", "").strip().lower()
+    if not modo:
+        modo = "memoria" if os.getenv("TS_BACKEND", "").strip().lower() == "memoria" else "sqlite"
+    if modo == "sqlite":
+        try:
+            from google.adk.runners import Runner
+            from google.adk.sessions import DatabaseSessionService
+
+            RUTA_SESIONES_DB.parent.mkdir(parents=True, exist_ok=True)
+            servicio = DatabaseSessionService(db_url=f"sqlite+aiosqlite:///{RUTA_SESIONES_DB.as_posix()}")
+            return Runner(agent=root_agent, app_name=APP_NAME, session_service=servicio), "sqlite"
+        except Exception:
+            _log.warning("No se pudo abrir la base de sesiones; se usan sesiones en memoria.", exc_info=True)
+    return InMemoryRunner(agent=root_agent, app_name=APP_NAME), "memoria"
+
+
+runner, _modo_sesiones = _crear_runner()
+
+
+def _pasar_a_memoria() -> None:
+    global runner, _modo_sesiones
+    runner = InMemoryRunner(agent=root_agent, app_name=APP_NAME)
+    _modo_sesiones = "memoria"
+
+
+def _es_error_de_almacen(exc: Exception) -> bool:
+    """Error de la base de sesiones (no del modelo ni de la red)."""
+    return _modo_sesiones == "sqlite" and type(exc).__module__.split(".")[0] in {
+        "sqlalchemy",
+        "aiosqlite",
+        "sqlite3",
+    }
+
+
+_PATRON_ETIQUETA_INLINE = re.compile(r"<(script|style)(?=[\s>])")
+
+
+def renderizar_frontend(html: str, nonce: str) -> str:
+    """Marca los bloques <script> y <style> con el nonce de esta respuesta."""
+    return _PATRON_ETIQUETA_INLINE.sub(lambda m: f'<{m.group(1)} nonce="{nonce}"', html)
+
+
+def _codigo_error_cambio(res: dict) -> int:
+    texto = res.get("error", "").lower()
+    if "permiso" in texto:
+        return 403
+    if "otra persona" in texto:
+        return 409
+    return 400
 
 
 @app.middleware("http")
 async def agregar_headers_seguridad(request: Request, call_next):
+    ip = request.client.host if request.client else ""
+    _ip_cliente.set(ip)
+
+    if request.method == "POST" and request.url.path in ("/auth/login", "/auth/refresh"):
+        espera = limitador.bloqueado(f"ip-auth:{ip}", 30, 60)
+        if espera:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": f"Demasiados intentos. Espere {espera} segundos e intente de nuevo."},
+                headers={"Retry-After": str(espera)},
+            )
+        limitador.registrar(f"ip-auth:{ip}")
+
     response = await call_next(request)
+    nonce = response.headers.get("X-CSP-Nonce")
+    if nonce:
+        del response.headers["X-CSP-Nonce"]
+    permitido = f"'self' 'nonce-{nonce}'" if nonce else "'self'"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "script-src 'self' 'unsafe-inline'; "
+        f"script-src {permitido}; "
+        f"style-src {permitido}; "
+        "style-src-attr 'unsafe-inline'; "
         "img-src 'self' data: blob:; "
         "connect-src 'self'; "
         "object-src 'none'; "
         "base-uri 'self'; "
+        "form-action 'self'; "
         "frame-ancestors 'none'"
     )
     return response
 
 
+async def _nueva_sesion(usuario_id: str) -> str:
+    s = await runner.session_service.create_session(
+        app_name=APP_NAME, user_id=usuario_id, session_id=f"{usuario_id}-{uuid.uuid4().hex[:10]}"
+    )
+    return s.id
+
+
 async def _obtener_sesion(usuario_id: str) -> str:
-    session_id = _sesiones_por_usuario.get(usuario_id)
-    if not session_id:
-        s = await runner.session_service.create_session(
-            app_name="techsupport_app", user_id="sesion_aislada"
+    """Devuelve la conversacion vigente del usuario, o abre una nueva.
+
+    Se retoma la ultima conversacion (tambien despues de reiniciar el servidor, si las
+    sesiones estan en SQLite). Al llegar a MAX_TURNOS_SESION mensajes se empieza una nueva,
+    para que el historial no crezca sin limite con un modelo de contexto chico.
+    """
+    servicio = runner.session_service
+    respuesta = await servicio.list_sessions(app_name=APP_NAME, user_id=usuario_id)
+    sesiones = sorted(respuesta.sessions, key=lambda s: s.last_update_time)
+    if sesiones:
+        actual = await servicio.get_session(
+            app_name=APP_NAME, user_id=usuario_id, session_id=sesiones[-1].id
         )
-        session_id = s.id
-        _sesiones_por_usuario[usuario_id] = session_id
-    return session_id
+        if actual is not None:
+            turnos = sum(1 for e in actual.events if getattr(e, "author", "") == "user")
+            if turnos < MAX_TURNOS_SESION:
+                return actual.id
+            _log.info("chat %s: conversacion con %d mensajes, se abre una nueva", usuario_id, turnos)
+    return await _nueva_sesion(usuario_id)
 
 
 def _extraer_token(authorization: Optional[str]) -> Optional[str]:
@@ -141,7 +249,9 @@ def _validar_magic_bytes_imagen(ext: str, data: bytes) -> bool:
 
 @app.get("/")
 def servir_frontend():
-    return FileResponse(FRONTEND_FILE)
+    nonce = secrets.token_urlsafe(16)
+    html = renderizar_frontend(FRONTEND_FILE.read_text(encoding="utf-8"), nonce)
+    return HTMLResponse(html, headers={"X-CSP-Nonce": nonce, "Cache-Control": "no-store"})
 
 
 @app.get("/usuarios")
@@ -195,12 +305,29 @@ def iniciar_sesion(
     if not password or len(password) > 128:
         raise HTTPException(status_code=400, detail="Credencial invalida.")
 
+    ident_clave = ident_limpio.lower()
+    clave_par = f"login:{ident_clave}|{_ip_cliente.get()}"
+    clave_ident = f"login-ident:{ident_clave}"
+    espera = max(
+        limitador.bloqueado(clave_par, 5, 300),
+        limitador.bloqueado(clave_ident, 20, 900),
+    )
+    if espera:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiados intentos fallidos. Intente nuevamente en {espera} segundos.",
+            headers={"Retry-After": str(espera)},
+        )
+
     sesion = get_repo().autenticar(ident_limpio, password)
     if not sesion:
+        limitador.registrar(clave_par)
+        limitador.registrar(clave_ident)
         raise HTTPException(
             status_code=401,
             detail="Credenciales incorrectas. Verifique su ID/correo corporativo y contraseña asignada por la empresa.",
         )
+    limitador.olvidar(clave_par)
     return _respuesta_sesion(sesion)
 
 
@@ -294,7 +421,7 @@ def endpoint_cambiar_estado(
     uid = _resolver_usuario_request(authorization, usuario_id)
     res = actualizar_estado(ticket_id=ticket_id, usuario_id=uid, nuevo_estado=nuevo_estado)
     if not res.get("ok"):
-        codigo = 403 if "permiso" in res.get("error", "").lower() else 400
+        codigo = _codigo_error_cambio(res)
         raise HTTPException(status_code=codigo, detail=res.get("error"))
     return {"ok": True, "ticket": enriquecer_ticket_ui(get_repo().ticket(ticket_id))}
 
@@ -309,7 +436,7 @@ def endpoint_cambiar_prioridad(
     uid = _resolver_usuario_request(authorization, usuario_id)
     res = cambiar_prioridad(ticket_id=ticket_id, usuario_id=uid, nueva_prioridad=nueva_prioridad)
     if not res.get("ok"):
-        codigo = 403 if "permiso" in res.get("error", "").lower() else 400
+        codigo = _codigo_error_cambio(res)
         raise HTTPException(status_code=codigo, detail=res.get("error"))
     return {"ok": True, "ticket": enriquecer_ticket_ui(get_repo().ticket(ticket_id))}
 
@@ -324,7 +451,7 @@ def endpoint_asignar_responsable(
     uid = _resolver_usuario_request(authorization, usuario_id)
     res = asignar_responsable(ticket_id=ticket_id, usuario_id=uid, responsable_id=responsable_id)
     if not res.get("ok"):
-        codigo = 403 if "permiso" in res.get("error", "").lower() else 400
+        codigo = _codigo_error_cambio(res)
         raise HTTPException(status_code=codigo, detail=res.get("error"))
     return {"ok": True, "ticket": enriquecer_ticket_ui(get_repo().ticket(ticket_id))}
 
@@ -350,8 +477,7 @@ async def reset_sesion(
     authorization: Optional[str] = Header(None),
 ):
     uid = _resolver_usuario_request(authorization, usuario_id)
-    _sesiones_por_usuario.pop(uid, None)
-    nueva = await _obtener_sesion(uid)
+    nueva = await _nueva_sesion(uid)
     return {"ok": True, "session_id": nueva}
 
 
@@ -365,12 +491,21 @@ async def chat_con_agente(
 ):
     uid = _resolver_usuario_request(authorization, usuario_id)
 
+    espera_chat = limitador.bloqueado(f"chat:{uid}", MAX_CHAT_POR_MINUTO, 60)
+    if espera_chat:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiadas consultas seguidas. Espere {espera_chat} segundos.",
+            headers={"Retry-After": str(espera_chat)},
+        )
+    limitador.registrar(f"chat:{uid}")
+
     mensaje_str = mensaje if isinstance(mensaje, str) else ""
     archivo_srv_str = archivo_servidor if isinstance(archivo_servidor, str) else ""
     tiene_archivo_subido = bool(archivo and getattr(archivo, "filename", None))
     tiene_archivo_srv = bool(archivo_srv_str and archivo_srv_str.strip())
 
-    mensaje_limpio, err = sanitizar_texto(mensaje_str, campo="mensaje", max_largo=2000)
+    mensaje_limpio, err = sanitizar_texto(mensaje_str, campo="mensaje", max_largo=2000, texto_libre=True)
     if err:
         return {"ok": False, "usuario_id": uid, "tools_usadas": [], "respuesta": err["error"]}
 
@@ -454,7 +589,7 @@ async def chat_con_agente(
                     "tools_usadas": [],
                     "respuesta": f"El archivo '{nombre_limpio}' no tiene codificacion de texto UTF-8 valida.",
                 }
-            if detectar_prompt_injection(texto_arch):
+            if detectar_prompt_injection(texto_arch, texto_libre=True):
                 return {
                     "ok": False,
                     "usuario_id": uid,
@@ -532,18 +667,33 @@ async def chat_con_agente(
     token_ctx = ctx_seguro["token_ctx"]
     partes.append(types.Part(text=ctx_seguro["texto_para_agente"]))
 
-    session_id = await _obtener_sesion(uid)
+    try:
+        session_id = await _obtener_sesion(uid)
+    except Exception as exc:
+        if not _es_error_de_almacen(exc):
+            raise
+        _log.warning("Fallo la base de sesiones; se continua en memoria.", exc_info=True)
+        _pasar_a_memoria()
+        session_id = await _obtener_sesion(uid)
     msg = types.Content(role="user", parts=partes)
 
     respuestas: list[str] = []
     tools_usadas: list[dict] = []
+    t_inicio = t_previo = time.perf_counter()
 
     try:
         async for ev in runner.run_async(
-            user_id="sesion_aislada", session_id=session_id, new_message=msg
+            user_id=uid, session_id=session_id, new_message=msg
         ):
+            ahora = time.perf_counter()
             if ev.content and ev.content.parts:
                 for p in ev.content.parts:
+                    if p.function_call:
+                        _log.info("chat %s: el modelo pidio '%s' (%.1fs de modelo)", uid, p.function_call.name, ahora - t_previo)
+                    elif getattr(p, "function_response", None):
+                        _log.info("chat %s: herramienta '%s' ejecutada (%.1fs)", uid, p.function_response.name, ahora - t_previo)
+                    elif p.text:
+                        _log.info("chat %s: el modelo respondio (%.1fs de modelo)", uid, ahora - t_previo)
                     if p.function_call:
                         tools_usadas.append(
                             {
@@ -553,7 +703,12 @@ async def chat_con_agente(
                         )
                     if p.text:
                         respuestas.append(p.text)
-    except Exception:
+            t_previo = ahora
+        _log.info("chat %s: total %.1fs, %d herramienta(s)", uid, time.perf_counter() - t_inicio, len(tools_usadas))
+    except Exception as exc:
+        _log.warning("chat %s: la consulta con el agente fallo", uid, exc_info=True)
+        if _es_error_de_almacen(exc):
+            _pasar_a_memoria()
         return {
             "ok": False,
             "usuario_id": uid,

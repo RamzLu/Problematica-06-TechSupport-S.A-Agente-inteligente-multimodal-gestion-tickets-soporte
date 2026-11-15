@@ -8,6 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from .repo import ConflictoError
+
 DATASET_DIR = Path(__file__).resolve().parent.parent / "dataset"
 USUARIOS_DEMO_PATH = DATASET_DIR / "usuarios_demo_memoria.json"
 TICKETS_CSV_PATH = DATASET_DIR / "tickets_iniciales.csv"
@@ -165,9 +167,19 @@ class RepoMemoria:
         return copy.deepcopy(ticket)
 
     def aplicar_cambio(
-        self, ticket_id: int, campos: dict, usuario: str, tipo: str, detalle: str
+        self,
+        ticket_id: int,
+        campos: dict,
+        usuario: str,
+        tipo: str,
+        detalle: str,
+        esperado: Optional[dict] = None,
     ) -> dict:
         ticket = self._tickets[int(ticket_id)]
+        for campo, valor in (esperado or {}).items():
+            actual = list(ticket[campo]) if campo == "adjuntos" else ticket.get(campo)
+            if actual != (list(valor) if campo == "adjuntos" else valor):
+                raise ConflictoError("El ticket fue modificado por otra persona.")
         for campo in ("estado", "prioridad", "responsable"):
             if campo in campos:
                 ticket[campo] = campos[campo]

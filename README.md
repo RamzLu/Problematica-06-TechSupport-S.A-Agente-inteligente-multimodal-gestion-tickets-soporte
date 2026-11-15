@@ -45,6 +45,7 @@ En el **SQL Editor** de tu proyecto, ejecutar en orden:
 3. `supabase/02_usuarios_demo.sql` — completa código, rol, área y cargo de los 8 usuarios de ejemplo.
 4. `supabase/03_tickets_demo.sql` — carga los 5 tickets históricos (ejecutar una sola vez).
 5. `supabase/04_storage.sql` — crea el bucket privado `ticket-archivos` (imágenes, `.txt` y `.log`, máx. 5 MB). Luego, una sola vez y con el `.env` completo, subir los archivos de ejemplo: `env\Scripts\python.exe scripts/subir_archivos_demo.py`.
+6. `supabase/05_concurrencia.sql` — reemplaza `aplicar_cambio_ticket` por una versión que detecta ediciones simultáneas del mismo ticket. Es seguro ejecutarla varias veces. Si todavía no se ejecutó, el sistema sigue funcionando pero avisa en el log.
 
 ### 2.2 Crear usuarios (desde Supabase)
 1. Panel de Supabase → **Authentication → Users → Add user → Create new user**.
@@ -76,6 +77,15 @@ SUPABASE_SERVICE_ROLE_KEY=...        # clave SECRETA, solo en el servidor
 ```
 `.env` está en `.gitignore`. **La clave `service_role` nunca debe subirse a git ni compartirse.**
 
+Variables opcionales (todas tienen un valor por defecto):
+
+| Variable | Para qué sirve | Por defecto |
+|---|---|---|
+| `TS_SESIONES` | `sqlite` guarda las conversaciones del chat en `agent/.adk/sesiones_chat.db`; `memoria` las pierde al reiniciar | `sqlite` |
+| `TS_MAX_TURNOS` | Mensajes por conversación antes de abrir una nueva (acota el historial que recibe el modelo) | `10` |
+| `TS_MAX_CHAT_MIN` | Mensajes de chat por minuto y por usuario | `20` |
+| `TS_EMBED_TIMEOUT` | Segundos de espera al generar embeddings con Ollama | `10` |
+
 ### 2.4 Dependencias y modelos
 ```powershell
 env\Scripts\pip.exe install -r requirements.txt
@@ -105,6 +115,7 @@ Los tests **no usan Supabase real**: corren con un repositorio en memoria (`TS_B
 │   ├── data.py             # Catálogo/reglas/permisos + directorio de usuarios (desde la BD)
 │   ├── repo.py             # Capa de datos: RepoSupabase (Auth + Postgres) y fábrica
 │   ├── repo_memoria.py     # Repositorio en memoria (solo tests)
+│   ├── limitador.py        # Límite de intentos (login y chat)
 │   └── tools/tools.py      # 14 herramientas, preprocesar_contexto_seguro, clasificación y ChromaDB
 ├── archivos/               # Archivos de ejemplo (.log, .txt, .png); se suben a Storage con scripts/subir_archivos_demo.py
 ├── scripts/subir_archivos_demo.py
@@ -116,7 +127,8 @@ Los tests **no usan Supabase real**: corren con un repositorio en memoria (`TS_B
 │   ├── 01_esquema.sql      # Tablas, trigger de perfiles, RLS y funciones
 │   ├── 02_usuarios_demo.sql
 │   ├── 03_tickets_demo.sql
-│   └── 04_storage.sql      # Bucket privado de archivos
+│   ├── 04_storage.sql      # Bucket privado de archivos
+│   └── 05_concurrencia.sql # Detección de ediciones simultáneas
 ├── frontend/index.html     # Login + vistas Usuario y Soporte
 ├── tests/test_funcional_y_seguridad.py
 ├── main.py                 # FastAPI: autenticación por JWT de Supabase
@@ -136,3 +148,10 @@ Los tests **no usan Supabase real**: corren con un repositorio en memoria (`TS_B
 6. **Defensas de entrada**: filtros anti SQLi y prompt injection, validación de archivos (extensión, tamaño, *magic bytes*, UTF-8), prevención de path traversal, cabeceras de seguridad y construcción segura del DOM en el frontend.
 7. **Archivos en bucket privado** (Supabase Storage): cada usuario guarda y lee solo en su carpeta (`<codigo>/`), más los ejemplos de solo lectura en `compartidos/`; sin políticas para `anon`/`authenticated`, solo el backend accede.
 8. **Trazabilidad atómica**: cada modificación y su evento de historial se guardan juntos.
+9. **Zero-PII también en lo que vuelve al modelo**: títulos, descripciones, comentarios e historial se enmascaran antes de entregárselos al agente, vengan del chat o de la API. La interfaz sigue mostrando el texto original.
+10. **Límite de intentos**: 5 contraseñas erróneas por usuario y dirección IP en 5 minutos (y 20 por usuario en 15 minutos), 30 pedidos de login por minuto por IP y 20 mensajes de chat por minuto por usuario. Responde `429` con `Retry-After`. Los contadores viven en memoria: se reinician con el servidor y no se comparten entre varios procesos.
+11. **Filtros según el tipo de campo**: en identificadores, títulos y filtros se bloquea cualquier patrón SQL; en texto libre (mensajes, descripciones, comentarios y archivos) solo las formas típicas de ataque, para que un técnico pueda pegar un `SELECT` o un `/* */` en un reporte. Los datos viajan siempre como parámetros, nunca como SQL.
+12. **Edición simultánea**: cada cambio indica qué valor tenía el ticket al leerlo y la base lo rechaza (`409`) si otra persona lo modificó antes.
+13. **Conversaciones acotadas y persistentes**: se guardan en SQLite y se abre una nueva al llegar a `TS_MAX_TURNOS` mensajes.
+14. **CSP con nonce**: los scripts y bloques de estilo solo se ejecutan con el nonce de cada respuesta. Solo se permite `style` en atributos (`style="…"`) del HTML.
+15. **Catálogos sincronizados**: un test compara las categorías, prioridades y estados del JSON con los `CHECK` de `01_esquema.sql` para detectar desfases.
