@@ -5,6 +5,7 @@ import re
 import threading
 import time
 import unicodedata
+import uuid
 from pathlib import Path
 
 import chromadb
@@ -45,7 +46,13 @@ _ALIASES_SESION_ACTUAL = {
 }
 
 
+_id_turno: contextvars.ContextVar[str] = contextvars.ContextVar("id_turno", default="")
+
+
 def fijar_usuario_sesion(usuario_id: str | None):
+    # Cada mensaje del chat es un "turno": sirve para exigir que la confirmacion (F10) llegue
+    # en un mensaje posterior del usuario y no en el mismo en el que el modelo la pidio.
+    _id_turno.set(uuid.uuid4().hex)
     return _usuario_sesion_actual.set(usuario_id)
 
 
@@ -644,6 +651,46 @@ _consultas_reglas: dict[str, float] = {}
 _lock_consultas_reglas = threading.Lock()
 
 
+_confirmaciones: dict[tuple, tuple[str, float]] = {}
+_lock_confirmaciones = threading.Lock()
+_TTL_CONFIRMACION_SEG = 10 * 60
+
+
+def resetear_confirmaciones() -> None:
+    with _lock_confirmaciones:
+        _confirmaciones.clear()
+
+
+def _exigir_confirmacion(uid: str, ticket_id, accion: str, valor: str, descripcion: str, confirmado: bool):
+    """F10: los cambios relevantes se confirman con el usuario antes de aplicarse.
+
+    La primera llamada solo registra el pedido y devuelve `requiere_confirmacion`. El cambio se aplica
+    unicamente si se repite con `confirmado=True` en un turno POSTERIOR del chat, de modo que el modelo
+    no pueda confirmar por su cuenta. Fuera del chat (acciones de la interfaz) el clic ya es deliberado.
+    """
+    if not _usuario_sesion_actual.get():
+        return None
+    clave = (uid, int(ticket_id), accion, str(valor))
+    turno = _id_turno.get()
+    ahora = time.monotonic()
+    with _lock_confirmaciones:
+        for k in [k for k, (_, t0) in _confirmaciones.items() if ahora - t0 > _TTL_CONFIRMACION_SEG]:
+            del _confirmaciones[k]
+        previo = _confirmaciones.get(clave)
+        if confirmado and previo is not None and previo[0] != turno:
+            del _confirmaciones[clave]
+            return None
+        if previo is None or not confirmado:
+            _confirmaciones[clave] = (turno, ahora)
+    respuesta = _error(
+        f"Falta la confirmacion del usuario (F10): {descripcion}. Explicale el cambio y pedile que confirme. "
+        "Solo si responde que si en su PROXIMO mensaje, volve a llamar a la herramienta con confirmado=True. "
+        "No uses confirmado=True en este mismo mensaje."
+    )
+    respuesta["requiere_confirmacion"] = True
+    return respuesta
+
+
 def resetear_consultas_reglas() -> None:
     with _lock_consultas_reglas:
         _consultas_reglas.clear()
@@ -979,7 +1026,7 @@ def buscar_tickets(
     return {"ok": True, "cantidad": len(resultados), "tickets": resultados}
 
 
-def actualizar_estado(ticket_id: int, nuevo_estado: str, usuario_id: str = "") -> dict:
+def actualizar_estado(ticket_id: int, nuevo_estado: str, usuario_id: str = "", confirmado: bool = False) -> dict:
     """
     Cambia el estado de un ticket respetando las transiciones permitidas (solo rol soporte).
 
@@ -987,6 +1034,7 @@ def actualizar_estado(ticket_id: int, nuevo_estado: str, usuario_id: str = "") -
         ticket_id: numero del ticket.
         nuevo_estado: Abierto, En revision, En progreso, Pendiente, Resuelto o Cerrado.
         usuario_id: opcional, se resuelve automaticamente de la sesion activa.
+        confirmado: pasar True solo cuando el usuario ya confirmo el cambio (se exige para Resuelto y Cerrado).
     """
     uid, error = _validar_usuario(usuario_id)
     if error:
@@ -1011,6 +1059,13 @@ def actualizar_estado(ticket_id: int, nuevo_estado: str, usuario_id: str = "") -
             f"Transicion no permitida: de '{anterior}' a '{estado_ok}'. "
             f"Desde '{anterior}' solo se puede pasar a: {permitidos or 'ningun estado (estado final)'}."
         )
+    if estado_ok in ("Resuelto", "Cerrado"):
+        pendiente = _exigir_confirmacion(
+            uid, ticket["id"], "estado", estado_ok,
+            f"pasar el ticket {ticket['id']} de '{anterior}' a '{estado_ok}'", confirmado,
+        )
+        if pendiente:
+            return pendiente
 
     ticket["estado"] = estado_ok
     error = _persistir(
@@ -1026,7 +1081,7 @@ def actualizar_estado(ticket_id: int, nuevo_estado: str, usuario_id: str = "") -
     return {"ok": True, "ticket": _resumen_corto(ticket)}
 
 
-def cambiar_prioridad(ticket_id: int, nueva_prioridad: str, usuario_id: str = "") -> dict:
+def cambiar_prioridad(ticket_id: int, nueva_prioridad: str, usuario_id: str = "", confirmado: bool = False) -> dict:
     """
     Modifica la prioridad de un ticket (solo rol soporte).
 
@@ -1034,6 +1089,7 @@ def cambiar_prioridad(ticket_id: int, nueva_prioridad: str, usuario_id: str = ""
         ticket_id: numero del ticket.
         nueva_prioridad: Baja, Media, Alta o Critica.
         usuario_id: opcional, se resuelve automaticamente de la sesion activa.
+        confirmado: pasar True solo cuando el usuario ya confirmo el cambio (se exige al subir a Critica o bajar de Critica).
     """
     uid, error = _validar_usuario(usuario_id)
     if error:
@@ -1054,6 +1110,13 @@ def cambiar_prioridad(ticket_id: int, nueva_prioridad: str, usuario_id: str = ""
     anterior = ticket["prioridad"]
     if prioridad_ok == anterior:
         return _error(f"El ticket {ticket['id']} ya tiene prioridad '{prioridad_ok}'.")
+    if "Critica" in (anterior, prioridad_ok):
+        pendiente = _exigir_confirmacion(
+            uid, ticket["id"], "prioridad", prioridad_ok,
+            f"cambiar la prioridad del ticket {ticket['id']} de '{anterior}' a '{prioridad_ok}'", confirmado,
+        )
+        if pendiente:
+            return pendiente
     ticket["prioridad"] = prioridad_ok
     error = _persistir(
         ticket,
@@ -1071,7 +1134,7 @@ def cambiar_prioridad(ticket_id: int, nueva_prioridad: str, usuario_id: str = ""
 _AUTO_ASIGNACION = {"yo", "me", "mi", "mismo", "propio", "self"}
 
 
-def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "") -> dict:
+def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "", confirmado: bool = False) -> dict:
     """
     Asigna o reasigna un ticket a un codigo de soporte tecnico (solo rol soporte).
 
@@ -1081,6 +1144,7 @@ def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "
             usuario de la sesion se asigne el ticket a si mismo ("asignamelo", "yo", "me lo quedo")
             usar "yo".
         usuario_id: opcional, se resuelve automaticamente de la sesion activa.
+        confirmado: pasar True solo cuando el usuario ya confirmo (se exige al reasignar un ticket que ya tiene responsable).
     """
     uid, error = _validar_usuario(usuario_id)
     if error:
@@ -1111,6 +1175,13 @@ def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "
     anterior = ticket["responsable"]
     if anterior == resp_ok:
         return _error(f"El ticket {ticket['id']} ya esta asignado a {resp_ok}.")
+    if anterior is not None:
+        pendiente = _exigir_confirmacion(
+            uid, ticket["id"], "responsable", resp_ok,
+            f"reasignar el ticket {ticket['id']} de {anterior} a {resp_ok}", confirmado,
+        )
+        if pendiente:
+            return pendiente
     ticket["responsable"] = resp_ok
     tipo = "Asignacion" if anterior is None else "Reasignacion"
     error = _persistir(

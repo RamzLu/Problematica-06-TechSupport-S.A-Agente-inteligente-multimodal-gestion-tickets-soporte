@@ -1133,6 +1133,77 @@ class TestSeguridadYRobustez(unittest.TestCase):
         self.assertFalse(res["ok"])
         self.assertIn("se cancelo la consulta", res["respuesta"])
 
+    # --- F10: confirmar los cambios relevantes antes de aplicarlos ---
+    def test_f10_cambios_relevantes_piden_confirmacion_en_un_turno_posterior(self):
+        from agent.tools.tools import fijar_usuario_sesion, limpiar_usuario_sesion, resetear_confirmaciones
+
+        resetear_confirmaciones()
+        repo = get_repo()
+
+        def turno_de_chat(usuario, funcion, *args, **kwargs):
+            token = fijar_usuario_sesion(usuario)  # cada mensaje del usuario es un turno nuevo
+            try:
+                return funcion(*args, **kwargs)
+            finally:
+                limpiar_usuario_sesion(token)
+
+        # Resolver el ticket 1050 (En progreso -> Resuelto): primero pide confirmacion
+        res = turno_de_chat("s001", actualizar_estado, 1050, "Resuelto")
+        self.assertFalse(res["ok"])
+        self.assertTrue(res.get("requiere_confirmacion"))
+        self.assertEqual(repo.ticket(1050)["estado"], "En progreso")
+
+        # el modelo no puede confirmar en el mismo turno en que se pidio
+        token = fijar_usuario_sesion("s001")
+        try:
+            self.assertTrue(actualizar_estado(1050, "Resuelto")["requiere_confirmacion"])
+            self.assertTrue(actualizar_estado(1050, "Resuelto", confirmado=True)["requiere_confirmacion"])
+        finally:
+            limpiar_usuario_sesion(token)
+        self.assertEqual(repo.ticket(1050)["estado"], "En progreso")
+
+        # confirmar sin que se haya pedido antes (otro valor) tampoco sirve
+        res = turno_de_chat("s001", cambiar_prioridad, 1050, "Critica", confirmado=True)
+        self.assertTrue(res.get("requiere_confirmacion"))
+
+        # en el turno siguiente, con confirmado=True, se aplica
+        res = turno_de_chat("s001", actualizar_estado, 1050, "Resuelto", confirmado=True)
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(repo.ticket(1050)["estado"], "Resuelto")
+        # y la confirmacion se consume: no vale para un segundo cambio igual
+        self.assertFalse(turno_de_chat("s001", actualizar_estado, 1050, "Resuelto", confirmado=True)["ok"])
+
+    def test_f10_confirmacion_solo_donde_corresponde(self):
+        from agent.tools.tools import fijar_usuario_sesion, limpiar_usuario_sesion, resetear_confirmaciones
+
+        resetear_confirmaciones()
+
+        def turno(usuario, funcion, *args, **kwargs):
+            token = fijar_usuario_sesion(usuario)
+            try:
+                return funcion(*args, **kwargs)
+            finally:
+                limpiar_usuario_sesion(token)
+
+        # una transicion invalida se rechaza antes de pedir confirmacion
+        res = turno("s001", actualizar_estado, 1051, "Resuelto")
+        self.assertNotIn("requiere_confirmacion", res)
+        self.assertIn("Transicion no permitida", res["error"])
+        # cambios menores no piden confirmacion
+        self.assertTrue(turno("s001", actualizar_estado, 1051, "En revision")["ok"])
+        self.assertTrue(turno("s001", cambiar_prioridad, 1051, "Media")["ok"])
+        # la primera asignacion no pide confirmacion; reasignar si
+        self.assertTrue(turno("s001", asignar_responsable, 1051, "s003")["ok"])
+        res = turno("s001", asignar_responsable, 1051, "s002")
+        self.assertTrue(res.get("requiere_confirmacion"))
+        self.assertTrue(turno("s001", asignar_responsable, 1051, "s002", confirmado=True)["ok"])
+        # subir a Critica pide confirmacion
+        self.assertTrue(turno("s001", cambiar_prioridad, 1051, "Critica").get("requiere_confirmacion"))
+        self.assertEqual(get_repo().ticket(1051)["prioridad"], "Media")
+        # fuera del chat (acciones de la interfaz) el clic ya es deliberado: no se pide nada
+        self.assertTrue(actualizar_estado(1051, "En progreso", usuario_id="s001")["ok"])
+        self.assertTrue(actualizar_estado(1051, "Resuelto", usuario_id="s001")["ok"])
+
     def test_bucle_de_herramientas_se_corta(self):
         import asyncio
 
