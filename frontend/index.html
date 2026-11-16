@@ -2628,7 +2628,9 @@
       agregarMensaje(
         "agent",
         "Agente Inteligente TechSupport",
-        `Hola **${usuarioActivo.nombre}**. Estoy disponible para registrar incidentes, analizar capturas o logs y consultar el estado de tus tickets.`
+        usuarioActivo.rol === "soporte"
+          ? `Hola **${usuarioActivo.nombre}**. Estoy disponible para consultar y filtrar los tickets de la organización, cambiar estados y prioridades, asignar responsables y generar el resumen de incidencias.`
+          : `Hola **${usuarioActivo.nombre}**. Estoy disponible para registrar incidentes, analizar capturas o logs y consultar el estado de tus tickets.`
       );
     }
 
@@ -3728,7 +3730,7 @@
       let duracionMs = 0;
       // El servidor corta a los 240 s; este límite evita esperar para siempre si el servidor no responde.
       const controlEspera = new AbortController();
-      const temporizadorEspera = setTimeout(() => controlEspera.abort(), 300000);
+      const temporizadorEspera = setTimeout(() => controlEspera.abort(), 660000);
       try {
         const r = await fetch("/chat", {
           method: "POST",

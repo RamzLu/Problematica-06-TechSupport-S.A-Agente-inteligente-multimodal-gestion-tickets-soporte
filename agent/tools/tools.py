@@ -87,6 +87,21 @@ def _sin_tildes(texto: str) -> str:
     return "".join(c for c in texto if unicodedata.category(c) != "Mn")
 
 
+_NEGACION_PREVIA = re.compile(r"\b(no|ni|sin|tampoco)\s+(?:(?:es|son|resulta|tan|muy|hay|esta|estan|lo|nada|tampoco|para nada)\s+)*$")
+
+
+def _contiene_indicador_afirmado(texto_norm: str, termino: str) -> bool:
+    """Como `_contiene_termino`, pero ignora el indicador si esta negado ("no es urgente", "sin urgencia")."""
+    t = _sin_tildes(termino)
+    if not t:
+        return False
+    patron = rf"(?<![a-z0-9]){re.escape(t)}(?:es|s)?(?![a-z0-9])"
+    for m in re.finditer(patron, texto_norm):
+        if not _NEGACION_PREVIA.search(texto_norm[max(0, m.start() - 30):m.start()]):
+            return True
+    return False
+
+
 def _contiene_termino(texto_norm: str, termino: str) -> bool:
     """True si `termino` aparece como palabra (o frase) completa en `texto_norm`.
 
@@ -273,6 +288,34 @@ def encapsular_mensaje_usuario_seguro(texto: str) -> str:
     )
 
 
+_TILDES_EQUIVALENTES = {"a": "aáàäâ", "e": "eéèëê", "i": "iíìïî", "o": "oóòöô", "u": "uúùüû", "n": "nñ"}
+
+
+def _patron_palabra(palabra: str) -> str:
+    return "".join(
+        f"[{_TILDES_EQUIVALENTES[c]}]" if c in _TILDES_EQUIVALENTES else re.escape(c)
+        for c in _sin_tildes(palabra)
+    )
+
+
+def _nombres_de_soporte_a_codigo(texto: str) -> str:
+    """Para sesiones de soporte: cambia el nombre de un integrante de soporte por su codigo (s002).
+
+    Asi el agente puede asignar "a Viviana" sin ver nombres propios: los nombres siguen enmascarados
+    (Zero-PII) y el modelo solo recibe el codigo tecnico.
+    """
+    personal = [(c, i.get("nombre", "").split()) for c, i in USUARIOS.items() if i.get("rol") == "soporte"]
+    for codigo, palabras in personal:
+        if len(palabras) > 1:
+            patron = r"(?<!\w)" + r"\s+".join(_patron_palabra(w) for w in palabras) + r"(?!\w)"
+            texto = re.sub(patron, codigo, texto, flags=re.IGNORECASE)
+    nombres_pila = [p[0] for _, p in personal if p]
+    for codigo, palabras in personal:
+        if palabras and len(palabras[0]) >= 4 and sum(_sin_tildes(n) == _sin_tildes(palabras[0]) for n in nombres_pila) == 1:
+            texto = re.sub(r"(?<!\w)" + _patron_palabra(palabras[0]) + r"(?!\w)", codigo, texto, flags=re.IGNORECASE)
+    return texto
+
+
 def preprocesar_contexto_seguro(
     usuario_id_autenticado: str,
     mensaje: str = "",
@@ -289,6 +332,8 @@ def preprocesar_contexto_seguro(
         return None, err_msg
 
     texto_base = mensaje_limpio or "Analiza el archivo adjunto."
+    if USUARIOS[uid]["rol"] == "soporte":
+        texto_base = _nombres_de_soporte_a_codigo(texto_base)
     bloque_anonimo = encapsular_mensaje_usuario_seguro(texto_base)
     prefijo_archivo = f"{nota_archivo.strip()}\n" if nota_archivo and nota_archivo.strip() else ""
     texto_para_agente = f"{prefijo_archivo}{bloque_anonimo}"
@@ -533,7 +578,7 @@ def _tickets_visibles(usuario_id: str) -> list:
 
 VECTOR_STORE_DIR = str(Path(__file__).resolve().parent.parent.parent / "vector_store")
 COLECCION_TICKETS = "tickets_soporte"
-UMBRAL_DUPLICADO = 0.55
+UMBRAL_DUPLICADO = 0.65
 
 _vector_store = None
 _ids_indexados = set()
@@ -755,7 +800,7 @@ def consultar_reglas_clasificacion(descripcion_incidencia: str = "") -> dict:
     for prio in ("Critica", "Alta", "Media", "Baja"):
         info_p = criterios_prio.get(prio, {})
         inds = info_p.get("indicadores", [])
-        hits_p = [ind for ind in inds if _contiene_termino(texto_norm, ind)]
+        hits_p = [ind for ind in inds if _contiene_indicador_afirmado(texto_norm, ind)]
         if hits_p:
             prioridad_sugerida = prio
             coincidencias_prio = hits_p
@@ -972,7 +1017,7 @@ def buscar_tickets(
 
     Args:
         solicitante: opcional, filtrar por codigo de solicitante (vacio = todos los visibles).
-        estado: Abierto, En revision, En progreso, Pendiente, Resuelto o Cerrado.
+        estado: Abierto, En revision, En progreso, Pendiente, Resuelto o Cerrado. Usalo solo si piden un estado exacto; para "pendientes" o "sin resolver" dejalo vacio y descarta Resuelto y Cerrado.
         categoria: una de las categorias oficiales.
         prioridad: Baja, Media, Alta o Critica.
         area: filtrar por nombre de area o sector (opcional).
@@ -1134,6 +1179,27 @@ def cambiar_prioridad(ticket_id: int, nueva_prioridad: str, usuario_id: str = ""
 _AUTO_ASIGNACION = {"yo", "me", "mi", "mismo", "propio", "self"}
 
 
+def _resolver_responsable_por_nombre(valor: str) -> str:
+    """Si `valor` es un nombre o apodo de UNA sola persona de soporte ("vivi", "stella"), devuelve su codigo.
+
+    Si no coincide con nadie, o coincide con varias personas, devuelve `valor` sin tocar y la
+    validacion normal por codigo decide.
+    """
+    texto = _sin_tildes(valor or "")
+    if len(texto) < 3 or texto in USUARIOS:
+        return valor
+    candidatos = [
+        codigo
+        for codigo, info in USUARIOS.items()
+        if info.get("rol") == "soporte"
+        and all(
+            any(palabra.startswith(parte) for palabra in _sin_tildes(info.get("nombre", "")).split())
+            for parte in texto.split()
+        )
+    ]
+    return candidatos[0] if len(candidatos) == 1 else valor
+
+
 def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "", confirmado: bool = False) -> dict:
     """
     Asigna o reasigna un ticket a un codigo de soporte tecnico (solo rol soporte).
@@ -1161,6 +1227,8 @@ def asignar_responsable(ticket_id: int, responsable_id: str, usuario_id: str = "
         return _error(f"Operacion no permitida: el ticket {ticket['id']} se encuentra en estado final 'Cerrado'.")
     if (responsable_id or "").strip().lower() in _AUTO_ASIGNACION:
         responsable_id = uid
+    else:
+        responsable_id = _resolver_responsable_por_nombre(responsable_id)
     resp_ok, err = sanitizar_identificador(responsable_id, campo="responsable_id")
     if err:
         return err
